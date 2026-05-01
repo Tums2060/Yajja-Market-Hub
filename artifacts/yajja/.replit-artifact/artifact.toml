@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Yajja"
+version = "1.0.0"
+id = "artifacts/yajja"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18299
+
+[services.development]
+run = "pnpm --filter @workspace/yajja run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/yajja", "run", "build" ]
+publicDir = "artifacts/yajja/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18299"
+BASE_PATH = "/"

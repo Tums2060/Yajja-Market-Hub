@@ -3,20 +3,30 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Yajja delivery & social platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: auth
+  - name: users
+  - name: vendors
+  - name: products
+  - name: cart
+  - name: orders
+  - name: groups
+  - name: messages
+  - name: riders
+  - name: leaderboard
+  - name: invites
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +34,1634 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── Auth ──────────────────────────────────────────────────────────────────────
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterBody"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  # ── Users ─────────────────────────────────────────────────────────────────────
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List users (for invite search)
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Users list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+
+  /users/{userId}:
+    get:
+      operationId: getUser
+      tags: [users]
+      parameters:
+        - $ref: "#/components/parameters/userId"
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  # ── Vendors ───────────────────────────────────────────────────────────────────
+  /vendors:
+    get:
+      operationId: listVendors
+      tags: [vendors]
+      summary: List all vendors
+      parameters:
+        - name: category
+          in: query
+          schema:
+            $ref: "#/components/schemas/Category"
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Vendors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Vendor"
+    post:
+      operationId: createVendor
+      tags: [vendors]
+      summary: Register vendor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVendorBody"
+      responses:
+        "201":
+          description: Vendor created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vendor"
+
+  /vendors/{vendorId}:
+    get:
+      operationId: getVendor
+      tags: [vendors]
+      parameters:
+        - $ref: "#/components/parameters/vendorId"
+      responses:
+        "200":
+          description: Vendor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vendor"
+    put:
+      operationId: updateVendor
+      tags: [vendors]
+      parameters:
+        - $ref: "#/components/parameters/vendorId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateVendorBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vendor"
+
+  /vendors/{vendorId}/stats:
+    get:
+      operationId: getVendorStats
+      tags: [vendors]
+      summary: Vendor dashboard stats
+      parameters:
+        - $ref: "#/components/parameters/vendorId"
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VendorStats"
+
+  # ── Products ──────────────────────────────────────────────────────────────────
+  /products:
+    get:
+      operationId: listProducts
+      tags: [products]
+      summary: List products
+      parameters:
+        - name: vendorId
+          in: query
+          schema:
+            type: integer
+        - name: category
+          in: query
+          schema:
+            $ref: "#/components/schemas/Category"
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+    post:
+      operationId: createProduct
+      tags: [products]
+      summary: Create product (vendor)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProductBody"
+      responses:
+        "201":
+          description: Product created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+
+  /products/{productId}:
+    get:
+      operationId: getProduct
+      tags: [products]
+      parameters:
+        - $ref: "#/components/parameters/productId"
+      responses:
+        "200":
+          description: Product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+    put:
+      operationId: updateProduct
+      tags: [products]
+      parameters:
+        - $ref: "#/components/parameters/productId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProductBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+    delete:
+      operationId: deleteProduct
+      tags: [products]
+      parameters:
+        - $ref: "#/components/parameters/productId"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ── Cart (individual) ─────────────────────────────────────────────────────────
+  /cart:
+    get:
+      operationId: getCart
+      tags: [cart]
+      summary: Get individual cart
+      responses:
+        "200":
+          description: Cart items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartResponse"
+
+  /cart/items:
+    post:
+      operationId: addToCart
+      tags: [cart]
+      summary: Add item to individual cart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddCartItemBody"
+      responses:
+        "201":
+          description: Added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartItem"
+
+  /cart/items/{cartItemId}:
+    put:
+      operationId: updateCartItem
+      tags: [cart]
+      parameters:
+        - $ref: "#/components/parameters/cartItemId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCartItemBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartItem"
+    delete:
+      operationId: removeCartItem
+      tags: [cart]
+      parameters:
+        - $ref: "#/components/parameters/cartItemId"
+      responses:
+        "200":
+          description: Removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /cart/clear:
+    delete:
+      operationId: clearCart
+      tags: [cart]
+      summary: Clear individual cart
+      responses:
+        "200":
+          description: Cleared
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ── Group Cart ────────────────────────────────────────────────────────────────
+  /groups/{groupId}/cart:
+    get:
+      operationId: getGroupCart
+      tags: [cart]
+      summary: Get group cart
+      parameters:
+        - $ref: "#/components/parameters/groupId"
+      responses:
+        "200":
+          description: Group cart
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupCartResponse"
+
+  /groups/{groupId}/cart/items:
+    post:
+      operationId: addToGroupCart
+      tags: [cart]
+      summary: Add item to group cart
+      parameters:
+        - $ref: "#/components/parameters/groupId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddCartItemBody"
+      responses:
+        "201":
+          description: Added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupCartItem"
+
+  /groups/{groupId}/cart/items/{cartItemId}:
+    delete:
+      operationId: removeGroupCartItem
+      tags: [cart]
+      parameters:
+        - $ref: "#/components/parameters/groupId"
+        - $ref: "#/components/parameters/cartItemId"
+      responses:
+        "200":
+          description: Removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ── Orders ────────────────────────────────────────────────────────────────────
+  /orders:
+    get:
+      operationId: listOrders
+      tags: [orders]
+      summary: List my orders
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/OrderStatus"
+      responses:
+        "200":
+          description: Orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Order"
+    post:
+      operationId: createOrder
+      tags: [orders]
+      summary: Place an individual order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrderBody"
+      responses:
+        "201":
+          description: Order placed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/{orderId}:
+    get:
+      operationId: getOrder
+      tags: [orders]
+      parameters:
+        - $ref: "#/components/parameters/orderId"
+      responses:
+        "200":
+          description: Order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/{orderId}/status:
+    put:
+      operationId: updateOrderStatus
+      tags: [orders]
+      summary: Update order status (vendor/rider)
+      parameters:
+        - $ref: "#/components/parameters/orderId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOrderStatusBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/{orderId}/assign-rider:
+    post:
+      operationId: assignRider
+      tags: [orders]
+      summary: Vendor assigns rider to order
+      parameters:
+        - $ref: "#/components/parameters/orderId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignRiderBody"
+      responses:
+        "200":
+          description: Rider assigned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /vendor-orders:
+    get:
+      operationId: listVendorOrders
+      tags: [orders]
+      summary: List orders for vendor dashboard
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/OrderStatus"
+      responses:
+        "200":
+          description: Vendor orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Order"
+
+  /rider-orders:
+    get:
+      operationId: listRiderOrders
+      tags: [riders]
+      summary: List available and assigned orders for rider
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/OrderStatus"
+      responses:
+        "200":
+          description: Rider orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Order"
+
+  # ── Group Orders (checkout) ───────────────────────────────────────────────────
+  /groups/{groupId}/orders:
+    get:
+      operationId: listGroupOrders
+      tags: [orders]
+      parameters:
+        - $ref: "#/components/parameters/groupId"
+      responses:
+        "200":
+          description: Group orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GroupOrder"
+    post:
+      operationId: createGroupOrder
+      tags: [orders]
+      summary: Initiate group checkout
+      parameters:
+        - $ref: "#/components/parameters/groupId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGroupOrderBody"
+      responses:
+        "201":
+          description: Group order initiated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupOrder"
+
+  /groups/{groupId}/orders/{groupOrderId}/bill-assignments:
+    get:
+      operationId: getBillAssignments
+      tags: [orders]
+      summary: Get bill split assignments for group order
+      parameters:
+        - $ref: "#/components/parameters/groupId"
+        - $ref: "#/components/parameters/groupOrderId"
+      responses:
+        "200":
+          description: Bill assignments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BillAssignment"
+    post:
+      operationId: submitBillAssignment
+      tags: [orders]
+      summary: Member submits their bill amount
+      parameters:
+        - $ref: "#/components/parameters/groupId"
+        - $ref: "#/components/parameters/groupOrderId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BillAssignmentBody"
+      responses:
+        "200":
+          description: Assignment submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BillAssignment"
+
+  # ── Groups ────────────────────────────────────────────────────────────────────
+  /groups:
+    get:
+      operationId: listMyGroups
+      tags: [groups]
+      summary: List groups I belong to
+      responses:
+        "200":
+          description: Groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Group"
+    post:
+      operationId: createGroup
+      tags: [groups]
+      summary: Create a group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGroupBody"
+      responses:
+        "201":
+          description: Group created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+
+  /groups/{groupId}:
+    get:
+      operationId: getGroup
+      tags: [groups]
+      parameters:
+        - $ref: "#/components/parameters/groupId"
+      responses:
+        "200":
+          description: Group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+
+  /groups/{groupId}/members:
+    get:
+      operationId: listGroupMembers
+      tags: [groups]
+      parameters:
+        - $ref: "#/components/parameters/groupId"
+      responses:
+        "200":
+          description: Members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GroupMember"
+
+  /groups/{groupId}/members/{userId}:
+    delete:
+      operationId: removeGroupMember
+      tags: [groups]
+      summary: Remove member from group (admin only)
+      parameters:
+        - $ref: "#/components/parameters/groupId"
+        - $ref: "#/components/parameters/userId"
+      responses:
+        "200":
+          description: Removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ── Messages (Group Chat) ─────────────────────────────────────────────────────
+  /groups/{groupId}/messages:
+    get:
+      operationId: listGroupMessages
+      tags: [messages]
+      summary: Get group chat messages
+      parameters:
+        - $ref: "#/components/parameters/groupId"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: before
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GroupMessage"
+    post:
+      operationId: sendGroupMessage
+      tags: [messages]
+      summary: Send message in group chat
+      parameters:
+        - $ref: "#/components/parameters/groupId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendMessageBody"
+      responses:
+        "201":
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupMessage"
+
+  # ── Invites ───────────────────────────────────────────────────────────────────
+  /invites:
+    get:
+      operationId: listMyInvites
+      tags: [invites]
+      summary: List pending invites for current user
+      responses:
+        "200":
+          description: Invites
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Invite"
+    post:
+      operationId: sendInvite
+      tags: [invites]
+      summary: Send group invite to user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendInviteBody"
+      responses:
+        "201":
+          description: Invite sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invite"
+
+  /invites/{inviteId}/accept:
+    post:
+      operationId: acceptInvite
+      tags: [invites]
+      parameters:
+        - $ref: "#/components/parameters/inviteId"
+      responses:
+        "200":
+          description: Accepted, joined group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+
+  /invites/{inviteId}/decline:
+    post:
+      operationId: declineInvite
+      tags: [invites]
+      parameters:
+        - $ref: "#/components/parameters/inviteId"
+      responses:
+        "200":
+          description: Declined
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ── Leaderboard ───────────────────────────────────────────────────────────────
+  /leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [leaderboard]
+      summary: Weekly group leaderboard (Mon-Sun)
+      parameters:
+        - name: week
+          in: query
+          description: ISO week string e.g. 2026-W18 (defaults to current week)
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Leaderboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaderboardResponse"
+
+  # ── Riders ────────────────────────────────────────────────────────────────────
+  /riders/register:
+    post:
+      operationId: registerRider
+      tags: [riders]
+      summary: Register as a rider
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRiderBody"
+      responses:
+        "201":
+          description: Rider registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RiderProfile"
+
+  /riders/me:
+    get:
+      operationId: getRiderProfile
+      tags: [riders]
+      summary: Get rider profile
+      responses:
+        "200":
+          description: Rider profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RiderProfile"
+    put:
+      operationId: updateRiderLocation
+      tags: [riders]
+      summary: Update rider location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLocationBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RiderProfile"
+
+  /riders/pickup/{orderId}:
+    post:
+      operationId: pickupOrder
+      tags: [riders]
+      summary: Rider confirms order pickup
+      parameters:
+        - $ref: "#/components/parameters/orderId"
+      responses:
+        "200":
+          description: Picked up
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /riders/deliver/{orderId}:
+    post:
+      operationId: deliverOrder
+      tags: [riders]
+      summary: Rider confirms order delivered
+      parameters:
+        - $ref: "#/components/parameters/orderId"
+      responses:
+        "200":
+          description: Delivered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
 components:
+  parameters:
+    userId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: integer
+    vendorId:
+      name: vendorId
+      in: path
+      required: true
+      schema:
+        type: integer
+    productId:
+      name: productId
+      in: path
+      required: true
+      schema:
+        type: integer
+    cartItemId:
+      name: cartItemId
+      in: path
+      required: true
+      schema:
+        type: integer
+    orderId:
+      name: orderId
+      in: path
+      required: true
+      schema:
+        type: integer
+    groupId:
+      name: groupId
+      in: path
+      required: true
+      schema:
+        type: integer
+    groupOrderId:
+      name: groupOrderId
+      in: path
+      required: true
+      schema:
+        type: integer
+    inviteId:
+      name: inviteId
+      in: path
+      required: true
+      schema:
+        type: integer
+
   schemas:
     HealthStatus:
       type: object
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+
+    Category:
+      type: string
+      enum: [food, liquor, pharmacy, household]
+
+    OrderStatus:
+      type: string
+      enum: [pending, confirmed, preparing, ready, picked_up, delivered, cancelled]
+
+    UserRole:
+      type: string
+      enum: [customer, vendor, rider, admin]
+
+    # ── Auth ────────────────────────────────────────────────────────────────────
+    RegisterBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        role:
+          $ref: "#/components/schemas/UserRole"
+        phone:
+          type: string
+      required: [name, email, password, role]
+
+    LoginBody:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required: [email, password]
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          type: string
+      required: [user, token]
+
+    # ── User ─────────────────────────────────────────────────────────────────────
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          $ref: "#/components/schemas/UserRole"
+        phone:
+          type: string
+        avatarUrl:
+          type: string
+        address:
+          type: string
+        createdAt:
+          type: string
+      required: [id, name, email, role, createdAt]
+
+    # ── Vendor ───────────────────────────────────────────────────────────────────
+    Vendor:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        name:
+          type: string
+        category:
+          $ref: "#/components/schemas/Category"
+        description:
+          type: string
+        imageUrl:
+          type: string
+        address:
+          type: string
+        rating:
+          type: number
+        deliveryTime:
+          type: string
+        minOrder:
+          type: number
+        isOpen:
+          type: boolean
+        createdAt:
+          type: string
+      required: [id, userId, name, category, isOpen, createdAt]
+
+    CreateVendorBody:
+      type: object
+      properties:
+        name:
+          type: string
+        category:
+          $ref: "#/components/schemas/Category"
+        description:
+          type: string
+        imageUrl:
+          type: string
+        address:
+          type: string
+        deliveryTime:
+          type: string
+        minOrder:
+          type: number
+      required: [name, category]
+
+    UpdateVendorBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+        address:
+          type: string
+        deliveryTime:
+          type: string
+        minOrder:
+          type: number
+        isOpen:
+          type: boolean
+
+    VendorStats:
+      type: object
+      properties:
+        totalOrders:
+          type: integer
+        pendingOrders:
+          type: integer
+        todayRevenue:
+          type: number
+        weekRevenue:
+          type: number
+        totalRevenue:
+          type: number
+        avgRating:
+          type: number
+        ordersThisWeek:
+          type: array
+          items:
+            type: object
+            properties:
+              day:
+                type: string
+              count:
+                type: integer
+              revenue:
+                type: number
+            required: [day, count, revenue]
+      required: [totalOrders, pendingOrders, todayRevenue, weekRevenue, totalRevenue, avgRating, ordersThisWeek]
+
+    # ── Product ───────────────────────────────────────────────────────────────────
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+        vendorId:
+          type: integer
+        vendorName:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        imageUrl:
+          type: string
+        category:
+          $ref: "#/components/schemas/Category"
+        isAvailable:
+          type: boolean
+        createdAt:
+          type: string
+      required: [id, vendorId, name, price, category, isAvailable, createdAt]
+
+    CreateProductBody:
+      type: object
+      properties:
+        vendorId:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        imageUrl:
+          type: string
+        category:
+          $ref: "#/components/schemas/Category"
+        isAvailable:
+          type: boolean
+      required: [vendorId, name, price, category]
+
+    # ── Cart ─────────────────────────────────────────────────────────────────────
+    CartItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        productId:
+          type: integer
+        product:
+          $ref: "#/components/schemas/Product"
+        quantity:
+          type: integer
+        createdAt:
+          type: string
+      required: [id, userId, productId, quantity, createdAt]
+
+    CartResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CartItem"
+        subtotal:
+          type: number
+        itemCount:
+          type: integer
+        vendorGroups:
+          type: array
+          items:
+            type: object
+            properties:
+              vendorId:
+                type: integer
+              vendorName:
+                type: string
+              items:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CartItem"
+              subtotal:
+                type: number
+            required: [vendorId, vendorName, items, subtotal]
+      required: [items, subtotal, itemCount, vendorGroups]
+
+    GroupCartItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        groupId:
+          type: integer
+        userId:
+          type: integer
+        userName:
+          type: string
+        productId:
+          type: integer
+        product:
+          $ref: "#/components/schemas/Product"
+        quantity:
+          type: integer
+        createdAt:
+          type: string
+      required: [id, groupId, userId, productId, quantity, createdAt]
+
+    GroupCartResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/GroupCartItem"
+        subtotal:
+          type: number
+        itemCount:
+          type: integer
+        memberSummary:
+          type: array
+          items:
+            type: object
+            properties:
+              userId:
+                type: integer
+              userName:
+                type: string
+              itemCount:
+                type: integer
+              subtotal:
+                type: number
+            required: [userId, userName, itemCount, subtotal]
+      required: [items, subtotal, itemCount, memberSummary]
+
+    AddCartItemBody:
+      type: object
+      properties:
+        productId:
+          type: integer
+        quantity:
+          type: integer
+      required: [productId, quantity]
+
+    UpdateCartItemBody:
+      type: object
+      properties:
+        quantity:
+          type: integer
+      required: [quantity]
+
+    # ── Order ─────────────────────────────────────────────────────────────────────
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        orderId:
+          type: integer
+        productId:
+          type: integer
+        productName:
+          type: string
+        quantity:
+          type: integer
+        unitPrice:
+          type: number
+        totalPrice:
+          type: number
+      required: [id, orderId, productId, productName, quantity, unitPrice, totalPrice]
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        vendorId:
+          type: integer
+        vendorName:
+          type: string
+        riderId:
+          type: integer
+        status:
+          $ref: "#/components/schemas/OrderStatus"
+        deliveryAddress:
+          type: string
+        subtotal:
+          type: number
+        deliveryFee:
+          type: number
+        total:
+          type: number
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        groupOrderId:
+          type: integer
+        notes:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required: [id, userId, vendorId, status, subtotal, deliveryFee, total, items, createdAt, updatedAt]
+
+    CreateOrderBody:
+      type: object
+      properties:
+        deliveryAddress:
+          type: string
+        notes:
+          type: string
+      required: [deliveryAddress]
+
+    UpdateOrderStatusBody:
+      type: object
+      properties:
+        status:
+          $ref: "#/components/schemas/OrderStatus"
+      required: [status]
+
+    AssignRiderBody:
+      type: object
+      properties:
+        riderId:
+          type: integer
+      required: [riderId]
+
+    # ── Group Order ───────────────────────────────────────────────────────────────
+    GroupOrder:
+      type: object
+      properties:
+        id:
+          type: integer
+        groupId:
+          type: integer
+        initiatedBy:
+          type: integer
+        status:
+          type: string
+          enum: [pending_payment, payment_complete, placed, cancelled]
+        deliveryAddress:
+          type: string
+        total:
+          type: number
+        amountCollected:
+          type: number
+        orders:
+          type: array
+          items:
+            $ref: "#/components/schemas/Order"
+        billAssignments:
+          type: array
+          items:
+            $ref: "#/components/schemas/BillAssignment"
+        createdAt:
+          type: string
+      required: [id, groupId, initiatedBy, status, total, amountCollected, createdAt]
+
+    CreateGroupOrderBody:
+      type: object
+      properties:
+        deliveryAddress:
+          type: string
+        notes:
+          type: string
+      required: [deliveryAddress]
+
+    BillAssignment:
+      type: object
+      properties:
+        id:
+          type: integer
+        groupOrderId:
+          type: integer
+        userId:
+          type: integer
+        userName:
+          type: string
+        amount:
+          type: number
+        paid:
+          type: boolean
+        createdAt:
+          type: string
+      required: [id, groupOrderId, userId, amount, paid, createdAt]
+
+    BillAssignmentBody:
+      type: object
+      properties:
+        amount:
+          type: number
+      required: [amount]
+
+    # ── Group ─────────────────────────────────────────────────────────────────────
+    Group:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        adminId:
+          type: integer
+        adminName:
+          type: string
+        imageUrl:
+          type: string
+        memberCount:
+          type: integer
+        createdAt:
+          type: string
+      required: [id, name, adminId, memberCount, createdAt]
+
+    CreateGroupBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+      required: [name]
+
+    GroupMember:
+      type: object
+      properties:
+        id:
+          type: integer
+        groupId:
+          type: integer
+        userId:
+          type: integer
+        userName:
+          type: string
+        userEmail:
+          type: string
+        avatarUrl:
+          type: string
+        isAdmin:
+          type: boolean
+        joinedAt:
+          type: string
+      required: [id, groupId, userId, isAdmin, joinedAt]
+
+    # ── Messages ──────────────────────────────────────────────────────────────────
+    GroupMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        groupId:
+          type: integer
+        userId:
+          type: integer
+        userName:
+          type: string
+        avatarUrl:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+      required: [id, groupId, userId, content, createdAt]
+
+    SendMessageBody:
+      type: object
+      properties:
+        content:
+          type: string
+      required: [content]
+
+    # ── Invites ───────────────────────────────────────────────────────────────────
+    Invite:
+      type: object
+      properties:
+        id:
+          type: integer
+        groupId:
+          type: integer
+        groupName:
+          type: string
+        fromUserId:
+          type: integer
+        fromUserName:
+          type: string
+        toUserId:
+          type: integer
+        status:
+          type: string
+          enum: [pending, accepted, declined]
+        createdAt:
+          type: string
+      required: [id, groupId, fromUserId, toUserId, status, createdAt]
+
+    SendInviteBody:
+      type: object
+      properties:
+        groupId:
+          type: integer
+        toUserId:
+          type: integer
+      required: [groupId, toUserId]
+
+    # ── Leaderboard ───────────────────────────────────────────────────────────────
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+        groupId:
+          type: integer
+        groupName:
+          type: string
+        imageUrl:
+          type: string
+        memberCount:
+          type: integer
+        totalSpent:
+          type: number
+        orderCount:
+          type: integer
+        discountEarned:
+          type: number
+      required: [rank, groupId, groupName, memberCount, totalSpent, orderCount, discountEarned]
+
+    LeaderboardResponse:
+      type: object
+      properties:
+        week:
+          type: string
+        weekLabel:
+          type: string
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/LeaderboardEntry"
+        myGroupRank:
+          $ref: "#/components/schemas/LeaderboardEntry"
+      required: [week, weekLabel, entries]
+
+    # ── Rider ─────────────────────────────────────────────────────────────────────
+    RiderProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        vehicleType:
+          type: string
+        licensePlate:
+          type: string
+        currentLat:
+          type: number
+        currentLng:
+          type: number
+        isAvailable:
+          type: boolean
+        totalDeliveries:
+          type: integer
+        rating:
+          type: number
+        createdAt:
+          type: string
+      required: [id, userId, isAvailable, totalDeliveries, createdAt]
+
+    RegisterRiderBody:
+      type: object
+      properties:
+        vehicleType:
+          type: string
+        licensePlate:
+          type: string
+      required: [vehicleType, licensePlate]
+
+    UpdateLocationBody:
+      type: object
+      properties:
+        lat:
+          type: number
+        lng:
+          type: number
+        isAvailable:
+          type: boolean
+      required: [lat, lng]

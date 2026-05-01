@@ -1,8 +1,26 @@
-# Workspace
+# Yajja — Multi-Category Delivery Platform
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+Yajja is a Uganda-based multi-category delivery platform (Food, Liquor, Pharmacy, Household) with individual and group shopping modes. Built as a pnpm workspace monorepo using TypeScript.
+
+## Portals
+- **Customer Portal** (`/`) — shop, cart, checkout, orders, groups with chat & bill-split, leaderboard
+- **Vendor Portal** (`/vendor-portal`) — dashboard, order management, product CRUD
+- **Rider Portal** (`/rider-portal`) — order assignment, GPS tracking, delivery confirmation
+
+## Seed Users (all passwords: `password123`)
+- Customer: `kira@yajja.com`
+- Vendor: `mamafua@yajja.com`
+- Rider: `kasim@yajja.com`
+
+## Seed Data
+- 4 vendors (food, liquor, pharmacy, household)
+- 13 products across all categories
+- 1 group "Nakasero Crew"
+- Rider "Kasim" registered
+
+## Architecture
 
 ## Stack
 
