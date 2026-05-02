@@ -9,6 +9,7 @@ import ordersRouter from "./orders";
 import groupsRouter from "./groups";
 import leaderboardRouter from "./leaderboard";
 import ridersRouter from "./riders";
+import adminRouter from "./admin";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(ordersRouter);
 router.use(groupsRouter);
 router.use(leaderboardRouter);
 router.use(ridersRouter);
+router.use(adminRouter);
 
 export default router;

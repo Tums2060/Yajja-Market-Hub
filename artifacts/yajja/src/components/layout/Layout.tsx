@@ -1,6 +1,7 @@
 import React from "react";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import Navbar from "./Navbar";
+import BottomNav from "./BottomNav";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 
@@ -22,10 +23,15 @@ export default function Layout({ children }: LayoutProps) {
     );
   }
 
+  const showBottomNav = !!user && user.role === "customer" && !isAuthPage;
+
   return (
     <div className="min-h-[100dvh] w-full flex flex-col bg-background text-foreground">
       {!isAuthPage && <Navbar />}
-      <main className="flex-1 flex flex-col">{children}</main>
+      <main className={`flex-1 flex flex-col ${showBottomNav ? "pb-16 md:pb-0" : ""}`}>
+        {children}
+      </main>
+      {showBottomNav && <BottomNav />}
     </div>
   );
 }

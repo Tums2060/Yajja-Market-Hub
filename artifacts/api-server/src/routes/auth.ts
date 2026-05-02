@@ -1,7 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { db, usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { RegisterBody, LoginBody } from "@workspace/api-zod";
 import { generateToken, requireAuth, getUser } from "../lib/auth";
 
@@ -15,10 +15,26 @@ router.post("/auth/register", async (req, res) => {
   }
   const { name, email, password, role, phone } = parsed.data;
 
-  const [existing] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
-  if (existing) {
+  // Anti-fraud: phone is required for customer accounts
+  if (role === "customer" && !phone) {
+    res.status(400).json({ message: "Phone number is required" });
+    return;
+  }
+
+  // Check email uniqueness
+  const [existingEmail] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+  if (existingEmail) {
     res.status(409).json({ message: "Email already registered" });
     return;
+  }
+
+  // Anti-fraud: check phone uniqueness (one account per phone number)
+  if (phone) {
+    const [existingPhone] = await db.select().from(usersTable).where(eq(usersTable.phone, phone)).limit(1);
+    if (existingPhone) {
+      res.status(409).json({ message: "A Yajja account already exists with this phone number. Each phone number can only be linked to one account." });
+      return;
+    }
   }
 
   const passwordHash = await bcrypt.hash(password, 10);

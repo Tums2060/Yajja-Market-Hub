@@ -3,6 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 export const categoryEnum = pgEnum("category", ["food", "liquor", "pharmacy", "household"]);
+export const vendorStatusEnum = pgEnum("vendor_status", ["pending_review", "approved", "rejected"]);
 
 export const vendorsTable = pgTable("vendors", {
   id: serial("id").primaryKey(),
@@ -16,6 +17,7 @@ export const vendorsTable = pgTable("vendors", {
   deliveryTime: text("delivery_time").default("25-35 min"),
   minOrder: real("min_order").default(0),
   isOpen: boolean("is_open").notNull().default(true),
+  status: vendorStatusEnum("status").notNull().default("approved"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

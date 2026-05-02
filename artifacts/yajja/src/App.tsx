@@ -10,6 +10,7 @@ import Login from "@/pages/login";
 import Register from "@/pages/register";
 import Home from "@/pages/home";
 import Shop from "@/pages/shop";
+import CategoryPage from "@/pages/category";
 import Cart from "@/pages/cart";
 import Checkout from "@/pages/checkout";
 import Orders from "@/pages/orders";
@@ -29,22 +30,35 @@ import VendorProducts from "@/pages/vendor-portal/products";
 import RiderPortal from "@/pages/rider-portal/dashboard";
 import RiderMap from "@/pages/rider-portal/map";
 import RiderProfile from "@/pages/rider-portal/profile";
+
+import AdminDashboard from "@/pages/admin-portal/dashboard";
+import AdminVendors from "@/pages/admin-portal/vendors";
+import AdminOrders from "@/pages/admin-portal/orders";
+import AdminRiders from "@/pages/admin-portal/riders";
+import AdminUsers from "@/pages/admin-portal/users";
+
 import { useEffect } from "react";
 
 const queryClient = new QueryClient();
 
-// Protected Route Wrapper
-const ProtectedRoute = ({ component: Component, ...rest }: any) => {
+const ProtectedRoute = ({ component: Component, allowedRoles, ...rest }: any) => {
   const { user, isLoading } = useAuth();
   const [location, setLocation] = useLocation();
 
   useEffect(() => {
     if (!isLoading && !user) {
       setLocation("/login");
+    } else if (!isLoading && user && allowedRoles && !allowedRoles.includes(user.role)) {
+      // Redirect to their portal
+      if (user.role === "vendor") setLocation("/vendor-portal");
+      else if (user.role === "rider") setLocation("/rider-portal");
+      else if (user.role === "admin") setLocation("/admin");
+      else setLocation("/");
     }
   }, [user, isLoading, setLocation]);
 
   if (isLoading || !user) return null;
+  if (allowedRoles && !allowedRoles.includes(user.role)) return null;
 
   return <Component {...rest} />;
 };
@@ -55,32 +69,40 @@ function Router() {
       <Switch>
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
-        
+
         {/* Customer Routes */}
-        <Route path="/"><ProtectedRoute component={Home} /></Route>
-        <Route path="/shop"><ProtectedRoute component={Shop} /></Route>
-        <Route path="/shop/:category"><ProtectedRoute component={Shop} /></Route>
-        <Route path="/vendor/:vendorId"><ProtectedRoute component={VendorDetail} /></Route>
-        <Route path="/cart"><ProtectedRoute component={Cart} /></Route>
-        <Route path="/checkout"><ProtectedRoute component={Checkout} /></Route>
-        <Route path="/orders"><ProtectedRoute component={Orders} /></Route>
-        <Route path="/orders/:orderId"><ProtectedRoute component={OrderDetail} /></Route>
-        <Route path="/groups"><ProtectedRoute component={Groups} /></Route>
-        <Route path="/groups/new"><ProtectedRoute component={CreateGroup} /></Route>
-        <Route path="/groups/:groupId"><ProtectedRoute component={GroupDetail} /></Route>
-        <Route path="/invites"><ProtectedRoute component={Invites} /></Route>
-        <Route path="/leaderboard"><ProtectedRoute component={Leaderboard} /></Route>
-        <Route path="/profile"><ProtectedRoute component={Profile} /></Route>
+        <Route path="/"><ProtectedRoute component={Home} allowedRoles={["customer"]} /></Route>
+        <Route path="/shop"><ProtectedRoute component={Shop} allowedRoles={["customer"]} /></Route>
+        <Route path="/shop/:category"><ProtectedRoute component={Shop} allowedRoles={["customer"]} /></Route>
+        <Route path="/category/:category"><ProtectedRoute component={CategoryPage} allowedRoles={["customer"]} /></Route>
+        <Route path="/vendor/:vendorId"><ProtectedRoute component={VendorDetail} allowedRoles={["customer"]} /></Route>
+        <Route path="/cart"><ProtectedRoute component={Cart} allowedRoles={["customer"]} /></Route>
+        <Route path="/checkout"><ProtectedRoute component={Checkout} allowedRoles={["customer"]} /></Route>
+        <Route path="/orders"><ProtectedRoute component={Orders} allowedRoles={["customer"]} /></Route>
+        <Route path="/orders/:orderId"><ProtectedRoute component={OrderDetail} allowedRoles={["customer"]} /></Route>
+        <Route path="/groups"><ProtectedRoute component={Groups} allowedRoles={["customer"]} /></Route>
+        <Route path="/groups/new"><ProtectedRoute component={CreateGroup} allowedRoles={["customer"]} /></Route>
+        <Route path="/groups/:groupId"><ProtectedRoute component={GroupDetail} allowedRoles={["customer"]} /></Route>
+        <Route path="/invites"><ProtectedRoute component={Invites} allowedRoles={["customer"]} /></Route>
+        <Route path="/leaderboard"><ProtectedRoute component={Leaderboard} allowedRoles={["customer"]} /></Route>
+        <Route path="/profile"><ProtectedRoute component={Profile} allowedRoles={["customer"]} /></Route>
 
         {/* Vendor Routes */}
-        <Route path="/vendor-portal"><ProtectedRoute component={VendorPortal} /></Route>
-        <Route path="/vendor-portal/orders"><ProtectedRoute component={VendorOrders} /></Route>
-        <Route path="/vendor-portal/products"><ProtectedRoute component={VendorProducts} /></Route>
+        <Route path="/vendor-portal"><ProtectedRoute component={VendorPortal} allowedRoles={["vendor"]} /></Route>
+        <Route path="/vendor-portal/orders"><ProtectedRoute component={VendorOrders} allowedRoles={["vendor"]} /></Route>
+        <Route path="/vendor-portal/products"><ProtectedRoute component={VendorProducts} allowedRoles={["vendor"]} /></Route>
 
         {/* Rider Routes */}
-        <Route path="/rider-portal"><ProtectedRoute component={RiderPortal} /></Route>
-        <Route path="/rider-portal/map"><ProtectedRoute component={RiderMap} /></Route>
-        <Route path="/rider-portal/profile"><ProtectedRoute component={RiderProfile} /></Route>
+        <Route path="/rider-portal"><ProtectedRoute component={RiderPortal} allowedRoles={["rider"]} /></Route>
+        <Route path="/rider-portal/map"><ProtectedRoute component={RiderMap} allowedRoles={["rider"]} /></Route>
+        <Route path="/rider-portal/profile"><ProtectedRoute component={RiderProfile} allowedRoles={["rider"]} /></Route>
+
+        {/* Admin Routes */}
+        <Route path="/admin"><ProtectedRoute component={AdminDashboard} allowedRoles={["admin"]} /></Route>
+        <Route path="/admin/vendors"><ProtectedRoute component={AdminVendors} allowedRoles={["admin"]} /></Route>
+        <Route path="/admin/orders"><ProtectedRoute component={AdminOrders} allowedRoles={["admin"]} /></Route>
+        <Route path="/admin/riders"><ProtectedRoute component={AdminRiders} allowedRoles={["admin"]} /></Route>
+        <Route path="/admin/users"><ProtectedRoute component={AdminUsers} allowedRoles={["admin"]} /></Route>
 
         <Route component={NotFound} />
       </Switch>

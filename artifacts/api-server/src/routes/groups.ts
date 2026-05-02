@@ -155,6 +155,13 @@ router.post("/invites/:inviteId/accept", requireAuth, async (req, res) => {
     return;
   }
 
+  // Anti-fraud: limit each user to max 5 active groups
+  const userMemberships = await db.select().from(groupMembersTable).where(eq(groupMembersTable.userId, user.id));
+  if (userMemberships.length >= 5) {
+    res.status(400).json({ message: "You can only be in up to 5 groups at a time. Leave a group to join a new one." });
+    return;
+  }
+
   // Add to group
   const [existing] = await db.select().from(groupMembersTable)
     .where(and(eq(groupMembersTable.groupId, invite.groupId), eq(groupMembersTable.userId, user.id))).limit(1);

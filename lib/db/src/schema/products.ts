@@ -10,6 +10,7 @@ export const productsTable = pgTable("products", {
   price: real("price").notNull(),
   imageUrl: text("image_url"),
   category: text("category").notNull(),
+  subcategory: text("subcategory"),
   isAvailable: boolean("is_available").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
