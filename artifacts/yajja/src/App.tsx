@@ -8,6 +8,8 @@ import NotFound from "@/pages/not-found";
 
 import Login from "@/pages/login";
 import Register from "@/pages/register";
+import ForgotPassword from "@/pages/forgot-password";
+import ResetPassword from "@/pages/reset-password";
 import Home from "@/pages/home";
 import Shop from "@/pages/shop";
 import CategoryPage from "@/pages/category";
@@ -69,6 +71,8 @@ function Router() {
       <Switch>
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
+        <Route path="/forgot-password" component={ForgotPassword} />
+        <Route path="/reset-password" component={ResetPassword} />
 
         {/* Customer Routes */}
         <Route path="/"><ProtectedRoute component={Home} allowedRoles={["customer"]} /></Route>

@@ -10,11 +10,13 @@ import groupsRouter from "./groups";
 import leaderboardRouter from "./leaderboard";
 import ridersRouter from "./riders";
 import adminRouter from "./admin";
+import passwordResetRouter from "./password-reset";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(authRouter);
+router.use(passwordResetRouter);
 router.use(usersRouter);
 router.use(vendorsRouter);
 router.use(productsRouter);
