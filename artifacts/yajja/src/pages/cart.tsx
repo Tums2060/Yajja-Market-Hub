@@ -164,6 +164,11 @@ export default function Cart() {
                         <div className="flex justify-between items-start">
                           <div>
                             <h3 className="font-semibold">{item.product?.name}</h3>
+                            {item.notes && (
+                              <p className="text-xs text-muted-foreground mt-1 italic">
+                                Note: {item.notes}
+                              </p>
+                            )}
                             {isGroupMode && (
                               <p className="text-xs text-secondary mt-1 font-medium bg-secondary/10 inline-block px-2 py-0.5 rounded-full">
                                 Added by {item.userName}

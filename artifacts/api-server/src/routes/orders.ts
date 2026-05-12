@@ -78,6 +78,7 @@ router.post("/orders", requireAuth, async (req, res) => {
         quantity: items[i].quantity,
         unitPrice: p[0]?.price || 0,
         totalPrice: (p[0]?.price || 0) * items[i].quantity,
+        notes: items[i].notes || null,
       }))
     );
     createdOrders.push(await enrichOrder(order));

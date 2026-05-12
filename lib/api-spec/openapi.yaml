@@ -1227,6 +1227,9 @@ components:
           $ref: "#/components/schemas/Product"
         quantity:
           type: integer
+        notes:
+          type: string
+          nullable: true
         createdAt:
           type: string
       required: [id, userId, productId, quantity, createdAt]
@@ -1277,6 +1280,9 @@ components:
           $ref: "#/components/schemas/Product"
         quantity:
           type: integer
+        notes:
+          type: string
+          nullable: true
         createdAt:
           type: string
       required: [id, groupId, userId, productId, quantity, createdAt]
@@ -1315,6 +1321,9 @@ components:
           type: integer
         quantity:
           type: integer
+        notes:
+          type: string
+          nullable: true
       required: [productId, quantity]
 
     UpdateCartItemBody:
@@ -1342,6 +1351,9 @@ components:
           type: number
         totalPrice:
           type: number
+        notes:
+          type: string
+          nullable: true
       required: [id, orderId, productId, productName, quantity, unitPrice, totalPrice]
 
     Order:

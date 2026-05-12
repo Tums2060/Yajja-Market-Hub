@@ -68,12 +68,21 @@ router.post("/cart/items", requireAuth, async (req, res) => {
     .where(and(eq(cartItemsTable.userId, user.id), eq(cartItemsTable.productId, parsed.data.productId)))
     .limit(1);
 
+  const incomingNotes = parsed.data.notes?.trim() || null;
   let item;
   if (existing) {
-    [item] = await db.update(cartItemsTable).set({ quantity: existing.quantity + parsed.data.quantity })
+    [item] = await db.update(cartItemsTable).set({
+      quantity: existing.quantity + parsed.data.quantity,
+      notes: incomingNotes ?? existing.notes,
+    })
       .where(eq(cartItemsTable.id, existing.id)).returning();
   } else {
-    [item] = await db.insert(cartItemsTable).values({ userId: user.id, productId: parsed.data.productId, quantity: parsed.data.quantity }).returning();
+    [item] = await db.insert(cartItemsTable).values({
+      userId: user.id,
+      productId: parsed.data.productId,
+      quantity: parsed.data.quantity,
+      notes: incomingNotes,
+    }).returning();
   }
 
   const row = await getProductWithVendor(item.productId);
@@ -81,6 +90,7 @@ router.post("/cart/items", requireAuth, async (req, res) => {
 });
 
 router.put("/cart/items/:cartItemId", requireAuth, async (req, res) => {
+  const user = getUser(req);
   const cartItemId = parseInt(req.params.cartItemId);
   const parsed = UpdateCartItemBody.safeParse(req.body);
   if (!parsed.success) {
@@ -88,7 +98,7 @@ router.put("/cart/items/:cartItemId", requireAuth, async (req, res) => {
     return;
   }
   const [item] = await db.update(cartItemsTable).set({ quantity: parsed.data.quantity })
-    .where(eq(cartItemsTable.id, cartItemId)).returning();
+    .where(and(eq(cartItemsTable.id, cartItemId), eq(cartItemsTable.userId, user.id))).returning();
   if (!item) {
     res.status(404).json({ message: "Cart item not found" });
     return;
@@ -98,8 +108,15 @@ router.put("/cart/items/:cartItemId", requireAuth, async (req, res) => {
 });
 
 router.delete("/cart/items/:cartItemId", requireAuth, async (req, res) => {
+  const user = getUser(req);
   const cartItemId = parseInt(req.params.cartItemId);
-  await db.delete(cartItemsTable).where(eq(cartItemsTable.id, cartItemId));
+  const result = await db.delete(cartItemsTable)
+    .where(and(eq(cartItemsTable.id, cartItemId), eq(cartItemsTable.userId, user.id)))
+    .returning();
+  if (result.length === 0) {
+    res.status(404).json({ message: "Cart item not found" });
+    return;
+  }
   res.json({ message: "Item removed" });
 });
 
@@ -157,12 +174,22 @@ router.post("/groups/:groupId/cart/items", requireAuth, async (req, res) => {
     .where(and(eq(groupCartItemsTable.groupId, groupId), eq(groupCartItemsTable.userId, user.id), eq(groupCartItemsTable.productId, parsed.data.productId)))
     .limit(1);
 
+  const incomingNotes = parsed.data.notes?.trim() || null;
   let item;
   if (existing) {
-    [item] = await db.update(groupCartItemsTable).set({ quantity: existing.quantity + parsed.data.quantity })
+    [item] = await db.update(groupCartItemsTable).set({
+      quantity: existing.quantity + parsed.data.quantity,
+      notes: incomingNotes ?? existing.notes,
+    })
       .where(eq(groupCartItemsTable.id, existing.id)).returning();
   } else {
-    [item] = await db.insert(groupCartItemsTable).values({ groupId, userId: user.id, productId: parsed.data.productId, quantity: parsed.data.quantity }).returning();
+    [item] = await db.insert(groupCartItemsTable).values({
+      groupId,
+      userId: user.id,
+      productId: parsed.data.productId,
+      quantity: parsed.data.quantity,
+      notes: incomingNotes,
+    }).returning();
   }
 
   const row = await getProductWithVendor(item.productId);
@@ -175,8 +202,21 @@ router.post("/groups/:groupId/cart/items", requireAuth, async (req, res) => {
 });
 
 router.delete("/groups/:groupId/cart/items/:cartItemId", requireAuth, async (req, res) => {
+  const user = getUser(req);
+  const groupId = parseInt(req.params.groupId);
   const cartItemId = parseInt(req.params.cartItemId);
-  await db.delete(groupCartItemsTable).where(eq(groupCartItemsTable.id, cartItemId));
+  // Only the user who added the item can remove it from the group cart
+  const result = await db.delete(groupCartItemsTable)
+    .where(and(
+      eq(groupCartItemsTable.id, cartItemId),
+      eq(groupCartItemsTable.groupId, groupId),
+      eq(groupCartItemsTable.userId, user.id),
+    ))
+    .returning();
+  if (result.length === 0) {
+    res.status(404).json({ message: "Cart item not found" });
+    return;
+  }
   res.json({ message: "Item removed" });
 });
 

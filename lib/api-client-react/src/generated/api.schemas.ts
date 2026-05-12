@@ -152,6 +152,7 @@ export interface CartItem {
   productId: number;
   product?: Product;
   quantity: number;
+  notes?: string | null;
   createdAt: string;
 }
 
@@ -177,6 +178,7 @@ export interface GroupCartItem {
   productId: number;
   product?: Product;
   quantity: number;
+  notes?: string | null;
   createdAt: string;
 }
 
@@ -197,6 +199,7 @@ export interface GroupCartResponse {
 export interface AddCartItemBody {
   productId: number;
   quantity: number;
+  notes?: string | null;
 }
 
 export interface UpdateCartItemBody {
@@ -211,6 +214,7 @@ export interface OrderItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  notes?: string | null;
 }
 
 export interface Order {

@@ -49,14 +49,19 @@ export default function VendorDetail() {
   const handleConfirmAddToCart = ({
     productId,
     quantity,
+    addons,
+    instructions,
   }: {
     productId: number;
     quantity: number;
     addons: { id: string; label: string }[];
     instructions: string;
   }) => {
-    // Note: cart_items table has no notes/addons column today. Preferences and
-    // special instructions are collected here for the checkout step (orders.notes).
+    const prefs = addons.map((a) => a.label).join(", ");
+    const trimmedInstructions = instructions.trim();
+    const notes =
+      [prefs, trimmedInstructions].filter(Boolean).join(" • ") || undefined;
+
     const onSuccess = () => {
       if (activeMode === "individual") {
         queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() });
@@ -69,10 +74,10 @@ export default function VendorDetail() {
     const onError = () => toast({ variant: "destructive", title: "Failed to add" });
 
     if (activeMode === "individual") {
-      addToCartMutation.mutate({ data: { productId, quantity } }, { onSuccess, onError });
+      addToCartMutation.mutate({ data: { productId, quantity, notes } }, { onSuccess, onError });
     } else {
       addToGroupCartMutation.mutate(
-        { groupId: activeMode as number, data: { productId, quantity } } as any,
+        { groupId: activeMode as number, data: { productId, quantity, notes } } as any,
         { onSuccess, onError },
       );
     }

@@ -1,4 +1,4 @@
-import { pgTable, serial, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, serial, timestamp, integer, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -7,6 +7,7 @@ export const cartItemsTable = pgTable("cart_items", {
   userId: integer("user_id").notNull(),
   productId: integer("product_id").notNull(),
   quantity: integer("quantity").notNull().default(1),
+  notes: text("notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -16,6 +17,7 @@ export const groupCartItemsTable = pgTable("group_cart_items", {
   userId: integer("user_id").notNull(),
   productId: integer("product_id").notNull(),
   quantity: integer("quantity").notNull().default(1),
+  notes: text("notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

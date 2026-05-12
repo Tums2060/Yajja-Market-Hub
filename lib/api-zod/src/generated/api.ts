@@ -322,6 +322,7 @@ export const GetCartResponse = zod.object({
         })
         .optional(),
       quantity: zod.number(),
+      notes: zod.string().nullish(),
       createdAt: zod.string(),
     }),
   ),
@@ -351,6 +352,7 @@ export const GetCartResponse = zod.object({
             })
             .optional(),
           quantity: zod.number(),
+          notes: zod.string().nullish(),
           createdAt: zod.string(),
         }),
       ),
@@ -365,6 +367,7 @@ export const GetCartResponse = zod.object({
 export const AddToCartBody = zod.object({
   productId: zod.number(),
   quantity: zod.number(),
+  notes: zod.string().nullish(),
 });
 
 export const UpdateCartItemParams = zod.object({
@@ -394,6 +397,7 @@ export const UpdateCartItemResponse = zod.object({
     })
     .optional(),
   quantity: zod.number(),
+  notes: zod.string().nullish(),
   createdAt: zod.string(),
 });
 
@@ -442,6 +446,7 @@ export const GetGroupCartResponse = zod.object({
         })
         .optional(),
       quantity: zod.number(),
+      notes: zod.string().nullish(),
       createdAt: zod.string(),
     }),
   ),
@@ -467,6 +472,7 @@ export const AddToGroupCartParams = zod.object({
 export const AddToGroupCartBody = zod.object({
   productId: zod.number(),
   quantity: zod.number(),
+  notes: zod.string().nullish(),
 });
 
 export const RemoveGroupCartItemParams = zod.object({
@@ -523,6 +529,7 @@ export const ListOrdersResponseItem = zod.object({
       quantity: zod.number(),
       unitPrice: zod.number(),
       totalPrice: zod.number(),
+      notes: zod.string().nullish(),
     }),
   ),
   groupOrderId: zod.number().optional(),
@@ -572,6 +579,7 @@ export const GetOrderResponse = zod.object({
       quantity: zod.number(),
       unitPrice: zod.number(),
       totalPrice: zod.number(),
+      notes: zod.string().nullish(),
     }),
   ),
   groupOrderId: zod.number().optional(),
@@ -627,6 +635,7 @@ export const UpdateOrderStatusResponse = zod.object({
       quantity: zod.number(),
       unitPrice: zod.number(),
       totalPrice: zod.number(),
+      notes: zod.string().nullish(),
     }),
   ),
   groupOrderId: zod.number().optional(),
@@ -674,6 +683,7 @@ export const AssignRiderResponse = zod.object({
       quantity: zod.number(),
       unitPrice: zod.number(),
       totalPrice: zod.number(),
+      notes: zod.string().nullish(),
     }),
   ),
   groupOrderId: zod.number().optional(),
@@ -727,6 +737,7 @@ export const ListVendorOrdersResponseItem = zod.object({
       quantity: zod.number(),
       unitPrice: zod.number(),
       totalPrice: zod.number(),
+      notes: zod.string().nullish(),
     }),
   ),
   groupOrderId: zod.number().optional(),
@@ -781,6 +792,7 @@ export const ListRiderOrdersResponseItem = zod.object({
       quantity: zod.number(),
       unitPrice: zod.number(),
       totalPrice: zod.number(),
+      notes: zod.string().nullish(),
     }),
   ),
   groupOrderId: zod.number().optional(),
@@ -837,6 +849,7 @@ export const ListGroupOrdersResponseItem = zod.object({
             quantity: zod.number(),
             unitPrice: zod.number(),
             totalPrice: zod.number(),
+            notes: zod.string().nullish(),
           }),
         ),
         groupOrderId: zod.number().optional(),
@@ -1189,6 +1202,7 @@ export const PickupOrderResponse = zod.object({
       quantity: zod.number(),
       unitPrice: zod.number(),
       totalPrice: zod.number(),
+      notes: zod.string().nullish(),
     }),
   ),
   groupOrderId: zod.number().optional(),
@@ -1232,6 +1246,7 @@ export const DeliverOrderResponse = zod.object({
       quantity: zod.number(),
       unitPrice: zod.number(),
       totalPrice: zod.number(),
+      notes: zod.string().nullish(),
     }),
   ),
   groupOrderId: zod.number().optional(),
