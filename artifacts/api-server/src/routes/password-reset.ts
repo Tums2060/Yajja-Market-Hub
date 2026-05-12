@@ -40,7 +40,7 @@ async function sendResetEmail(
         <div style="font-family: 'Helvetica Neue', sans-serif; max-width: 520px; margin: 0 auto; background: #ffffff;">
           <div style="background: #1aabbb; padding: 40px 32px; text-align: center; border-radius: 12px 12px 0 0;">
             <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Yajja</h1>
-            <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0; font-size: 14px;">Everything inn order</p>
+            <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0; font-size: 14px;">Everything in order</p>
           </div>
           <div style="padding: 40px 32px; background: #ffffff;">
             <h2 style="color: #1a1a2e; font-size: 22px; font-weight: 700; margin: 0 0 12px;">Reset your password</h2>

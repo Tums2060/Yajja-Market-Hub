@@ -73,7 +73,7 @@ export default function Register() {
               <Logo size={64} />
             </div>
             <h1 className="text-3xl font-extrabold text-white tracking-tight">Join Yajja</h1>
-            <p className="text-primary-foreground/80 mt-1.5 text-sm">Everything inn order</p>
+            <p className="text-primary-foreground/80 mt-1.5 text-sm">Everything in order</p>
           </div>
         </div>
       </div>

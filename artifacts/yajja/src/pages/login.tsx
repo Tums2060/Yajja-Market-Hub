@@ -66,7 +66,7 @@ export default function Login() {
             <Logo size={80} />
           </div>
           <h1 className="text-4xl font-extrabold text-white tracking-tight">Yajja</h1>
-          <p className="text-primary-foreground/80 mt-2 text-base">Everything inn order</p>
+          <p className="text-primary-foreground/80 mt-2 text-base">Everything in order</p>
         </div>
       </div>
 
