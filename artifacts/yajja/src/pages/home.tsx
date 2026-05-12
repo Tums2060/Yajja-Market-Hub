@@ -3,6 +3,7 @@ import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useListMyGroups, useGetLeaderboard } from "@workspace/api-client-react";
 import { Users, ChevronRight, Trophy, Search, MapPin, Bell, Menu, ShoppingBag, User } from "lucide-react";
+import { formatKES } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -88,7 +89,7 @@ export default function Home() {
             <div>
               <div className="flex items-center gap-1.5 text-primary-foreground/70 text-sm mb-0.5">
                 <MapPin className="h-3.5 w-3.5" />
-                <span>Kampala, Uganda</span>
+                <span>Nairobi, Kenya</span>
               </div>
               <p className="text-white font-semibold text-lg">
                 Hey {user?.name?.split(" ")[0]} 👋
@@ -199,7 +200,7 @@ export default function Home() {
                     <p className="text-sm font-semibold truncate">{entry.groupName}</p>
                     <p className="text-xs text-muted-foreground">{entry.memberCount} members</p>
                   </div>
-                  <span className="text-sm font-bold text-foreground">UGX {Number(entry.totalSpent || 0).toLocaleString()}</span>
+                  <span className="text-sm font-bold text-foreground">{formatKES(entry.totalSpent || 0)}</span>
                 </div>
               ))}
             </div>

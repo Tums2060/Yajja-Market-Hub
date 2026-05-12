@@ -9,11 +9,21 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-async function sendResetEmail(toEmail: string, toName: string, resetUrl: string): Promise<void> {
+async function sendResetEmail(
+  toEmail: string,
+  toName: string,
+  resetUrl: string,
+  log: { info: (...args: any[]) => void; error: (...args: any[]) => void },
+): Promise<void> {
   const apiKey = process.env.BREVO_API_KEY;
   if (!apiKey) {
     throw new Error("BREVO_API_KEY is not configured");
   }
+
+  // Brevo requires the sender to be verified in the Brevo dashboard.
+  // Allow the operator to set BREVO_SENDER_EMAIL / BREVO_SENDER_NAME, otherwise fall back.
+  const senderEmail = process.env.BREVO_SENDER_EMAIL || "noreply@yajja.com";
+  const senderName = process.env.BREVO_SENDER_NAME || "Yajja";
 
   const response = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
@@ -23,14 +33,14 @@ async function sendResetEmail(toEmail: string, toName: string, resetUrl: string)
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      sender: { name: "Yajja", email: "noreply@yajja.com" },
+      sender: { name: senderName, email: senderEmail },
       to: [{ email: toEmail, name: toName }],
       subject: "Reset your Yajja password",
       htmlContent: `
         <div style="font-family: 'Helvetica Neue', sans-serif; max-width: 520px; margin: 0 auto; background: #ffffff;">
           <div style="background: #1aabbb; padding: 40px 32px; text-align: center; border-radius: 12px 12px 0 0;">
             <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Yajja</h1>
-            <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0; font-size: 14px;">Your neighbourhood, delivered.</p>
+            <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0; font-size: 14px;">Everything inn order</p>
           </div>
           <div style="padding: 40px 32px; background: #ffffff;">
             <h2 style="color: #1a1a2e; font-size: 22px; font-weight: 700; margin: 0 0 12px;">Reset your password</h2>
@@ -46,17 +56,19 @@ async function sendResetEmail(toEmail: string, toName: string, resetUrl: string)
             </p>
           </div>
           <div style="padding: 20px 32px; background: #f8f9fa; border-radius: 0 0 12px 12px; text-align: center;">
-            <p style="color: #aaa; font-size: 12px; margin: 0;">© 2025 Yajja · Kampala, Uganda</p>
+            <p style="color: #aaa; font-size: 12px; margin: 0;">© 2026 Yajja · Nairobi, Kenya</p>
           </div>
         </div>
       `,
     }),
   });
 
+  const bodyText = await response.text();
   if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Brevo API error: ${err}`);
+    log.error({ status: response.status, body: bodyText, sender: senderEmail }, "Brevo API rejected reset email");
+    throw new Error(`Brevo API error (${response.status}): ${bodyText}`);
   }
+  log.info({ to: toEmail, sender: senderEmail, brevoResponse: bodyText }, "Brevo accepted reset email");
 }
 
 // POST /auth/forgot-password
@@ -91,7 +103,7 @@ router.post("/auth/forgot-password", async (req, res) => {
   const resetUrl = `${baseUrl}/reset-password?token=${token}`;
 
   try {
-    await sendResetEmail(user.email, user.name, resetUrl);
+    await sendResetEmail(user.email, user.name, resetUrl, req.log);
   } catch (err) {
     req.log.error({ err }, "Failed to send reset email");
     res.status(500).json({ message: "Failed to send reset email. Please try again." });

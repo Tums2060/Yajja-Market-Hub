@@ -55,7 +55,7 @@ export default function Orders() {
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0">
-                    <p className="font-bold">${order.totalAmount?.toFixed(0)}</p>
+                    <p className="font-bold">KES {Math.round(order.totalAmount || 0).toLocaleString()}</p>
                     <Badge className={`text-xs border ${statusColor[order.status] || ""}`} variant="outline">
                       {order.status?.replace(/_/g, " ") || "pending"}
                     </Badge>

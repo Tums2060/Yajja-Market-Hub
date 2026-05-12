@@ -89,7 +89,7 @@ export default function VendorOrders() {
                   <div className="flex-1">
                     <p className="font-semibold">Order #{order.id}</p>
                     <p className="text-sm text-muted-foreground">
-                      {order.customerName} • {order.itemCount} items • ${order.totalAmount?.toFixed(0)}
+                      {order.customerName} • {order.itemCount} items • KES {Math.round(order.totalAmount || 0).toLocaleString()}
                     </p>
                     {order.deliveryAddress && (
                       <p className="text-xs text-muted-foreground mt-1">📍 {order.deliveryAddress}</p>

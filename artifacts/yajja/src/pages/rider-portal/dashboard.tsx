@@ -102,7 +102,7 @@ export default function RiderPortal() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-semibold">Order #{order.id}</p>
-                    <p className="text-sm text-muted-foreground">{order.customerName} • ${order.totalAmount?.toFixed(0)}</p>
+                    <p className="text-sm text-muted-foreground">{order.customerName} • KES {Math.round(order.totalAmount || 0).toLocaleString()}</p>
                     {order.deliveryAddress && (
                       <div className="flex items-start gap-1 mt-1 text-xs text-muted-foreground">
                         <MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />

@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Users, CreditCard, MapPin, Loader2 } from "lucide-react";
+import { formatKES, KENYA } from "@/lib/format";
 
 export default function Checkout() {
   const { activeMode } = useAuth();
@@ -36,7 +37,7 @@ export default function Checkout() {
   const cartData = isGroupMode ? groupCart : individualCart;
   const items = (cartData as any)?.items || [];
   const subtotal = (cartData as any)?.subtotal || 0;
-  const deliveryFee = 5000;
+  const deliveryFee = 200;
   const total = subtotal + deliveryFee;
 
   const handlePlaceOrder = () => {
@@ -93,7 +94,7 @@ export default function Checkout() {
                 <Label htmlFor="address">Street address</Label>
                 <Input
                   id="address"
-                  placeholder="e.g. Plot 12, Kampala Road, Kampala"
+                  placeholder={KENYA.addressPlaceholder}
                   value={address}
                   onChange={e => setAddress(e.target.value)}
                 />
@@ -126,7 +127,7 @@ export default function Checkout() {
                       </div>
                       <span className="font-medium">{m.userName}</span>
                     </div>
-                    <Badge variant="outline">${m.subtotal?.toFixed(0)}</Badge>
+                    <Badge variant="outline">{formatKES(m.subtotal)}</Badge>
                   </div>
                 ))}
                 {(groupCart as any)?.memberSummary?.length === 0 && (
@@ -154,7 +155,7 @@ export default function Checkout() {
                     {isGroupMode && <p className="text-xs text-secondary">{item.userName}</p>}
                     <p className="text-xs text-muted-foreground">x{item.quantity}</p>
                   </div>
-                  <p className="font-bold shrink-0">${((item.product?.price || 0) * item.quantity).toFixed(0)}</p>
+                  <p className="font-bold shrink-0">{formatKES((item.product?.price || 0) * item.quantity)}</p>
                 </div>
               ))}
             </CardContent>
@@ -171,16 +172,16 @@ export default function Checkout() {
             <CardContent className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span>${subtotal.toFixed(0)}</span>
+                <span>{formatKES(subtotal)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Delivery fee</span>
-                <span>${deliveryFee.toFixed(0)}</span>
+                <span>{formatKES(deliveryFee)}</span>
               </div>
               <Separator />
               <div className="flex justify-between font-bold text-lg">
                 <span>Total</span>
-                <span>${total.toFixed(0)}</span>
+                <span>{formatKES(total)}</span>
               </div>
               {isGroupMode && (
                 <p className="text-xs text-muted-foreground text-center pt-1">

@@ -98,17 +98,17 @@ export default function OrderDetail() {
                 <p className="font-medium truncate">{item.product?.name}</p>
                 <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
               </div>
-              <p className="font-bold shrink-0">${((item.product?.price || item.unitPrice || 0) * item.quantity).toFixed(0)}</p>
+              <p className="font-bold shrink-0">KES {Math.round((item.product?.price || item.unitPrice || 0) * item.quantity).toLocaleString()}</p>
             </div>
           ))}
           <Separator />
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Delivery fee</span>
-            <span>${(order as any).deliveryFee?.toFixed(0) || "0"}</span>
+            <span>KES {Math.round((order as any).deliveryFee || 0).toLocaleString()}</span>
           </div>
           <div className="flex justify-between font-bold text-lg">
             <span>Total</span>
-            <span>${(order as any).totalAmount?.toFixed(0)}</span>
+            <span>KES {Math.round((order as any).totalAmount || 0).toLocaleString()}</span>
           </div>
         </CardContent>
       </Card>

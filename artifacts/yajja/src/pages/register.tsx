@@ -3,7 +3,9 @@ import { useLocation, Link } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { Loader2, ShoppingBag, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
+import { Logo } from "@/components/Logo";
+import { KENYA } from "@/lib/format";
 import { useRegister } from "@workspace/api-client-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -16,7 +18,7 @@ import { Button } from "@/components/ui/button";
 const registerSchema = z.object({
   name: z.string().min(2, "Full name is required"),
   email: z.string().email("Invalid email address"),
-  phone: z.string().min(9, "Phone number is required (e.g. +256 700 000 000)"),
+  phone: z.string().min(9, "Phone number is required (e.g. +254 700 000 000)"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
@@ -67,11 +69,11 @@ export default function Register() {
             </Button>
           </Link>
           <div className="flex-1 flex flex-col items-center justify-center text-center mt-2">
-            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center mb-3 shadow-lg">
-              <ShoppingBag className="h-8 w-8 text-white" />
+            <div className="w-20 h-20 rounded-2xl bg-white flex items-center justify-center mb-3 shadow-xl p-2">
+              <Logo size={64} />
             </div>
             <h1 className="text-3xl font-extrabold text-white tracking-tight">Join Yajja</h1>
-            <p className="text-primary-foreground/80 mt-1.5 text-sm">Shop solo or with friends</p>
+            <p className="text-primary-foreground/80 mt-1.5 text-sm">Everything inn order</p>
           </div>
         </div>
       </div>
@@ -107,7 +109,7 @@ export default function Register() {
                   <FormItem>
                     <FormControl>
                       <Input
-                        placeholder="Phone number (e.g. +256 700 000 000)"
+                        placeholder={`Phone number (e.g. ${KENYA.phonePlaceholder})`}
                         type="tel"
                         className="h-12 rounded-xl bg-muted/50 border-0 focus-visible:ring-primary"
                         {...field}

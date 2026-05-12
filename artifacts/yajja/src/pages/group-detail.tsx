@@ -208,13 +208,13 @@ export default function GroupDetail() {
                           <p className="font-medium truncate">{item.product?.name}</p>
                           <p className="text-xs text-muted-foreground">by {item.userName} • qty {item.quantity}</p>
                         </div>
-                        <p className="font-bold shrink-0">${((item.product?.price || 0) * item.quantity).toFixed(0)}</p>
+                        <p className="font-bold shrink-0">KES {Math.round((item.product?.price || 0) * item.quantity).toLocaleString()}</p>
                       </div>
                     ))}
                   </div>
                   <div className="border-t pt-3 flex justify-between font-bold">
                     <span>Total</span>
-                    <span>${cart.subtotal?.toFixed(0)}</span>
+                    <span>KES {Math.round(cart.subtotal || 0).toLocaleString()}</span>
                   </div>
                   <Button className="w-full mt-3" onClick={() => setLocation("/checkout")}>Proceed to Checkout</Button>
                 </>

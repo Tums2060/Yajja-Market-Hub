@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Search, Star, Clock, ShoppingBag } from "lucide-react";
+import { formatKES } from "@/lib/format";
 
 const CATEGORY_META: Record<string, {
   label: string; emoji: string; color: string;
@@ -205,7 +206,7 @@ export default function CategoryPage() {
                         {vendor.deliveryTime || "25-35 min"}
                       </span>
                       {vendor.minOrder > 0 && (
-                        <span>Min UGX {Number(vendor.minOrder).toLocaleString()}</span>
+                        <span>Min {formatKES(vendor.minOrder)}</span>
                       )}
                     </div>
                   </div>

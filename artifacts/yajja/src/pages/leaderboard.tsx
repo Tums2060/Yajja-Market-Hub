@@ -41,7 +41,7 @@ export default function Leaderboard() {
             <Trophy className="h-5 w-5 text-primary shrink-0" />
             <div className="flex-1">
               <p className="font-semibold text-sm">Your Group: {lb.myGroupRank.groupName}</p>
-              <p className="text-xs text-muted-foreground">Rank #{lb.myGroupRank.rank} • ${lb.myGroupRank.totalSpent?.toFixed(0)} spent</p>
+              <p className="text-xs text-muted-foreground">Rank #{lb.myGroupRank.rank} • KES {Math.round(lb.myGroupRank.totalSpent || 0).toLocaleString()} spent</p>
             </div>
             <Badge className="bg-primary/15 text-primary border-primary/30" variant="outline">
               #{lb.myGroupRank.rank}
@@ -89,7 +89,7 @@ export default function Leaderboard() {
                     <p className="text-xs text-muted-foreground">{entry.memberCount} members • {entry.orderCount} orders</p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="font-bold text-lg">${entry.totalSpent?.toFixed(0)}</p>
+                    <p className="font-bold text-lg">KES {Math.round(entry.totalSpent || 0).toLocaleString()}</p>
                     {entry.rank <= 3 && (
                       <Badge variant="outline" className="text-xs mt-1">
                         {entry.rank === 1 ? "🥇 Gold" : entry.rank === 2 ? "🥈 Silver" : "🥉 Bronze"}

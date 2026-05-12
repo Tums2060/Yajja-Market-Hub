@@ -3,7 +3,8 @@ import { Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, ShoppingBag, Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Loader2, Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { useToast } from "@/hooks/use-toast";
 import {
   Form, FormControl, FormField, FormItem, FormMessage,
@@ -61,11 +62,11 @@ export default function ForgotPassword() {
           <div className="absolute bottom-4 left-1/3 w-16 h-16 rounded-full bg-white/25" />
         </div>
         <div className="relative z-10 flex flex-col items-center justify-center h-full pt-12 pb-16 px-8 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center mb-4 shadow-lg">
-            <ShoppingBag className="h-9 w-9 text-white" />
+          <div className="w-24 h-24 rounded-2xl bg-white flex items-center justify-center mb-3 shadow-xl p-2">
+            <Logo size={80} />
           </div>
           <h1 className="text-4xl font-extrabold text-white tracking-tight">Yajja</h1>
-          <p className="text-primary-foreground/80 mt-2 text-base">Your neighbourhood, delivered.</p>
+          <p className="text-primary-foreground/80 mt-2 text-base">Everything inn order</p>
         </div>
       </div>
 

@@ -101,7 +101,7 @@ export default function AdminOrders() {
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="font-bold text-sm">UGX {Number(order.total).toLocaleString()}</p>
+                  <p className="font-bold text-sm">KES {Number(order.total).toLocaleString()}</p>
                   <p className="text-xs text-muted-foreground">User #{order.userId}</p>
                 </div>
               </CardContent>
