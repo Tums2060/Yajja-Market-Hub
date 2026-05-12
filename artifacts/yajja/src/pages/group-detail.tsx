@@ -6,6 +6,7 @@ import {
   getListGroupMessagesQueryKey
 } from "@workspace/api-client-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useGroupCartSocket } from "@/hooks/use-group-cart-socket";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +19,7 @@ import { ArrowLeft, Users, MessageCircle, ShoppingCart, Send, Loader2, UserPlus 
 export default function GroupDetail() {
   const { groupId } = useParams();
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const id = parseInt(groupId || "0", 10);
@@ -27,6 +28,8 @@ export default function GroupDetail() {
   const { data: members } = useListGroupMembers(id, { query: { enabled: !!id } });
   const { data: messages, isLoading: messagesLoading } = useListGroupMessages(id, { query: { enabled: !!id, refetchInterval: 5000 } });
   const { data: cart } = useGetGroupCart(id, { query: { enabled: !!id } });
+
+  useGroupCartSocket(id || null, token);
 
   const sendMessage = useSendGroupMessage();
   const sendInvite = useSendInvite();

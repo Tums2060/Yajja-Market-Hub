@@ -3,6 +3,7 @@ import { db, groupsTable, groupMembersTable, groupMessagesTable, invitesTable, u
 import { eq, and } from "drizzle-orm";
 import { CreateGroupBody, SendGroupMessageBody, SendInviteBody } from "@workspace/api-zod";
 import { requireAuth, getUser } from "../lib/auth";
+import { broadcastToGroup } from "../lib/ws";
 
 const router = Router();
 
@@ -104,6 +105,7 @@ router.post("/groups/:groupId/messages", requireAuth, async (req, res) => {
     return;
   }
   const [message] = await db.insert(groupMessagesTable).values({ groupId, userId: user.id, content: parsed.data.content }).returning();
+  broadcastToGroup(groupId, { type: "message:new", groupId, actorUserId: user.id });
   res.status(201).json({
     ...message,
     userName: user.name,

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { db, cartItemsTable, groupCartItemsTable, productsTable, vendorsTable, usersTable } from "@workspace/db";
+import { broadcastToGroup } from "../lib/ws";
 import { eq, and } from "drizzle-orm";
 import { AddToCartBody, UpdateCartItemBody } from "@workspace/api-zod";
 import { requireAuth, getUser } from "../lib/auth";
@@ -193,6 +194,7 @@ router.post("/groups/:groupId/cart/items", requireAuth, async (req, res) => {
   }
 
   const row = await getProductWithVendor(item.productId);
+  broadcastToGroup(groupId, { type: "cart:update", groupId, actorUserId: user.id });
   res.status(201).json({
     ...item,
     userName: (await db.select().from(usersTable).where(eq(usersTable.id, user.id)).limit(1))[0]?.name || "",
@@ -217,6 +219,7 @@ router.delete("/groups/:groupId/cart/items/:cartItemId", requireAuth, async (req
     res.status(404).json({ message: "Cart item not found" });
     return;
   }
+  broadcastToGroup(groupId, { type: "cart:update", groupId, actorUserId: user.id });
   res.json({ message: "Item removed" });
 });
 
