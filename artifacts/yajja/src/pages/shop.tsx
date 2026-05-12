@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Star, Clock, Search, ShoppingBag } from "lucide-react";
+import { formatKES } from "@/lib/format";
 
 export default function Shop() {
   const [search, setSearch] = useState("");
@@ -118,7 +119,7 @@ export default function Shop() {
                     <Clock className="h-4 w-4 mr-1 text-primary/70" />
                     <span>{vendor.deliveryTime || "30-45 min"}</span>
                     <span className="mx-2">•</span>
-                    <span>Min ${vendor.minOrder || 0}</span>
+                    <span>Min {formatKES(vendor.minOrder || 0)}</span>
                   </div>
                 </CardContent>
               </Card>

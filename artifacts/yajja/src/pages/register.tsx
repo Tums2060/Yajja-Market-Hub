@@ -69,11 +69,8 @@ export default function Register() {
             </Button>
           </Link>
           <div className="flex-1 flex flex-col items-center justify-center text-center mt-2">
-            <div className="w-20 h-20 rounded-2xl bg-white flex items-center justify-center mb-3 shadow-xl p-2">
-              <Logo size={64} />
-            </div>
-            <h1 className="text-3xl font-extrabold text-white tracking-tight">Join Yajja</h1>
-            <p className="text-primary-foreground/80 mt-1.5 text-sm">Everything in order</p>
+            <Logo size={96} className="drop-shadow-lg mb-2" />
+            <p className="text-white text-base font-semibold drop-shadow-sm">Everything in order</p>
           </div>
         </div>
       </div>

@@ -13,15 +13,16 @@ import {
 import {
   ShoppingBag, ShoppingCart, Users, Trophy, Mail, User,
   LayoutDashboard, Package, Bike, Map, Menu, LogOut, Home,
-  Shield, Store, TrendingUp, Truck
+  Shield, Store, TrendingUp, Truck, Receipt
 } from "lucide-react";
 import { useGetCart, useListMyInvites } from "@workspace/api-client-react";
+import { Logo } from "@/components/Logo";
 
 const customerLinks = [
   { href: "/", label: "Home", icon: Home },
   { href: "/shop", label: "Explore", icon: ShoppingBag },
   { href: "/cart", label: "Cart", icon: ShoppingCart },
-  { href: "/orders", label: "Orders", icon: Package },
+  { href: "/orders", label: "Orders", icon: Receipt },
   { href: "/groups", label: "Groups", icon: Users },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/invites", label: "Invites", icon: Mail },
@@ -29,7 +30,7 @@ const customerLinks = [
 
 const vendorLinks = [
   { href: "/vendor-portal", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/vendor-portal/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/vendor-portal/orders", label: "Orders", icon: Receipt },
   { href: "/vendor-portal/products", label: "Products", icon: Package },
 ];
 
@@ -42,7 +43,7 @@ const riderLinks = [
 const adminLinks = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/vendors", label: "Vendors", icon: Store },
-  { href: "/admin/orders", label: "Orders", icon: Package },
+  { href: "/admin/orders", label: "Orders", icon: Receipt },
   { href: "/admin/riders", label: "Riders", icon: Truck },
   { href: "/admin/users", label: "Users", icon: Users },
 ];
@@ -84,7 +85,7 @@ export default function Navbar() {
           href={user?.role === "vendor" ? "/vendor-portal" : user?.role === "rider" ? "/rider-portal" : user?.role === "admin" ? "/admin" : "/"}
           className="mr-6 flex items-center gap-2 shrink-0"
         >
-          <span className="font-extrabold text-xl text-primary tracking-tight">Yajja</span>
+          <Logo size={36} className="-my-1" />
           {portalLabel && (
             <Badge variant="outline" className="text-xs hidden sm:inline-flex border-primary/40 text-primary">
               {portalLabel}

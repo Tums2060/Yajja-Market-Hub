@@ -62,11 +62,8 @@ export default function ForgotPassword() {
           <div className="absolute bottom-4 left-1/3 w-16 h-16 rounded-full bg-white/25" />
         </div>
         <div className="relative z-10 flex flex-col items-center justify-center h-full pt-12 pb-16 px-8 text-center">
-          <div className="w-24 h-24 rounded-2xl bg-white flex items-center justify-center mb-3 shadow-xl p-2">
-            <Logo size={80} />
-          </div>
-          <h1 className="text-4xl font-extrabold text-white tracking-tight">Yajja</h1>
-          <p className="text-primary-foreground/80 mt-2 text-base">Everything in order</p>
+          <Logo size={120} className="drop-shadow-lg mb-2" />
+          <p className="text-white text-lg font-semibold mt-2 drop-shadow-sm">Everything in order</p>
         </div>
       </div>
 
