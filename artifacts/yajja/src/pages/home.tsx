@@ -7,49 +7,72 @@ import { formatKES } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { HeroWatermark } from "@/components/HeroWatermark";
 
 const CATEGORIES = [
   {
     id: "food",
     label: "Food & Drinks",
     emoji: "🍔",
-    color: "from-amber-400 to-orange-500",
-    bgLight: "bg-amber-50",
-    border: "border-amber-200",
-    text: "text-amber-700",
+    watermark: ["🍔", "🍕", "🍟", "🥗", "🍗", "🥖", "🍣"],
+    bg: "bg-amber-100",
+    ring: "ring-amber-200",
+    text: "text-amber-800",
     href: "/category/food",
   },
   {
     id: "household",
     label: "Convenience",
     emoji: "🛒",
-    color: "from-blue-400 to-indigo-500",
-    bgLight: "bg-blue-50",
-    border: "border-blue-200",
-    text: "text-blue-700",
+    watermark: ["🛒", "🧻", "🧼", "🧴", "🧺", "🥫", "📦"],
+    bg: "bg-sky-100",
+    ring: "ring-sky-200",
+    text: "text-sky-800",
     href: "/category/household",
   },
   {
     id: "liquor",
     label: "Liquor",
     emoji: "🍷",
-    color: "from-purple-400 to-violet-600",
-    bgLight: "bg-purple-50",
-    border: "border-purple-200",
-    text: "text-purple-700",
+    watermark: ["🍷", "🍺", "🥃", "🍸", "🍾", "🍹"],
+    bg: "bg-rose-100",
+    ring: "ring-rose-200",
+    text: "text-rose-800",
     href: "/category/liquor",
   },
   {
     id: "pharmacy",
-    label: "Health",
+    label: "Health & Beauty",
     emoji: "💊",
-    color: "from-emerald-400 to-teal-500",
-    bgLight: "bg-emerald-50",
-    border: "border-emerald-200",
-    text: "text-emerald-700",
+    watermark: ["💊", "🩹", "💉", "🩺", "💄", "🧴", "🪥"],
+    bg: "bg-emerald-100",
+    ring: "ring-emerald-200",
+    text: "text-emerald-800",
     href: "/category/pharmacy",
   },
 ];
+
+function CategoryWatermark({ icons }: { icons: string[] }) {
+  return (
+    <div aria-hidden className="absolute inset-0 pointer-events-none">
+      {icons.map((ic, i) => {
+        const angle = (i / icons.length) * Math.PI * 2;
+        const r = 32;
+        const top = `${50 + Math.sin(angle) * r}%`;
+        const left = `${50 + Math.cos(angle) * r}%`;
+        return (
+          <span
+            key={i}
+            className="absolute -translate-x-1/2 -translate-y-1/2 opacity-25 text-base select-none"
+            style={{ top, left }}
+          >
+            {ic}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function Home() {
   const { user, activeMode, setActiveMode } = useAuth();
@@ -78,12 +101,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Teal hero header */}
+      {/* Purple hero + categories — one continuous section like Getir */}
       <div className="bg-primary relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10 pointer-events-none">
-          <div className="absolute -top-8 -right-8 w-48 h-48 rounded-full bg-white" />
-          <div className="absolute top-16 -left-10 w-32 h-32 rounded-full bg-white" />
-        </div>
+        <HeroWatermark />
         <div className="relative z-10 px-4 pt-4 pb-8 max-w-2xl mx-auto">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -138,24 +158,28 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 -mt-1 pb-6 space-y-6">
-        {/* Category grid */}
-        <div>
-          <h2 className="text-base font-bold text-foreground mt-5 mb-3">What are you looking for?</h2>
-          <div className="grid grid-cols-2 gap-3">
+      {/* Category circles — purple section continues from hero */}
+      <div className="bg-primary relative overflow-hidden">
+        <HeroWatermark density={0.7} />
+        <div className="relative z-10 max-w-2xl mx-auto px-4 pt-2 pb-10">
+          <h2 className="text-base font-bold text-white mb-4 drop-shadow-sm">What are you looking for?</h2>
+          <div className="grid grid-cols-4 gap-3">
             {CATEGORIES.map((cat) => (
               <Link key={cat.id} href={cat.href}>
-                <div className={`relative rounded-2xl overflow-hidden aspect-square cursor-pointer shadow-sm border ${cat.border} ${cat.bgLight} hover:shadow-md active:scale-95 transition-all`}>
-                  <div className={`absolute inset-0 bg-gradient-to-br ${cat.color} opacity-20`} />
-                  <div className="relative z-10 flex flex-col items-center justify-center h-full gap-2 p-4">
-                    <span className="text-5xl leading-none">{cat.emoji}</span>
-                    <span className={`text-sm font-bold ${cat.text} text-center`}>{cat.label}</span>
+                <div className="flex flex-col items-center gap-2 active:scale-95 transition-transform">
+                  <div className={`relative aspect-square w-full rounded-full overflow-hidden ${cat.bg} ring-4 ring-white/40 shadow-lg flex items-center justify-center`}>
+                    <CategoryWatermark icons={cat.watermark} />
+                    <span className="relative text-3xl sm:text-4xl leading-none drop-shadow-sm">{cat.emoji}</span>
                   </div>
+                  <span className="text-[11px] sm:text-xs font-semibold text-white text-center leading-tight drop-shadow-sm">{cat.label}</span>
                 </div>
               </Link>
             ))}
           </div>
         </div>
+      </div>
+
+      <div className="max-w-2xl mx-auto px-4 pt-6 pb-6 space-y-6">
 
         {/* Group shopping CTA */}
         <div className="rounded-2xl bg-secondary/10 border border-secondary/20 p-4 flex items-center gap-4">

@@ -1,9 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { KENYA } from "@/lib/format";
 import { useRegister } from "@workspace/api-client-react";
@@ -14,29 +14,43 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { HeroWatermark } from "@/components/HeroWatermark";
 
 const registerSchema = z.object({
   name: z.string().min(2, "Full name is required"),
   email: z.string().email("Invalid email address"),
   phone: z.string().min(9, "Phone number is required (e.g. +254 700 000 000)"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(1, "Please confirm your password"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 export default function Register() {
   const [, setLocation] = useLocation();
   const { setToken } = useAuth();
   const { toast } = useToast();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: "", email: "", phone: "", password: "" },
+    defaultValues: { name: "", email: "", phone: "", password: "", confirmPassword: "" },
+    mode: "onChange",
   });
 
   const registerMutation = useRegister();
 
+  const pw = form.watch("password");
+  const cpw = form.watch("confirmPassword");
+  const passwordsMatch = pw.length > 0 && pw === cpw;
+
   function onSubmit(values: z.infer<typeof registerSchema>) {
+    const { confirmPassword: _omit, ...payload } = values;
+    void _omit;
     registerMutation.mutate(
-      { data: { ...values, role: "customer" } },
+      { data: { ...payload, role: "customer" } },
       {
         onSuccess: (data) => {
           setToken(data.token);
@@ -56,12 +70,9 @@ export default function Register() {
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background">
-      {/* Teal hero header */}
+      {/* Purple hero header with watermark icons */}
       <div className="bg-primary relative overflow-hidden flex-shrink-0" style={{ minHeight: "36vh" }}>
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-8 left-8 w-32 h-32 rounded-full bg-white/30" />
-          <div className="absolute top-16 right-4 w-20 h-20 rounded-full bg-white/20" />
-        </div>
+        <HeroWatermark />
         <div className="relative z-10 flex flex-col h-full pt-10 pb-14 px-6">
           <Link href="/login">
             <Button variant="ghost" size="icon" className="text-white/80 hover:text-white hover:bg-white/10 -ml-2">
@@ -91,6 +102,7 @@ export default function Register() {
                     <FormControl>
                       <Input
                         placeholder="Full name"
+                        autoComplete="name"
                         className="h-12 rounded-xl bg-muted/50 border-0 focus-visible:ring-primary"
                         {...field}
                       />
@@ -108,6 +120,7 @@ export default function Register() {
                       <Input
                         placeholder={`Phone number (e.g. ${KENYA.phonePlaceholder})`}
                         type="tel"
+                        autoComplete="tel"
                         className="h-12 rounded-xl bg-muted/50 border-0 focus-visible:ring-primary"
                         {...field}
                       />
@@ -128,6 +141,7 @@ export default function Register() {
                       <Input
                         placeholder="Email address"
                         type="email"
+                        autoComplete="email"
                         className="h-12 rounded-xl bg-muted/50 border-0 focus-visible:ring-primary"
                         {...field}
                       />
@@ -142,13 +156,57 @@ export default function Register() {
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <Input
-                        placeholder="Password (min 6 characters)"
-                        type="password"
-                        className="h-12 rounded-xl bg-muted/50 border-0 focus-visible:ring-primary"
-                        {...field}
-                      />
+                      <div className="relative">
+                        <Input
+                          placeholder="Password (min 6 characters)"
+                          type={showPassword ? "text" : "password"}
+                          autoComplete="new-password"
+                          className="h-12 rounded-xl bg-muted/50 border-0 focus-visible:ring-primary pr-11"
+                          {...field}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(s => !s)}
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                          aria-pressed={showPassword}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <div className="relative">
+                        <Input
+                          placeholder="Confirm password"
+                          type={showConfirm ? "text" : "password"}
+                          autoComplete="new-password"
+                          className="h-12 rounded-xl bg-muted/50 border-0 focus-visible:ring-primary pr-11"
+                          {...field}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirm(s => !s)}
+                          aria-label={showConfirm ? "Hide password" : "Show password"}
+                          aria-pressed={showConfirm}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        >
+                          {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </FormControl>
+                    {cpw.length > 0 && passwordsMatch && (
+                      <p className="text-xs text-emerald-600 font-medium">Passwords match ✓</p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -157,7 +215,7 @@ export default function Register() {
               <Button
                 type="submit"
                 className="w-full h-12 text-base font-bold rounded-xl mt-2"
-                disabled={registerMutation.isPending}
+                disabled={registerMutation.isPending || !passwordsMatch || !form.formState.isValid}
               >
                 {registerMutation.isPending && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
                 Create Account

@@ -2039,6 +2039,100 @@ export const useAddToGroupCart = <
   return useMutation(getAddToGroupCartMutationOptions(options));
 };
 
+/**
+ * @summary Update quantity of a group cart item (owner only)
+ */
+export const getUpdateGroupCartItemUrl = (
+  groupId: number,
+  cartItemId: number,
+) => {
+  return `/api/groups/${groupId}/cart/items/${cartItemId}`;
+};
+
+export const updateGroupCartItem = async (
+  groupId: number,
+  cartItemId: number,
+  updateCartItemBody: UpdateCartItemBody,
+  options?: RequestInit,
+): Promise<GroupCartItem> => {
+  return customFetch<GroupCartItem>(
+    getUpdateGroupCartItemUrl(groupId, cartItemId),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updateCartItemBody),
+    },
+  );
+};
+
+export const getUpdateGroupCartItemMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateGroupCartItem>>,
+    TError,
+    { groupId: number; cartItemId: number; data: BodyType<UpdateCartItemBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateGroupCartItem>>,
+  TError,
+  { groupId: number; cartItemId: number; data: BodyType<UpdateCartItemBody> },
+  TContext
+> => {
+  const mutationKey = ["updateGroupCartItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateGroupCartItem>>,
+    { groupId: number; cartItemId: number; data: BodyType<UpdateCartItemBody> }
+  > = (props) => {
+    const { groupId, cartItemId, data } = props ?? {};
+
+    return updateGroupCartItem(groupId, cartItemId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateGroupCartItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateGroupCartItem>>
+>;
+export type UpdateGroupCartItemMutationBody = BodyType<UpdateCartItemBody>;
+export type UpdateGroupCartItemMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update quantity of a group cart item (owner only)
+ */
+export const useUpdateGroupCartItem = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateGroupCartItem>>,
+    TError,
+    { groupId: number; cartItemId: number; data: BodyType<UpdateCartItemBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateGroupCartItem>>,
+  TError,
+  { groupId: number; cartItemId: number; data: BodyType<UpdateCartItemBody> },
+  TContext
+> => {
+  return useMutation(getUpdateGroupCartItemMutationOptions(options));
+};
+
 export const getRemoveGroupCartItemUrl = (
   groupId: number,
   cartItemId: number,

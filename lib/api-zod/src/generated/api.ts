@@ -475,6 +475,43 @@ export const AddToGroupCartBody = zod.object({
   notes: zod.string().nullish(),
 });
 
+/**
+ * @summary Update quantity of a group cart item (owner only)
+ */
+export const UpdateGroupCartItemParams = zod.object({
+  groupId: zod.coerce.number(),
+  cartItemId: zod.coerce.number(),
+});
+
+export const UpdateGroupCartItemBody = zod.object({
+  quantity: zod.number(),
+});
+
+export const UpdateGroupCartItemResponse = zod.object({
+  id: zod.number(),
+  groupId: zod.number(),
+  userId: zod.number(),
+  userName: zod.string().optional(),
+  productId: zod.number(),
+  product: zod
+    .object({
+      id: zod.number(),
+      vendorId: zod.number(),
+      vendorName: zod.string().optional(),
+      name: zod.string(),
+      description: zod.string().optional(),
+      price: zod.number(),
+      imageUrl: zod.string().optional(),
+      category: zod.enum(["food", "liquor", "pharmacy", "household"]),
+      isAvailable: zod.boolean(),
+      createdAt: zod.string(),
+    })
+    .optional(),
+  quantity: zod.number(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string(),
+});
+
 export const RemoveGroupCartItemParams = zod.object({
   groupId: zod.coerce.number(),
   cartItemId: zod.coerce.number(),

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, cartItemsTable, groupCartItemsTable, productsTable, vendorsTable, usersTable } from "@workspace/db";
+import { db, cartItemsTable, groupCartItemsTable, groupMembersTable, productsTable, vendorsTable, usersTable } from "@workspace/db";
 import { broadcastToGroup } from "../lib/ws";
 import { eq, and } from "drizzle-orm";
 import { AddToCartBody, UpdateCartItemBody } from "@workspace/api-zod";
@@ -198,6 +198,50 @@ router.post("/groups/:groupId/cart/items", requireAuth, async (req, res) => {
   res.status(201).json({
     ...item,
     userName: (await db.select().from(usersTable).where(eq(usersTable.id, user.id)).limit(1))[0]?.name || "",
+    product: row ? { ...row.product, vendorName: row.vendorName, createdAt: row.product.createdAt.toISOString() } : null,
+    createdAt: item.createdAt.toISOString(),
+  });
+});
+
+router.put("/groups/:groupId/cart/items/:cartItemId", requireAuth, async (req, res) => {
+  const user = getUser(req);
+  const groupId = parseInt(req.params.groupId);
+  const cartItemId = parseInt(req.params.cartItemId);
+  const parsed = UpdateCartItemBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ message: "Invalid body" });
+    return;
+  }
+  if (parsed.data.quantity < 1) {
+    res.status(400).json({ message: "Quantity must be at least 1" });
+    return;
+  }
+  // Authz: caller must be a member of the group
+  const [membership] = await db.select().from(groupMembersTable)
+    .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, user.id)))
+    .limit(1);
+  if (!membership) {
+    res.status(403).json({ message: "Not a member of this group" });
+    return;
+  }
+  // Only the user who added the item can change its quantity
+  const [item] = await db.update(groupCartItemsTable)
+    .set({ quantity: parsed.data.quantity })
+    .where(and(
+      eq(groupCartItemsTable.id, cartItemId),
+      eq(groupCartItemsTable.groupId, groupId),
+      eq(groupCartItemsTable.userId, user.id),
+    ))
+    .returning();
+  if (!item) {
+    res.status(404).json({ message: "Cart item not found" });
+    return;
+  }
+  const row = await getProductWithVendor(item.productId);
+  broadcastToGroup(groupId, { type: "cart:update", groupId, actorUserId: user.id });
+  res.json({
+    ...item,
+    userName: user.name,
     product: row ? { ...row.product, vendorName: row.vendorName, createdAt: row.product.createdAt.toISOString() } : null,
     createdAt: item.createdAt.toISOString(),
   });

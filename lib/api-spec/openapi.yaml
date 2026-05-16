@@ -430,6 +430,26 @@ paths:
                 $ref: "#/components/schemas/GroupCartItem"
 
   /groups/{groupId}/cart/items/{cartItemId}:
+    put:
+      operationId: updateGroupCartItem
+      tags: [cart]
+      summary: Update quantity of a group cart item (owner only)
+      parameters:
+        - $ref: "#/components/parameters/groupId"
+        - $ref: "#/components/parameters/cartItemId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCartItemBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupCartItem"
     delete:
       operationId: removeGroupCartItem
       tags: [cart]

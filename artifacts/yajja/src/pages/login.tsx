@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { HeroWatermark } from "@/components/HeroWatermark";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -54,13 +55,9 @@ export default function Login() {
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background">
-      {/* Teal hero header */}
+      {/* Purple hero header */}
       <div className="bg-primary relative overflow-hidden flex-shrink-0" style={{ minHeight: "42vh" }}>
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-8 left-8 w-32 h-32 rounded-full bg-white/30" />
-          <div className="absolute top-16 right-4 w-20 h-20 rounded-full bg-white/20" />
-          <div className="absolute bottom-4 left-1/3 w-16 h-16 rounded-full bg-white/25" />
-        </div>
+        <HeroWatermark />
         <div className="relative z-10 flex flex-col items-center justify-center h-full pt-12 pb-16 px-8 text-center">
           <Logo size={120} className="drop-shadow-lg mb-2" />
           <p className="text-white text-lg font-semibold mt-2 drop-shadow-sm">Everything in order</p>

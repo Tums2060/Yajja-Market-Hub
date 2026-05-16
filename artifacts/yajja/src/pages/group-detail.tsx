@@ -3,7 +3,8 @@ import { useParams, useLocation } from "wouter";
 import {
   useGetGroup, useListGroupMembers, useListGroupMessages,
   useSendGroupMessage, useGetGroupCart, useSendInvite,
-  getListGroupMessagesQueryKey
+  useUpdateGroupCartItem, useRemoveGroupCartItem,
+  getListGroupMessagesQueryKey, getGetGroupCartQueryKey
 } from "@workspace/api-client-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useGroupCartSocket } from "@/hooks/use-group-cart-socket";
@@ -14,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Users, MessageCircle, ShoppingCart, Send, Loader2, UserPlus } from "lucide-react";
+import { ArrowLeft, Users, MessageCircle, ShoppingCart, Send, Loader2, UserPlus, Plus, Minus, Trash2 } from "lucide-react";
 
 export default function GroupDetail() {
   const { groupId } = useParams();
@@ -33,6 +34,22 @@ export default function GroupDetail() {
 
   const sendMessage = useSendGroupMessage();
   const sendInvite = useSendInvite();
+  const updateGroupItem = useUpdateGroupCartItem();
+  const removeGroupItem = useRemoveGroupCartItem();
+
+  const handleQtyChange = (cartItemId: number, newQty: number) => {
+    if (newQty < 1) {
+      removeGroupItem.mutate({ groupId: id, cartItemId }, {
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetGroupCartQueryKey(id) }),
+        onError: () => toast({ variant: "destructive", title: "Could not remove item" }),
+      });
+      return;
+    }
+    updateGroupItem.mutate({ groupId: id, cartItemId, data: { quantity: newQty } }, {
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetGroupCartQueryKey(id) }),
+      onError: () => toast({ variant: "destructive", title: "Could not update quantity" }),
+    });
+  };
 
   const [messageText, setMessageText] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
@@ -199,21 +216,65 @@ export default function GroupDetail() {
               ) : (
                 <>
                   <div className="space-y-3 mb-4">
-                    {cart.items.map((item: any) => (
-                      <div key={item.id} className="flex items-center gap-3">
-                        <div className="h-12 w-12 bg-muted rounded-lg shrink-0 overflow-hidden">
-                          {item.product?.imageUrl
-                            ? <img src={item.product.imageUrl} alt={item.product.name} className="h-full w-full object-cover" />
-                            : <div className="h-full w-full flex items-center justify-center text-muted-foreground font-bold">{item.product?.name?.charAt(0)}</div>
-                          }
+                    {cart.items.map((item: any) => {
+                      const isMine = item.userId === user?.id;
+                      const busy = (updateGroupItem.isPending && (updateGroupItem.variables as any)?.cartItemId === item.id) ||
+                                   (removeGroupItem.isPending && (removeGroupItem.variables as any)?.cartItemId === item.id);
+                      return (
+                        <div key={item.id} className="flex items-center gap-3">
+                          <div className="h-12 w-12 bg-muted rounded-lg shrink-0 overflow-hidden">
+                            {item.product?.imageUrl
+                              ? <img src={item.product.imageUrl} alt={item.product.name} className="h-full w-full object-cover" />
+                              : <div className="h-full w-full flex items-center justify-center text-muted-foreground font-bold">{item.product?.name?.charAt(0)}</div>
+                            }
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{item.product?.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">by {item.userName}</p>
+                            {isMine ? (
+                              <div className="mt-1 inline-flex items-center gap-2 bg-muted rounded-full p-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 rounded-full"
+                                  onClick={() => handleQtyChange(item.id, item.quantity - 1)}
+                                  disabled={busy || item.quantity <= 1}
+                                  aria-label="Decrease"
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </Button>
+                                <span className="text-xs font-semibold w-5 text-center">
+                                  {busy ? <Loader2 className="h-3 w-3 animate-spin inline" /> : item.quantity}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 rounded-full"
+                                  onClick={() => handleQtyChange(item.id, item.quantity + 1)}
+                                  disabled={busy}
+                                  aria-label="Increase"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 rounded-full text-destructive hover:bg-destructive/10 ml-1"
+                                  onClick={() => removeGroupItem.mutate({ groupId: id, cartItemId: item.id })}
+                                  disabled={busy}
+                                  aria-label="Remove"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-muted-foreground mt-0.5">Qty {item.quantity}</p>
+                            )}
+                          </div>
+                          <p className="font-bold shrink-0">KES {Math.round((item.product?.price || 0) * item.quantity).toLocaleString()}</p>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{item.product?.name}</p>
-                          <p className="text-xs text-muted-foreground">by {item.userName} • qty {item.quantity}</p>
-                        </div>
-                        <p className="font-bold shrink-0">KES {Math.round((item.product?.price || 0) * item.quantity).toLocaleString()}</p>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                   <div className="border-t pt-3 flex justify-between font-bold">
                     <span>Total</span>

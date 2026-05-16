@@ -4,6 +4,7 @@ import {
   useGetCart, 
   useGetGroupCart, 
   useUpdateCartItem, 
+  useUpdateGroupCartItem,
   useRemoveCartItem, 
   useRemoveGroupCartItem,
   getGetCartQueryKey,
@@ -19,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatKES } from "@/lib/format";
 
 export default function Cart() {
-  const { activeMode } = useAuth();
+  const { activeMode, user } = useAuth();
   const isGroupMode = activeMode !== "individual";
   const groupId = isGroupMode ? (activeMode as number) : 0;
   
@@ -36,6 +37,7 @@ export default function Cart() {
   });
 
   const updateItemMutation = useUpdateCartItem();
+  const updateGroupItemMutation = useUpdateGroupCartItem();
   const removeItemMutation = useRemoveCartItem();
   const removeGroupItemMutation = useRemoveGroupCartItem();
 
@@ -53,10 +55,19 @@ export default function Cart() {
   };
 
   const handleUpdateQuantity = (cartItemId: number, newQuantity: number) => {
-    if (isGroupMode) return; // Group cart items are owned by the user who added them
-
     if (newQuantity < 1) {
       handleRemoveItem(cartItemId);
+      return;
+    }
+
+    if (isGroupMode) {
+      updateGroupItemMutation.mutate(
+        { groupId, cartItemId, data: { quantity: newQuantity } },
+        {
+          onSuccess: () => invalidateCart(),
+          onError: () => toast({ variant: "destructive", title: "Could not update quantity" }),
+        }
+      );
       return;
     }
 
@@ -97,6 +108,7 @@ export default function Cart() {
 
   const updatingItemId =
     (updateItemMutation.isPending && (updateItemMutation.variables as any)?.cartItemId) ||
+    (updateGroupItemMutation.isPending && (updateGroupItemMutation.variables as any)?.cartItemId) ||
     (removeItemMutation.isPending && (removeItemMutation.variables as any)?.cartItemId) ||
     (removeGroupItemMutation.isPending && (removeGroupItemMutation.variables as any)?.cartItemId) ||
     null;
@@ -179,42 +191,47 @@ export default function Cart() {
                         </div>
                         
                         <div className="flex items-center justify-between mt-2">
-                          {!isGroupMode ? (
+                          {(!isGroupMode || item.userId === user?.id) ? (
                             <div className="flex items-center gap-3 bg-muted rounded-full p-1">
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
-                                className="h-6 w-6 rounded-full"
+                                className="h-7 w-7 rounded-full"
                                 onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
-                                disabled={itemBusy}
+                                disabled={itemBusy || item.quantity <= 1}
+                                aria-label="Decrease quantity"
                               >
-                                <Minus className="h-3 w-3" />
+                                <Minus className="h-3.5 w-3.5" />
                               </Button>
-                              <span className="text-sm font-medium w-4 text-center">
+                              <span className="text-sm font-semibold w-6 text-center">
                                 {itemBusy ? <Loader2 className="h-3 w-3 animate-spin inline" /> : item.quantity}
                               </span>
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
-                                className="h-6 w-6 rounded-full"
+                                className="h-7 w-7 rounded-full"
                                 onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
                                 disabled={itemBusy}
+                                aria-label="Increase quantity"
                               >
-                                <Plus className="h-3 w-3" />
+                                <Plus className="h-3.5 w-3.5" />
                               </Button>
                             </div>
                           ) : (
                             <span className="text-sm font-medium text-muted-foreground">Qty: {item.quantity}</span>
                           )}
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                            onClick={() => handleRemoveItem(item.id)}
-                            disabled={itemBusy}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {(!isGroupMode || item.userId === user?.id) && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                              onClick={() => handleRemoveItem(item.id)}
+                              disabled={itemBusy}
+                              aria-label="Remove item"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>

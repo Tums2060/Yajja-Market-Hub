@@ -25,7 +25,8 @@ Yajja is a Uganda-based multi-category delivery platform (Food, Liquor, Pharmacy
 - Rider "Kasim" registered
 
 ## Key Features
-- **Brand color**: Teal `hsl(187, 72%, 42%)` applied throughout (light + dark mode)
+- **Brand color**: Getir-style purple `hsl(258, 62%, 49%)` (light), `hsl(258, 70%, 62%)` (dark). Secondary is warm yellow `hsl(45, 95%, 55%)`.
+- **Hero watermark**: `<HeroWatermark />` component scatters food/health/household emojis at low opacity over `bg-primary` sections (home hero, login, register)
 - **Glovo-inspired home**: circular category cards, search bar, banner carousel
 - **Category page**: horizontal scrollable subcategory tabs (`.scrollbar-hide` utility in CSS)
 - **Anti-fraud**: phone required on registration, phone uniqueness enforced, max 5 group memberships
