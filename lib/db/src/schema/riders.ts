@@ -1,17 +1,17 @@
-import { pgTable, serial, text, timestamp, integer, boolean, real } from "drizzle-orm/pg-core";
+import { mysqlTable, int, text, timestamp, boolean, double } from "drizzle-orm/mysql-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const riderProfilesTable = pgTable("rider_profiles", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().unique(),
+export const riderProfilesTable = mysqlTable("rider_profiles", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("user_id").notNull().unique(),
   vehicleType: text("vehicle_type").notNull(),
   licensePlate: text("license_plate"),
-  currentLat: real("current_lat"),
-  currentLng: real("current_lng"),
+  currentLat: double("current_lat"),
+  currentLng: double("current_lng"),
   isAvailable: boolean("is_available").notNull().default(true),
-  totalDeliveries: integer("total_deliveries").notNull().default(0),
-  rating: real("rating").default(5.0),
+  totalDeliveries: int("total_deliveries").notNull().default(0),
+  rating: double("rating").default(5.0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

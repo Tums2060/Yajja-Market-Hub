@@ -1,22 +1,22 @@
-import { pgTable, serial, timestamp, integer, text } from "drizzle-orm/pg-core";
+import { mysqlTable, int, timestamp, text } from "drizzle-orm/mysql-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const cartItemsTable = pgTable("cart_items", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  productId: integer("product_id").notNull(),
-  quantity: integer("quantity").notNull().default(1),
+export const cartItemsTable = mysqlTable("cart_items", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("user_id").notNull(),
+  productId: int("product_id").notNull(),
+  quantity: int("quantity").notNull().default(1),
   notes: text("notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const groupCartItemsTable = pgTable("group_cart_items", {
-  id: serial("id").primaryKey(),
-  groupId: integer("group_id").notNull(),
-  userId: integer("user_id").notNull(),
-  productId: integer("product_id").notNull(),
-  quantity: integer("quantity").notNull().default(1),
+export const groupCartItemsTable = mysqlTable("group_cart_items", {
+  id: int("id").primaryKey().autoincrement(),
+  groupId: int("group_id").notNull(),
+  userId: int("user_id").notNull(),
+  productId: int("product_id").notNull(),
+  quantity: int("quantity").notNull().default(1),
   notes: text("notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

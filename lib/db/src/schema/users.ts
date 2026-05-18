@@ -1,15 +1,13 @@
-import { pgTable, serial, text, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { mysqlTable, int, text, timestamp, mysqlEnum } from "drizzle-orm/mysql-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const userRoleEnum = pgEnum("user_role", ["customer", "vendor", "rider", "admin"]);
-
-export const usersTable = pgTable("users", {
-  id: serial("id").primaryKey(),
+export const usersTable = mysqlTable("users", {
+  id: int("id").primaryKey().autoincrement(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
-  role: userRoleEnum("role").notNull().default("customer"),
+  role: mysqlEnum("role", ["customer", "vendor", "rider", "admin"]).notNull().default("customer"),
   phone: text("phone"),
   avatarUrl: text("avatar_url"),
   address: text("address"),

@@ -38,7 +38,12 @@ router.post("/auth/register", async (req, res) => {
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const [user] = await db.insert(usersTable).values({ name, email, passwordHash, role: role as any, phone }).returning();
+  await db.insert(usersTable).values({ name, email, passwordHash, role: role as any, phone });
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+  if (!user) {
+    res.status(500).json({ message: "Failed to create user" });
+    return;
+  }
   const token = generateToken(user.id);
   const { passwordHash: _, ...userOut } = user;
   res.status(201).json({ user: { ...userOut, createdAt: userOut.createdAt.toISOString() }, token });

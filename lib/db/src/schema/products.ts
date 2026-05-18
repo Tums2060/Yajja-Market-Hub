@@ -1,13 +1,13 @@
-import { pgTable, serial, text, timestamp, integer, boolean, real } from "drizzle-orm/pg-core";
+import { mysqlTable, int, text, timestamp, boolean, double } from "drizzle-orm/mysql-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const productsTable = pgTable("products", {
-  id: serial("id").primaryKey(),
-  vendorId: integer("vendor_id").notNull(),
+export const productsTable = mysqlTable("products", {
+  id: int("id").primaryKey().autoincrement(),
+  vendorId: int("vendor_id").notNull(),
   name: text("name").notNull(),
   description: text("description"),
-  price: real("price").notNull(),
+  price: double("price").notNull(),
   imageUrl: text("image_url"),
   category: text("category").notNull(),
   subcategory: text("subcategory"),

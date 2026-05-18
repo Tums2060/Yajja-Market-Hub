@@ -1,58 +1,54 @@
-import { pgTable, serial, text, timestamp, integer, real, pgEnum, boolean } from "drizzle-orm/pg-core";
+import { mysqlTable, int, text, timestamp, double, mysqlEnum, boolean } from "drizzle-orm/mysql-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const orderStatusEnum = pgEnum("order_status", [
-  "pending", "confirmed", "preparing", "ready", "picked_up", "delivered", "cancelled"
-]);
-
-export const groupOrderStatusEnum = pgEnum("group_order_status", [
-  "pending_payment", "payment_complete", "placed", "cancelled"
-]);
-
-export const ordersTable = pgTable("orders", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  vendorId: integer("vendor_id").notNull(),
-  riderId: integer("rider_id"),
-  groupOrderId: integer("group_order_id"),
-  status: orderStatusEnum("status").notNull().default("pending"),
+export const ordersTable = mysqlTable("orders", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("user_id").notNull(),
+  vendorId: int("vendor_id").notNull(),
+  riderId: int("rider_id"),
+  groupOrderId: int("group_order_id"),
+  status: mysqlEnum("status", [
+    "pending", "confirmed", "preparing", "ready", "picked_up", "delivered", "cancelled"
+  ]).notNull().default("pending"),
   deliveryAddress: text("delivery_address").notNull(),
-  subtotal: real("subtotal").notNull(),
-  deliveryFee: real("delivery_fee").notNull().default(2.5),
-  total: real("total").notNull(),
+  subtotal: double("subtotal").notNull(),
+  deliveryFee: double("delivery_fee").notNull().default(2.5),
+  total: double("total").notNull(),
   notes: text("notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const orderItemsTable = pgTable("order_items", {
-  id: serial("id").primaryKey(),
-  orderId: integer("order_id").notNull(),
-  productId: integer("product_id").notNull(),
+export const orderItemsTable = mysqlTable("order_items", {
+  id: int("id").primaryKey().autoincrement(),
+  orderId: int("order_id").notNull(),
+  productId: int("product_id").notNull(),
   productName: text("product_name").notNull(),
-  quantity: integer("quantity").notNull(),
-  unitPrice: real("unit_price").notNull(),
-  totalPrice: real("total_price").notNull(),
+  quantity: int("quantity").notNull(),
+  unitPrice: double("unit_price").notNull(),
+  totalPrice: double("total_price").notNull(),
 });
 
-export const groupOrdersTable = pgTable("group_orders", {
-  id: serial("id").primaryKey(),
-  groupId: integer("group_id").notNull(),
-  initiatedBy: integer("initiated_by").notNull(),
-  status: groupOrderStatusEnum("status").notNull().default("pending_payment"),
+export const groupOrdersTable = mysqlTable("group_orders", {
+  id: int("id").primaryKey().autoincrement(),
+  groupId: int("group_id").notNull(),
+  initiatedBy: int("initiated_by").notNull(),
+  status: mysqlEnum("status", [
+    "pending_payment", "payment_complete", "placed", "cancelled"
+  ]).notNull().default("pending_payment"),
   deliveryAddress: text("delivery_address").notNull(),
-  total: real("total").notNull(),
-  amountCollected: real("amount_collected").notNull().default(0),
+  total: double("total").notNull(),
+  amountCollected: double("amount_collected").notNull().default(0),
   notes: text("notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const billAssignmentsTable = pgTable("bill_assignments", {
-  id: serial("id").primaryKey(),
-  groupOrderId: integer("group_order_id").notNull(),
-  userId: integer("user_id").notNull(),
-  amount: real("amount").notNull(),
+export const billAssignmentsTable = mysqlTable("bill_assignments", {
+  id: int("id").primaryKey().autoincrement(),
+  groupOrderId: int("group_order_id").notNull(),
+  userId: int("user_id").notNull(),
+  amount: double("amount").notNull(),
   paid: boolean("paid").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

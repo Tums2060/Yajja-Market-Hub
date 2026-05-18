@@ -1,37 +1,37 @@
-import { pgTable, serial, text, timestamp, integer, boolean } from "drizzle-orm/pg-core";
+import { mysqlTable, int, text, timestamp, boolean } from "drizzle-orm/mysql-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const groupsTable = pgTable("groups", {
-  id: serial("id").primaryKey(),
+export const groupsTable = mysqlTable("groups", {
+  id: int("id").primaryKey().autoincrement(),
   name: text("name").notNull(),
   description: text("description"),
-  adminId: integer("admin_id").notNull(),
+  adminId: int("admin_id").notNull(),
   imageUrl: text("image_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const groupMembersTable = pgTable("group_members", {
-  id: serial("id").primaryKey(),
-  groupId: integer("group_id").notNull(),
-  userId: integer("user_id").notNull(),
+export const groupMembersTable = mysqlTable("group_members", {
+  id: int("id").primaryKey().autoincrement(),
+  groupId: int("group_id").notNull(),
+  userId: int("user_id").notNull(),
   isAdmin: boolean("is_admin").notNull().default(false),
   joinedAt: timestamp("joined_at").notNull().defaultNow(),
 });
 
-export const groupMessagesTable = pgTable("group_messages", {
-  id: serial("id").primaryKey(),
-  groupId: integer("group_id").notNull(),
-  userId: integer("user_id").notNull(),
+export const groupMessagesTable = mysqlTable("group_messages", {
+  id: int("id").primaryKey().autoincrement(),
+  groupId: int("group_id").notNull(),
+  userId: int("user_id").notNull(),
   content: text("content").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const invitesTable = pgTable("invites", {
-  id: serial("id").primaryKey(),
-  groupId: integer("group_id").notNull(),
-  fromUserId: integer("from_user_id").notNull(),
-  toUserId: integer("to_user_id").notNull(),
+export const invitesTable = mysqlTable("invites", {
+  id: int("id").primaryKey().autoincrement(),
+  groupId: int("group_id").notNull(),
+  fromUserId: int("from_user_id").notNull(),
+  toUserId: int("to_user_id").notNull(),
   status: text("status").notNull().default("pending"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

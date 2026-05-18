@@ -18,9 +18,11 @@
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2",
+    "dotenv": "^17.2.2",
     "drizzle-orm": "catalog:",
     "express": "^5",
     "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.14.4",
     "pino": "^9",
     "pino-http": "^10",
     "ws": "^8.20.0"
