@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Loader2, ShoppingBag, Zap, Users } from "lucide-react";
-import { Logo } from "@/components/Logo";
 import { useLogin } from "@workspace/api-client-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -13,7 +12,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { HeroWatermark } from "@/components/HeroWatermark";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -54,19 +52,16 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-background">
-      {/* Purple hero header */}
-      <div className="bg-primary relative overflow-hidden flex-shrink-0" style={{ minHeight: "42vh" }}>
-        <HeroWatermark />
-        <div className="relative z-10 flex flex-col items-center justify-center h-full pt-12 pb-16 px-8 text-center">
-          <Logo size={120} className="drop-shadow-lg mb-2" />
-          <p className="text-white text-lg font-semibold mt-2 drop-shadow-sm">Everything in order</p>
-        </div>
-      </div>
-
-      {/* Form card that overlaps the hero */}
-      <div className="flex-1 flex flex-col -mt-8 relative z-10">
-        <div className="bg-background rounded-t-3xl shadow-2xl flex-1 px-6 pt-8 pb-10 max-w-md w-full mx-auto">
+    <div className="min-h-[100dvh] bg-background flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-md">
+        <div className="bg-white rounded-3xl shadow-2xl px-6 pt-12 pb-10">
+          <div className="flex justify-center pb-4">
+            <img
+              src="/yajja-icon2.jpeg"
+              alt="Yajja"
+              className="h-16 w-16 rounded-2xl object-cover"
+            />
+          </div>
           <h2 className="text-2xl font-bold text-foreground mb-1">Sign in</h2>
           <p className="text-muted-foreground text-sm mb-6">Good to have you back!</p>
 
@@ -81,7 +76,7 @@ export default function Login() {
                       <Input
                         placeholder="Email address"
                         type="email"
-                        className="h-12 rounded-xl bg-muted/50 border-0 focus-visible:ring-primary placeholder:text-muted-foreground/60"
+                        className="h-12 rounded-xl bg-[#FFF7DA] border-0 focus-visible:ring-[#F8D84E] placeholder:text-muted-foreground/60"
                         {...field}
                       />
                     </FormControl>
@@ -98,7 +93,7 @@ export default function Login() {
                       <Input
                         placeholder="Password"
                         type="password"
-                        className="h-12 rounded-xl bg-muted/50 border-0 focus-visible:ring-primary placeholder:text-muted-foreground/60"
+                        className="h-12 rounded-xl bg-[#FFF7DA] border-0 focus-visible:ring-[#F8D84E] placeholder:text-muted-foreground/60"
                         {...field}
                       />
                     </FormControl>
@@ -108,14 +103,14 @@ export default function Login() {
               />
               <Button
                 type="submit"
-                className="w-full h-12 text-base font-bold rounded-xl mt-2"
+                className="w-full h-12 text-base font-bold rounded-xl mt-2 bg-[#F8D84E] text-[#2E2A7B] hover:bg-[#F6D236]"
                 disabled={loginMutation.isPending}
               >
                 {loginMutation.isPending && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
                 Sign In
               </Button>
               <div className="text-right">
-                <Link href="/forgot-password" className="text-xs text-primary hover:underline font-medium">
+                <Link href="/forgot-password" className="text-xs text-[#2E2A7B] hover:underline font-medium">
                   Forgot Password?
                 </Link>
               </div>
@@ -129,7 +124,7 @@ export default function Login() {
               <div className="flex-1 h-px bg-border" />
             </div>
             <Link href="/register">
-              <Button variant="outline" className="w-full h-12 rounded-xl border-primary/30 text-primary font-semibold hover:bg-primary/5">
+              <Button variant="outline" className="w-full h-12 rounded-xl border-[#F2D98B] text-[#2E2A7B] font-semibold hover:bg-[#F8D84E]/30">
                 Create an Account
               </Button>
             </Link>
@@ -142,8 +137,8 @@ export default function Login() {
               { icon: Users, label: "Group Orders" },
               { icon: Zap, label: "Bill Splitting" },
             ].map(({ icon: Icon, label }) => (
-              <div key={label} className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-muted/40">
-                <Icon className="h-5 w-5 text-primary" />
+              <div key={label} className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-[#FFF7DA]">
+                <Icon className="h-5 w-5 text-[#2E2A7B]" />
                 <span className="text-[10px] font-medium text-center text-muted-foreground leading-tight">{label}</span>
               </div>
             ))}

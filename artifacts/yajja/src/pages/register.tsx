@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Loader2, ArrowLeft, Eye, EyeOff } from "lucide-react";
-import { Logo } from "@/components/Logo";
 import { KENYA } from "@/lib/format";
 import { useRegister } from "@workspace/api-client-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -14,7 +13,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { HeroWatermark } from "@/components/HeroWatermark";
 
 const registerSchema = z.object({
   name: z.string().min(2, "Full name is required"),
@@ -69,26 +67,25 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-background">
-      {/* Purple hero header with watermark icons */}
-      <div className="bg-primary relative overflow-hidden flex-shrink-0" style={{ minHeight: "36vh" }}>
-        <HeroWatermark />
-        <div className="relative z-10 flex flex-col h-full pt-10 pb-14 px-6">
-          <Link href="/login">
-            <Button variant="ghost" size="icon" className="text-white/80 hover:text-white hover:bg-white/10 -ml-2">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
-          <div className="flex-1 flex flex-col items-center justify-center text-center mt-2">
-            <Logo size={96} className="drop-shadow-lg mb-2" />
-            <p className="text-white text-base font-semibold drop-shadow-sm">Everything in order</p>
+    <div className="min-h-[100dvh] bg-background flex items-center justify-center px-4 py-10">
+      <div className="relative w-full max-w-md">
+        <Link href="/login">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute left-0 top-0 text-[#2E2A7B] hover:bg-black/5"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+        </Link>
+        <div className="bg-white rounded-3xl shadow-2xl px-6 pt-12 pb-10">
+          <div className="flex justify-center pb-4">
+            <img
+              src="/yajja-icon2.jpeg"
+              alt="Yajja"
+              className="h-16 w-16 rounded-2xl object-cover"
+            />
           </div>
-        </div>
-      </div>
-
-      {/* Form card */}
-      <div className="flex-1 flex flex-col -mt-8 relative z-10">
-        <div className="bg-background rounded-t-3xl shadow-2xl flex-1 px-6 pt-8 pb-10 max-w-md w-full mx-auto">
           <h2 className="text-2xl font-bold text-foreground mb-1">Create Account</h2>
           <p className="text-muted-foreground text-sm mb-6">It only takes a minute!</p>
 
@@ -103,7 +100,7 @@ export default function Register() {
                       <Input
                         placeholder="Full name"
                         autoComplete="name"
-                        className="h-12 rounded-xl bg-muted/50 border-0 focus-visible:ring-primary"
+                        className="h-12 rounded-xl bg-[#FFF7DA] border-0 focus-visible:ring-[#F8D84E]"
                         {...field}
                       />
                     </FormControl>
@@ -121,7 +118,7 @@ export default function Register() {
                         placeholder={`Phone number (e.g. ${KENYA.phonePlaceholder})`}
                         type="tel"
                         autoComplete="tel"
-                        className="h-12 rounded-xl bg-muted/50 border-0 focus-visible:ring-primary"
+                        className="h-12 rounded-xl bg-[#FFF7DA] border-0 focus-visible:ring-[#F8D84E]"
                         {...field}
                       />
                     </FormControl>
@@ -142,7 +139,7 @@ export default function Register() {
                         placeholder="Email address"
                         type="email"
                         autoComplete="email"
-                        className="h-12 rounded-xl bg-muted/50 border-0 focus-visible:ring-primary"
+                        className="h-12 rounded-xl bg-[#FFF7DA] border-0 focus-visible:ring-[#F8D84E]"
                         {...field}
                       />
                     </FormControl>
@@ -161,7 +158,7 @@ export default function Register() {
                           placeholder="Password (min 6 characters)"
                           type={showPassword ? "text" : "password"}
                           autoComplete="new-password"
-                          className="h-12 rounded-xl bg-muted/50 border-0 focus-visible:ring-primary pr-11"
+                          className="h-12 rounded-xl bg-[#FFF7DA] border-0 focus-visible:ring-[#F8D84E] pr-11"
                           {...field}
                         />
                         <button
@@ -169,7 +166,7 @@ export default function Register() {
                           onClick={() => setShowPassword(s => !s)}
                           aria-label={showPassword ? "Hide password" : "Show password"}
                           aria-pressed={showPassword}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F8D84E]"
                         >
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -190,7 +187,7 @@ export default function Register() {
                           placeholder="Confirm password"
                           type={showConfirm ? "text" : "password"}
                           autoComplete="new-password"
-                          className="h-12 rounded-xl bg-muted/50 border-0 focus-visible:ring-primary pr-11"
+                          className="h-12 rounded-xl bg-[#FFF7DA] border-0 focus-visible:ring-[#F8D84E] pr-11"
                           {...field}
                         />
                         <button
@@ -198,7 +195,7 @@ export default function Register() {
                           onClick={() => setShowConfirm(s => !s)}
                           aria-label={showConfirm ? "Hide password" : "Show password"}
                           aria-pressed={showConfirm}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F8D84E]"
                         >
                           {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -214,7 +211,7 @@ export default function Register() {
 
               <Button
                 type="submit"
-                className="w-full h-12 text-base font-bold rounded-xl mt-2"
+                className="w-full h-12 text-base font-bold rounded-xl mt-2 bg-[#F8D84E] text-[#2E2A7B] hover:bg-[#F6D236] disabled:opacity-100 disabled:bg-[#F8D84E] disabled:text-[#2E2A7B]"
                 disabled={registerMutation.isPending || !passwordsMatch || !form.formState.isValid}
               >
                 {registerMutation.isPending && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
@@ -225,7 +222,7 @@ export default function Register() {
 
           <p className="text-center text-sm text-muted-foreground mt-6">
             Already have an account?{" "}
-            <Link href="/login" className="text-primary font-semibold hover:underline">Sign in</Link>
+            <Link href="/login" className="text-[#2E2A7B] font-semibold hover:underline">Sign in</Link>
           </p>
 
           <p className="text-center text-xs text-muted-foreground/60 mt-4 px-4">
@@ -233,14 +230,14 @@ export default function Register() {
           </p>
 
           {/* Portal access */}
-          <div className="mt-6 p-4 rounded-xl bg-muted/30 border border-border/50">
+          <div className="mt-6 p-4 rounded-xl bg-[#FFF7DA] border border-[#F2D98B]">
             <p className="text-xs font-medium text-muted-foreground mb-2">Want to join as a vendor or rider?</p>
             <div className="flex gap-2">
               <Link href="/vendor-portal" className="flex-1">
-                <Button variant="outline" size="sm" className="w-full text-xs h-8">Vendor Portal →</Button>
+                <Button variant="outline" size="sm" className="w-full text-xs h-8 border-[#F2D98B] text-[#2E2A7B] hover:bg-[#F8D84E]/30">Vendor Portal →</Button>
               </Link>
               <Link href="/rider-portal" className="flex-1">
-                <Button variant="outline" size="sm" className="w-full text-xs h-8">Rider Portal →</Button>
+                <Button variant="outline" size="sm" className="w-full text-xs h-8 border-[#F2D98B] text-[#2E2A7B] hover:bg-[#F8D84E]/30">Rider Portal →</Button>
               </Link>
             </div>
           </div>

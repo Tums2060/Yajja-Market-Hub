@@ -1,3 +1,9 @@
 <svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="180" height="180" rx="36" fill="#FF3C00"/>
+	<defs>
+		<clipPath id="clip">
+			<rect width="180" height="180" rx="36" />
+		</clipPath>
+	</defs>
+	<rect width="180" height="180" rx="36" fill="#FFFFFF" />
+	<image href="/yajja-icon2.jpeg" width="180" height="180" clip-path="url(#clip)" preserveAspectRatio="xMidYMid slice" />
 </svg>
