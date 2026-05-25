@@ -22,7 +22,7 @@ export default function VendorPortal() {
   const { data: orders } = useListVendorOrders({ status: "pending" }, { query: { enabled: true } });
   const pendingOrders = (orders || []).slice(0, 5);
 
-  const handleLogout = () => { logout(); setLocation("/login"); };
+  const handleLogout = () => { logout(); setLocation("/vendor/login"); };
 
   return (
     <div className="container max-w-4xl mx-auto py-8 px-4 space-y-6 animate-in fade-in duration-500">

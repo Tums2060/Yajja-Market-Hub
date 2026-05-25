@@ -10,6 +10,10 @@ import Login from "@/pages/login";
 import Register from "@/pages/register";
 import ForgotPassword from "@/pages/forgot-password";
 import ResetPassword from "@/pages/reset-password";
+import VendorLogin from "@/pages/vendor-login";
+import VendorRegister from "@/pages/vendor-register";
+import RiderLogin from "@/pages/rider-login";
+import RiderRegister from "@/pages/rider-register";
 import Home from "@/pages/home";
 import Shop from "@/pages/shop";
 import CategoryPage from "@/pages/category";
@@ -49,7 +53,9 @@ const ProtectedRoute = ({ component: Component, allowedRoles, ...rest }: any) =>
 
   useEffect(() => {
     if (!isLoading && !user) {
-      setLocation("/login");
+      if (allowedRoles?.includes("vendor")) setLocation("/vendor/login");
+      else if (allowedRoles?.includes("rider")) setLocation("/rider/login");
+      else setLocation("/login");
     } else if (!isLoading && user && allowedRoles && !allowedRoles.includes(user.role)) {
       // Redirect to their portal
       if (user.role === "vendor") setLocation("/vendor-portal");
@@ -71,6 +77,10 @@ function Router() {
       <Switch>
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
+        <Route path="/vendor/login" component={VendorLogin} />
+        <Route path="/vendor/register" component={VendorRegister} />
+        <Route path="/rider/login" component={RiderLogin} />
+        <Route path="/rider/register" component={RiderRegister} />
         <Route path="/forgot-password" component={ForgotPassword} />
         <Route path="/reset-password" component={ResetPassword} />
 

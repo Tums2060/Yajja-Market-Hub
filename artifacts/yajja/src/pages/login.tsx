@@ -18,10 +18,47 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-export default function Login() {
+export type AuthRole = "customer" | "vendor" | "rider";
+
+const roleConfig: Record<AuthRole, {
+  label: string;
+  heading: string;
+  subheading: string;
+  loginPath: string;
+  registerPath: string;
+  showCustomerExtras: boolean;
+}> = {
+  customer: {
+    label: "Customer",
+    heading: "Sign In as Customer",
+    subheading: "Good to have you back!",
+    loginPath: "/login",
+    registerPath: "/register",
+    showCustomerExtras: true,
+  },
+  vendor: {
+    label: "Vendor",
+    heading: "Sign In as Vendor",
+    subheading: "Access your vendor dashboard.",
+    loginPath: "/vendor/login",
+    registerPath: "/vendor/register",
+    showCustomerExtras: false,
+  },
+  rider: {
+    label: "Rider",
+    heading: "Sign In as Rider",
+    subheading: "Manage deliveries and tracking.",
+    loginPath: "/rider/login",
+    registerPath: "/rider/register",
+    showCustomerExtras: false,
+  },
+};
+
+export function AuthLogin({ role }: { role: AuthRole }) {
   const [, setLocation] = useLocation();
   const { setToken, user, isLoading } = useAuth();
   const { toast } = useToast();
+  const config = roleConfig[role];
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -29,6 +66,10 @@ export default function Login() {
   });
 
   const loginMutation = useLogin();
+
+  useEffect(() => {
+    document.title = `${config.heading} - Yajja`;
+  }, [config.heading]);
 
   useEffect(() => {
     if (!isLoading && user) {
@@ -62,8 +103,13 @@ export default function Login() {
               className="h-16 w-16 rounded-2xl object-cover"
             />
           </div>
-          <h2 className="text-2xl font-bold text-foreground mb-1">Sign in</h2>
-          <p className="text-muted-foreground text-sm mb-6">Good to have you back!</p>
+          <div className="flex justify-center pb-3">
+            <span className="rounded-full border border-[#F2D98B] px-3 py-1 text-xs font-semibold text-[#2E2A7B] bg-[#FFF7DA]">
+              {config.label} Account
+            </span>
+          </div>
+          <h2 className="text-2xl font-bold text-foreground mb-1">{config.heading}</h2>
+          <p className="text-muted-foreground text-sm mb-6">{config.subheading}</p>
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -107,7 +153,7 @@ export default function Login() {
                 disabled={loginMutation.isPending}
               >
                 {loginMutation.isPending && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-                Sign In
+                {config.heading}
               </Button>
               <div className="text-right">
                 <Link href="/forgot-password" className="text-xs text-[#2E2A7B] hover:underline font-medium">
@@ -123,42 +169,48 @@ export default function Login() {
               <span>New to Yajja?</span>
               <div className="flex-1 h-px bg-border" />
             </div>
-            <Link href="/register">
+            <Link href={config.registerPath}>
               <Button variant="outline" className="w-full h-12 rounded-xl border-[#F2D98B] text-[#2E2A7B] font-semibold hover:bg-[#F8D84E]/30">
-                Create an Account
+                {`Sign Up as ${config.label}`}
               </Button>
             </Link>
           </div>
 
-          {/* Feature hints */}
-          <div className="mt-8 grid grid-cols-3 gap-3">
-            {[
-              { icon: ShoppingBag, label: "Fast Delivery" },
-              { icon: Users, label: "Group Orders" },
-              { icon: Zap, label: "Bill Splitting" },
-            ].map(({ icon: Icon, label }) => (
-              <div key={label} className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-[#FFF7DA]">
-                <Icon className="h-5 w-5 text-[#2E2A7B]" />
-                <span className="text-[10px] font-medium text-center text-muted-foreground leading-tight">{label}</span>
+          {config.showCustomerExtras && (
+            <>
+              <div className="mt-8 grid grid-cols-3 gap-3">
+                {[
+                  { icon: ShoppingBag, label: "Fast Delivery" },
+                  { icon: Users, label: "Group Orders" },
+                  { icon: Zap, label: "Bill Splitting" },
+                ].map(({ icon: Icon, label }) => (
+                  <div key={label} className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-[#FFF7DA]">
+                    <Icon className="h-5 w-5 text-[#2E2A7B]" />
+                    <span className="text-[10px] font-medium text-center text-muted-foreground leading-tight">{label}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          {/* Portal links */}
-          <div className="mt-6 text-center">
-            <p className="text-xs text-muted-foreground mb-2">Joining as a business or rider?</p>
-            <div className="flex gap-2 justify-center">
-              <Link href="/vendor-portal">
-                <Button variant="ghost" size="sm" className="text-xs h-7 text-muted-foreground">Vendor Portal</Button>
-              </Link>
-              <span className="text-muted-foreground/30 flex items-center">|</span>
-              <Link href="/rider-portal">
-                <Button variant="ghost" size="sm" className="text-xs h-7 text-muted-foreground">Rider Portal</Button>
-              </Link>
-            </div>
-          </div>
+              <div className="mt-6 text-center">
+                <p className="text-xs text-muted-foreground mb-2">Joining as a business or rider?</p>
+                <div className="flex gap-2 justify-center">
+                  <Link href="/vendor/login">
+                    <Button variant="ghost" size="sm" className="text-xs h-7 text-muted-foreground">Vendor Portal</Button>
+                  </Link>
+                  <span className="text-muted-foreground/30 flex items-center">|</span>
+                  <Link href="/rider/login">
+                    <Button variant="ghost" size="sm" className="text-xs h-7 text-muted-foreground">Rider Portal</Button>
+                  </Link>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
   );
+}
+
+export default function Login() {
+  return <AuthLogin role="customer" />;
 }

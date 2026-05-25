@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, Link } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -25,12 +25,53 @@ const registerSchema = z.object({
   path: ["confirmPassword"],
 });
 
-export default function Register() {
+type AuthRole = "customer" | "vendor" | "rider";
+
+const roleConfig: Record<AuthRole, {
+  label: string;
+  heading: string;
+  subheading: string;
+  loginPath: string;
+  registerPath: string;
+  showCustomerExtras: boolean;
+}> = {
+  customer: {
+    label: "Customer",
+    heading: "Sign Up as Customer",
+    subheading: "It only takes a minute!",
+    loginPath: "/login",
+    registerPath: "/register",
+    showCustomerExtras: true,
+  },
+  vendor: {
+    label: "Vendor",
+    heading: "Sign Up as Vendor",
+    subheading: "Create a vendor account to manage your store.",
+    loginPath: "/vendor/login",
+    registerPath: "/vendor/register",
+    showCustomerExtras: false,
+  },
+  rider: {
+    label: "Rider",
+    heading: "Sign Up as Rider",
+    subheading: "Create a rider account to start deliveries.",
+    loginPath: "/rider/login",
+    registerPath: "/rider/register",
+    showCustomerExtras: false,
+  },
+};
+
+export function AuthRegister({ role }: { role: AuthRole }) {
   const [, setLocation] = useLocation();
   const { setToken } = useAuth();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const config = roleConfig[role];
+
+  useEffect(() => {
+    document.title = `${config.heading} - Yajja`;
+  }, [config.heading]);
 
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
@@ -48,7 +89,7 @@ export default function Register() {
     const { confirmPassword: _omit, ...payload } = values;
     void _omit;
     registerMutation.mutate(
-      { data: { ...payload, role: "customer" } },
+      { data: { ...payload, role } },
       {
         onSuccess: (data) => {
           setToken(data.token);
@@ -69,7 +110,7 @@ export default function Register() {
   return (
     <div className="min-h-[100dvh] bg-background flex items-center justify-center px-4 py-10">
       <div className="relative w-full max-w-md">
-        <Link href="/login">
+        <Link href={config.loginPath}>
           <Button
             variant="ghost"
             size="icon"
@@ -86,8 +127,13 @@ export default function Register() {
               className="h-16 w-16 rounded-2xl object-cover"
             />
           </div>
-          <h2 className="text-2xl font-bold text-foreground mb-1">Create Account</h2>
-          <p className="text-muted-foreground text-sm mb-6">It only takes a minute!</p>
+          <div className="flex justify-center pb-3">
+            <span className="rounded-full border border-[#F2D98B] px-3 py-1 text-xs font-semibold text-[#2E2A7B] bg-[#FFF7DA]">
+              {config.label} Account
+            </span>
+          </div>
+          <h2 className="text-2xl font-bold text-foreground mb-1">{config.heading}</h2>
+          <p className="text-muted-foreground text-sm mb-6">{config.subheading}</p>
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
@@ -215,14 +261,16 @@ export default function Register() {
                 disabled={registerMutation.isPending || !passwordsMatch || !form.formState.isValid}
               >
                 {registerMutation.isPending && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-                Create Account
+                {config.heading}
               </Button>
             </form>
           </Form>
 
           <p className="text-center text-sm text-muted-foreground mt-6">
             Already have an account?{" "}
-            <Link href="/login" className="text-[#2E2A7B] font-semibold hover:underline">Sign in</Link>
+            <Link href={config.loginPath} className="text-[#2E2A7B] font-semibold hover:underline">
+              {`Sign in as ${config.label}`}
+            </Link>
           </p>
 
           <p className="text-center text-xs text-muted-foreground/60 mt-4 px-4">
@@ -230,19 +278,25 @@ export default function Register() {
           </p>
 
           {/* Portal access */}
-          <div className="mt-6 p-4 rounded-xl bg-[#FFF7DA] border border-[#F2D98B]">
-            <p className="text-xs font-medium text-muted-foreground mb-2">Want to join as a vendor or rider?</p>
-            <div className="flex gap-2">
-              <Link href="/vendor-portal" className="flex-1">
-                <Button variant="outline" size="sm" className="w-full text-xs h-8 border-[#F2D98B] text-[#2E2A7B] hover:bg-[#F8D84E]/30">Vendor Portal →</Button>
-              </Link>
-              <Link href="/rider-portal" className="flex-1">
-                <Button variant="outline" size="sm" className="w-full text-xs h-8 border-[#F2D98B] text-[#2E2A7B] hover:bg-[#F8D84E]/30">Rider Portal →</Button>
-              </Link>
+          {config.showCustomerExtras && (
+            <div className="mt-6 p-4 rounded-xl bg-[#FFF7DA] border border-[#F2D98B]">
+              <p className="text-xs font-medium text-muted-foreground mb-2">Want to join as a vendor or rider?</p>
+              <div className="flex gap-2">
+                <Link href="/vendor/login" className="flex-1">
+                  <Button variant="outline" size="sm" className="w-full text-xs h-8 border-[#F2D98B] text-[#2E2A7B] hover:bg-[#F8D84E]/30">Vendor Portal →</Button>
+                </Link>
+                <Link href="/rider/login" className="flex-1">
+                  <Button variant="outline" size="sm" className="w-full text-xs h-8 border-[#F2D98B] text-[#2E2A7B] hover:bg-[#F8D84E]/30">Rider Portal →</Button>
+                </Link>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
   );
+}
+
+export default function Register() {
+  return <AuthRegister role="customer" />;
 }

@@ -59,7 +59,7 @@ export default function RiderPortal() {
             <p className="text-sm text-muted-foreground">{user?.name}</p>
           </div>
         </div>
-        <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground" onClick={() => { logout(); setLocation("/login"); }}>
+        <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground" onClick={() => { logout(); setLocation("/rider/login"); }}>
           <LogOut className="h-4 w-4" /> Sign Out
         </Button>
       </div>

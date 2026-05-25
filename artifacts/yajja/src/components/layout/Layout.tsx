@@ -13,7 +13,17 @@ export default function Layout({ children }: LayoutProps) {
   const { user, isLoading } = useAuth();
   const [location] = useLocation();
 
-  const isAuthPage = location === "/login" || location === "/register";
+  const authPages = new Set([
+    "/login",
+    "/register",
+    "/vendor/login",
+    "/vendor/register",
+    "/rider/login",
+    "/rider/register",
+    "/forgot-password",
+    "/reset-password",
+  ]);
+  const isAuthPage = authPages.has(location);
 
   if (isLoading) {
     return (

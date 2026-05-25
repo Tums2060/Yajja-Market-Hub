@@ -54,7 +54,9 @@ export default function Navbar() {
 
   const handleLogout = () => {
     logout();
-    setLocation("/login");
+    if (user?.role === "vendor") setLocation("/vendor/login");
+    else if (user?.role === "rider") setLocation("/rider/login");
+    else setLocation("/login");
   };
 
   const { data: cart } = useGetCart({ query: { enabled: !!user && user.role === "customer" } });
