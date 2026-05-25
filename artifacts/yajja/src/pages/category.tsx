@@ -5,70 +5,66 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Search, Star, Clock, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Search, Star, Clock, ShoppingBag, Store, Package, ShoppingCart, Home } from "lucide-react";
 import { formatKES } from "@/lib/format";
 
 const CATEGORY_META: Record<string, {
-  label: string; emoji: string; color: string;
-  subcategories: { id: string; label: string; icon: string }[];
+  label: string; Icon: React.ComponentType<{ className?: string }>; 
+  subcategories: { id: string; label: string; Icon: React.ComponentType<{ className?: string }> }[];
 }> = {
   food: {
     label: "Food & Drinks",
-    emoji: "🍔",
-    color: "from-amber-400 to-orange-500",
+    Icon: ShoppingBag,
     subcategories: [
-      { id: "all", label: "All", icon: "🍽️" },
-      { id: "local", label: "Local Dishes", icon: "🍲" },
-      { id: "fast-food", label: "Fast Food", icon: "🍟" },
-      { id: "breakfast", label: "Breakfast", icon: "🍳" },
-      { id: "grills", label: "Grills", icon: "🍖" },
-      { id: "seafood", label: "Seafood", icon: "🐟" },
-      { id: "bakery", label: "Bakery", icon: "🥐" },
-      { id: "drinks", label: "Drinks", icon: "🥤" },
-      { id: "desserts", label: "Desserts", icon: "🍦" },
+      { id: "all", label: "All", Icon: Store },
+      { id: "local", label: "Local Dishes", Icon: ShoppingBag },
+      { id: "fast-food", label: "Fast Food", Icon: ShoppingBag },
+      { id: "breakfast", label: "Breakfast", Icon: ShoppingBag },
+      { id: "grills", label: "Grills", Icon: ShoppingBag },
+      { id: "seafood", label: "Seafood", Icon: ShoppingBag },
+      { id: "bakery", label: "Bakery", Icon: ShoppingBag },
+      { id: "drinks", label: "Drinks", Icon: ShoppingBag },
+      { id: "desserts", label: "Desserts", Icon: ShoppingBag },
     ],
   },
   liquor: {
     label: "Liquor",
-    emoji: "🍷",
-    color: "from-purple-400 to-violet-600",
+    Icon: Store,
     subcategories: [
-      { id: "all", label: "All", icon: "🍾" },
-      { id: "beer", label: "Beer", icon: "🍺" },
-      { id: "wine", label: "Wine", icon: "🍷" },
-      { id: "whiskey", label: "Whiskey", icon: "🥃" },
-      { id: "vodka", label: "Vodka", icon: "🫙" },
-      { id: "gin", label: "Gin", icon: "🍸" },
-      { id: "rum", label: "Rum", icon: "🍹" },
-      { id: "non-alcoholic", label: "Non-Alcoholic", icon: "🧃" },
+      { id: "all", label: "All", Icon: Store },
+      { id: "beer", label: "Beer", Icon: Store },
+      { id: "wine", label: "Wine", Icon: Store },
+      { id: "whiskey", label: "Whiskey", Icon: Store },
+      { id: "vodka", label: "Vodka", Icon: Store },
+      { id: "gin", label: "Gin", Icon: Store },
+      { id: "rum", label: "Rum", Icon: Store },
+      { id: "non-alcoholic", label: "Non-Alcoholic", Icon: Store },
     ],
   },
   pharmacy: {
     label: "Health & Wellness",
-    emoji: "💊",
-    color: "from-emerald-400 to-teal-500",
+    Icon: Package,
     subcategories: [
-      { id: "all", label: "All", icon: "🏥" },
-      { id: "otc", label: "OTC Medicines", icon: "💊" },
-      { id: "vitamins", label: "Vitamins", icon: "🌿" },
-      { id: "skincare", label: "Skincare", icon: "🧴" },
-      { id: "baby", label: "Baby Care", icon: "👶" },
-      { id: "first-aid", label: "First Aid", icon: "🩹" },
-      { id: "wellness", label: "Wellness", icon: "🧘" },
+      { id: "all", label: "All", Icon: Store },
+      { id: "otc", label: "OTC Medicines", Icon: Package },
+      { id: "vitamins", label: "Vitamins", Icon: Package },
+      { id: "skincare", label: "Skincare", Icon: Package },
+      { id: "baby", label: "Baby Care", Icon: Package },
+      { id: "first-aid", label: "First Aid", Icon: Package },
+      { id: "wellness", label: "Wellness", Icon: Package },
     ],
   },
   household: {
     label: "Convenience",
-    emoji: "🛒",
-    color: "from-blue-400 to-indigo-500",
+    Icon: ShoppingCart,
     subcategories: [
-      { id: "all", label: "All", icon: "🏠" },
-      { id: "cleaning", label: "Cleaning", icon: "🧹" },
-      { id: "kitchen", label: "Kitchen", icon: "🍳" },
-      { id: "laundry", label: "Laundry", icon: "🧺" },
-      { id: "stationery", label: "Stationery", icon: "📄" },
-      { id: "electronics", label: "Electronics", icon: "🔌" },
-      { id: "personal-care", label: "Personal Care", icon: "🪥" },
+      { id: "all", label: "All", Icon: Home },
+      { id: "cleaning", label: "Cleaning", Icon: ShoppingCart },
+      { id: "kitchen", label: "Kitchen", Icon: ShoppingCart },
+      { id: "laundry", label: "Laundry", Icon: ShoppingCart },
+      { id: "stationery", label: "Stationery", Icon: ShoppingCart },
+      { id: "electronics", label: "Electronics", Icon: ShoppingCart },
+      { id: "personal-care", label: "Personal Care", Icon: ShoppingCart },
     ],
   },
 };
@@ -94,44 +90,43 @@ export default function CategoryPage() {
   }) || [];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#FFF7DA]">
       {/* Hero header */}
-      <div className={`bg-gradient-to-br ${meta.color} relative overflow-hidden`} style={{ minHeight: "200px" }}>
-        <div className="absolute inset-0 opacity-15 pointer-events-none">
-          <div className="absolute -top-4 -right-4 w-40 h-40 rounded-full bg-white" />
-          <div className="absolute bottom-0 left-10 w-24 h-24 rounded-full bg-white" />
-        </div>
+      <div className="relative overflow-hidden" style={{ minHeight: "200px" }}>
         <div className="relative z-10 px-4 pt-4 pb-6 max-w-2xl mx-auto">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-white/80 hover:text-white hover:bg-white/15 mb-3 -ml-1"
-            onClick={() => setLocation("/")}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex items-center gap-3 mb-4">
-            <span className="text-5xl">{meta.emoji}</span>
-            <div>
-              <h1 className="text-2xl font-extrabold text-white tracking-tight">{meta.label}</h1>
-              <p className="text-white/70 text-sm">{filtered.length} stores nearby</p>
+          <div className="bg-white rounded-3xl shadow-2xl px-6 pt-5 pb-6 border border-[#F2D98B]">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-[#2E2A7B]/70 hover:text-[#2E2A7B] hover:bg-[#FFF1B8] mb-3 -ml-1"
+              onClick={() => setLocation("/")}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-12 w-12 rounded-2xl bg-[#FFF1B8] flex items-center justify-center">
+                <meta.Icon className="h-6 w-6 text-[#2E2A7B]" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-extrabold text-[#2E2A7B] tracking-tight">{meta.label}</h1>
+                <p className="text-[#2E2A7B]/70 text-sm">{filtered.length} stores nearby</p>
+              </div>
             </div>
-          </div>
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder={`Search ${meta.label.toLowerCase()}...`}
-              className="pl-10 h-11 rounded-xl bg-white border-0 shadow-md"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#2E2A7B]/60" />
+              <Input
+                placeholder={`Search ${meta.label.toLowerCase()}...`}
+                className="pl-10 h-11 rounded-xl bg-[#FFF7DA] border-0 shadow-md text-[#2E2A7B] placeholder:text-[#2E2A7B]/50"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
           </div>
         </div>
       </div>
 
       {/* Scrollable subcategory tabs */}
-      <div className="sticky top-14 z-20 bg-background border-b border-border shadow-sm">
+      <div className="sticky top-14 z-20 bg-[#FFF7DA] border-b border-[#F2D98B] shadow-sm">
         <div className="flex gap-2 overflow-x-auto scrollbar-hide px-4 py-3 max-w-2xl mx-auto">
           {meta.subcategories.map((sub) => (
             <button
@@ -139,11 +134,11 @@ export default function CategoryPage() {
               onClick={() => setActiveSub(sub.id)}
               className={`flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium border transition-all shrink-0 ${
                 activeSub === sub.id
-                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                  : "bg-card text-foreground border-border hover:border-primary/30"
+                  ? "bg-[#F8D84E] text-[#2E2A7B] border-[#F2D98B] shadow-sm"
+                  : "bg-white text-[#2E2A7B] border-[#F2D98B] hover:border-[#E8CD7A]"
               }`}
             >
-              <span className="text-base leading-none">{sub.icon}</span>
+              <sub.Icon className="h-4 w-4" />
               {sub.label}
             </button>
           ))}
@@ -154,7 +149,7 @@ export default function CategoryPage() {
       <div className="max-w-2xl mx-auto px-4 py-5 space-y-3">
         {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i} className="overflow-hidden animate-pulse">
+            <Card key={i} className="overflow-hidden animate-pulse bg-white border-[#F2D98B]">
               <CardContent className="p-0 flex gap-4">
                 <div className="h-28 w-28 bg-muted shrink-0" />
                 <div className="p-4 space-y-2 flex-1">
@@ -165,7 +160,7 @@ export default function CategoryPage() {
             </Card>
           ))
         ) : filtered.length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground">
+          <div className="text-center py-16 text-[#2E2A7B]/70">
             <ShoppingBag className="mx-auto h-12 w-12 opacity-20 mb-4" />
             <p className="font-medium">No stores found</p>
             <p className="text-sm mt-1">Try a different search or subcategory</p>
@@ -173,14 +168,14 @@ export default function CategoryPage() {
         ) : (
           filtered.map((vendor: any) => (
             <Link key={vendor.id} href={`/vendor/${vendor.id}`}>
-              <Card className="overflow-hidden cursor-pointer hover:shadow-md transition-all active:scale-[0.99] border-border">
+              <Card className="overflow-hidden cursor-pointer hover:shadow-md transition-all active:scale-[0.99] bg-white border-[#F2D98B]">
                 <CardContent className="p-0 flex">
                   <div className="h-28 w-28 bg-muted shrink-0 relative overflow-hidden">
                     {vendor.imageUrl ? (
                       <img src={vendor.imageUrl} alt={vendor.name} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-primary/5 text-4xl">
-                        {meta.emoji}
+                      <div className="w-full h-full flex items-center justify-center bg-[#FFF1B8]">
+                        <meta.Icon className="h-6 w-6 text-[#2E2A7B]" />
                       </div>
                     )}
                     {!vendor.isOpen && (
@@ -192,11 +187,11 @@ export default function CategoryPage() {
                   <div className="p-4 flex-1 flex flex-col justify-between min-w-0">
                     <div>
                       <h3 className="font-bold text-base leading-tight truncate">{vendor.name}</h3>
-                      <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                      <p className="text-xs text-[#2E2A7B]/70 line-clamp-2 mt-0.5">
                         {vendor.description || "Fresh & ready to deliver"}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2">
+                    <div className="flex items-center gap-3 text-xs text-[#2E2A7B]/70 mt-2">
                       <span className="flex items-center gap-1">
                         <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
                         {vendor.rating?.toFixed(1) || "4.5"}

@@ -2,72 +2,41 @@ import React from "react";
 import { useLocation } from "wouter";
 import { 
   useGetCart, 
-  useGetGroupCart, 
   useUpdateCartItem, 
-  useUpdateGroupCartItem,
-  useRemoveCartItem, 
-  useRemoveGroupCartItem,
-  getGetCartQueryKey,
-  getGetGroupCartQueryKey
+  useRemoveCartItem,
+  getGetCartQueryKey
 } from "@workspace/api-client-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Trash2, Plus, Minus, Loader2, ShoppingCart, Users } from "lucide-react";
+import { Trash2, Plus, Minus, Loader2, ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatKES } from "@/lib/format";
 
 export default function Cart() {
-  const { activeMode, user } = useAuth();
-  const isGroupMode = activeMode !== "individual";
-  const groupId = isGroupMode ? (activeMode as number) : 0;
-  
+  useAuth();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: individualCart, isLoading: loadingIndividual } = useGetCart({
-    query: { enabled: !isGroupMode }
-  });
-
-  const { data: groupCart, isLoading: loadingGroup } = useGetGroupCart(groupId, {
-    query: { enabled: isGroupMode }
+  const { data: cartData, isLoading } = useGetCart({
+    query: { enabled: true }
   });
 
   const updateItemMutation = useUpdateCartItem();
-  const updateGroupItemMutation = useUpdateGroupCartItem();
   const removeItemMutation = useRemoveCartItem();
-  const removeGroupItemMutation = useRemoveGroupCartItem();
-
-  const isLoading = isGroupMode ? loadingGroup : loadingIndividual;
-  const cartData = isGroupMode ? groupCart : individualCart;
   const items = (cartData as any)?.items || [];
   const subtotal = (cartData as any)?.subtotal || 0;
 
   const invalidateCart = () => {
-    if (isGroupMode) {
-      queryClient.invalidateQueries({ queryKey: getGetGroupCartQueryKey(groupId) });
-    } else {
-      queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() });
-    }
+    queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() });
   };
 
   const handleUpdateQuantity = (cartItemId: number, newQuantity: number) => {
     if (newQuantity < 1) {
       handleRemoveItem(cartItemId);
-      return;
-    }
-
-    if (isGroupMode) {
-      updateGroupItemMutation.mutate(
-        { groupId, cartItemId, data: { quantity: newQuantity } },
-        {
-          onSuccess: () => invalidateCart(),
-          onError: () => toast({ variant: "destructive", title: "Could not update quantity" }),
-        }
-      );
       return;
     }
 
@@ -81,36 +50,21 @@ export default function Cart() {
   };
 
   const handleRemoveItem = (cartItemId: number) => {
-    if (isGroupMode) {
-      removeGroupItemMutation.mutate(
-        { groupId, cartItemId },
-        {
-          onSuccess: () => {
-            invalidateCart();
-            toast({ title: "Item removed" });
-          },
-          onError: () => toast({ variant: "destructive", title: "Could not remove item" }),
-        }
-      );
-    } else {
-      removeItemMutation.mutate(
-        { cartItemId },
-        {
-          onSuccess: () => {
-            invalidateCart();
-            toast({ title: "Item removed" });
-          },
-          onError: () => toast({ variant: "destructive", title: "Could not remove item" }),
-        }
-      );
-    }
+    removeItemMutation.mutate(
+      { cartItemId },
+      {
+        onSuccess: () => {
+          invalidateCart();
+          toast({ title: "Item removed" });
+        },
+        onError: () => toast({ variant: "destructive", title: "Could not remove item" }),
+      }
+    );
   };
 
   const updatingItemId =
     (updateItemMutation.isPending && (updateItemMutation.variables as any)?.cartItemId) ||
-    (updateGroupItemMutation.isPending && (updateGroupItemMutation.variables as any)?.cartItemId) ||
     (removeItemMutation.isPending && (removeItemMutation.variables as any)?.cartItemId) ||
-    (removeGroupItemMutation.isPending && (removeGroupItemMutation.variables as any)?.cartItemId) ||
     null;
 
   if (isLoading) {
@@ -124,37 +78,26 @@ export default function Cart() {
   return (
     <div className="container max-w-4xl mx-auto py-8 px-4 animate-in fade-in duration-500">
       <div className="flex items-center gap-3 mb-8">
-        <div className={`p-3 rounded-xl ${isGroupMode ? 'bg-secondary/10 text-secondary' : 'bg-primary/10 text-primary'}`}>
-          {isGroupMode ? <Users className="h-6 w-6" /> : <ShoppingCart className="h-6 w-6" />}
+        <div className="p-3 rounded-xl bg-[#FFF1B8] text-[#2E2A7B]">
+          <ShoppingCart className="h-6 w-6" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold">{isGroupMode ? "Group Cart" : "Your Cart"}</h1>
-          <p className="text-muted-foreground">{items.length} {items.length === 1 ? 'item' : 'items'}</p>
+          <h1 className="text-3xl font-bold text-[#2E2A7B]">Your Cart</h1>
+          <p className="text-[#2E2A7B]/60">{items.length} {items.length === 1 ? 'item' : 'items'}</p>
         </div>
       </div>
 
       {items.length === 0 ? (
-        <Card className="text-center py-16 border-dashed">
+        <Card className="text-center py-16 border-dashed bg-white border-[#F2D98B]">
           <ShoppingCart className="mx-auto h-16 w-16 opacity-20 mb-4" />
           <h2 className="text-xl font-semibold mb-2">Your cart is empty</h2>
-          <p className="text-muted-foreground mb-6">Looks like you haven't added anything yet.</p>
-          <Button onClick={() => setLocation("/shop")}>Start Shopping</Button>
+          <p className="text-[#2E2A7B]/60 mb-6">Looks like you haven't added anything yet.</p>
+          <Button onClick={() => setLocation("/shop")} className="bg-[#F8D84E] text-[#2E2A7B] hover:bg-[#F2D98B]">Start Shopping</Button>
         </Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-4">
-            {isGroupMode && groupCart && "memberSummary" in (groupCart as any) && (
-              <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
-                {(groupCart as any).memberSummary.map((m: any) => (
-                  <div key={m.userId} className="bg-card border rounded-full px-4 py-2 flex items-center gap-2 whitespace-nowrap shadow-sm">
-                    <span className="font-semibold text-sm">{m.userName}</span>
-                    <span className="text-muted-foreground text-xs">• {formatKES(m.subtotal)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            <Card>
+            <Card className="bg-white border-[#F2D98B]">
               <CardHeader>
                 <CardTitle>Items</CardTitle>
               </CardHeader>
@@ -177,13 +120,8 @@ export default function Cart() {
                           <div>
                             <h3 className="font-semibold">{item.product?.name}</h3>
                             {item.notes && (
-                              <p className="text-xs text-muted-foreground mt-1 italic">
+                              <p className="text-xs text-[#2E2A7B]/60 mt-1 italic">
                                 Note: {item.notes}
-                              </p>
-                            )}
-                            {isGroupMode && (
-                              <p className="text-xs text-secondary mt-1 font-medium bg-secondary/10 inline-block px-2 py-0.5 rounded-full">
-                                Added by {item.userName}
                               </p>
                             )}
                           </div>
@@ -191,47 +129,41 @@ export default function Cart() {
                         </div>
                         
                         <div className="flex items-center justify-between mt-2">
-                          {(!isGroupMode || item.userId === user?.id) ? (
-                            <div className="flex items-center gap-3 bg-muted rounded-full p-1">
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-7 w-7 rounded-full"
-                                onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
-                                disabled={itemBusy || item.quantity <= 1}
-                                aria-label="Decrease quantity"
-                              >
-                                <Minus className="h-3.5 w-3.5" />
-                              </Button>
-                              <span className="text-sm font-semibold w-6 text-center">
-                                {itemBusy ? <Loader2 className="h-3 w-3 animate-spin inline" /> : item.quantity}
-                              </span>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-7 w-7 rounded-full"
-                                onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                                disabled={itemBusy}
-                                aria-label="Increase quantity"
-                              >
-                                <Plus className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <span className="text-sm font-medium text-muted-foreground">Qty: {item.quantity}</span>
-                          )}
-                          {(!isGroupMode || item.userId === user?.id) && (
+                          <div className="flex items-center gap-3 bg-[#FFF7DA] rounded-full p-1">
                             <Button 
                               variant="ghost" 
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                              onClick={() => handleRemoveItem(item.id)}
-                              disabled={itemBusy}
-                              aria-label="Remove item"
+                              size="icon" 
+                              className="h-7 w-7 rounded-full"
+                              onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
+                              disabled={itemBusy || item.quantity <= 1}
+                              aria-label="Decrease quantity"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Minus className="h-3.5 w-3.5" />
                             </Button>
-                          )}
+                            <span className="text-sm font-semibold w-6 text-center">
+                              {itemBusy ? <Loader2 className="h-3 w-3 animate-spin inline" /> : item.quantity}
+                            </span>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-7 w-7 rounded-full"
+                              onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                              disabled={itemBusy}
+                              aria-label="Increase quantity"
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                            onClick={() => handleRemoveItem(item.id)}
+                            disabled={itemBusy}
+                            aria-label="Remove item"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -242,17 +174,17 @@ export default function Cart() {
           </div>
 
           <div className="lg:col-span-1">
-            <Card className="sticky top-20">
+            <Card className="sticky top-20 bg-white border-[#F2D98B]">
               <CardHeader>
                 <CardTitle>Order Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="text-[#2E2A7B]/60">Subtotal</span>
                   <span className="font-medium">{formatKES(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Delivery Fee</span>
+                  <span className="text-[#2E2A7B]/60">Delivery Fee</span>
                   <span className="font-medium">Calculated at checkout</span>
                 </div>
                 <Separator />

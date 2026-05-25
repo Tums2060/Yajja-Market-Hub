@@ -7,8 +7,6 @@ interface AuthContextType {
   isLoading: boolean;
   token: string | null;
   setToken: (token: string | null) => void;
-  activeMode: "individual" | number; // number is groupId
-  setActiveMode: (mode: "individual" | number) => void;
   logout: () => void;
 }
 
@@ -19,12 +17,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.getItem("yajja_token")
   );
   
-  const [activeMode, setActiveModeState] = useState<"individual" | number>(() => {
-    const saved = localStorage.getItem("yajja_active_mode");
-    if (saved === "individual" || !saved) return "individual";
-    const num = parseInt(saved, 10);
-    return isNaN(num) ? "individual" : num;
-  });
 
   const setToken = (newToken: string | null) => {
     if (newToken) {
@@ -35,14 +27,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setTokenState(newToken);
   };
 
-  const setActiveMode = (mode: "individual" | number) => {
-    localStorage.setItem("yajja_active_mode", mode.toString());
-    setActiveModeState(mode);
-  };
-
   const logout = () => {
     setToken(null);
-    setActiveMode("individual");
   };
 
   // Configure api client
@@ -70,8 +56,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading: isUserLoading,
         token,
         setToken,
-        activeMode,
-        setActiveMode,
         logout,
       }}
     >

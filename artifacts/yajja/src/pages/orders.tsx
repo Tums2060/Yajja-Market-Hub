@@ -20,36 +20,36 @@ export default function Orders() {
 
   return (
     <div className="container max-w-3xl mx-auto py-8 px-4 space-y-6 animate-in fade-in duration-500">
-      <h1 className="text-3xl font-extrabold tracking-tight">My Orders</h1>
+      <h1 className="text-3xl font-extrabold tracking-tight text-[#2E2A7B]">My Orders</h1>
 
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : !orders?.length ? (
-        <Card className="text-center py-16 border-dashed">
+        <Card className="text-center py-16 border-dashed bg-white border-[#F2D98B]">
           <ShoppingBag className="mx-auto h-16 w-16 opacity-20 mb-4" />
           <h2 className="text-xl font-semibold mb-2">No orders yet</h2>
-          <p className="text-muted-foreground mb-6">Your order history will appear here.</p>
-          <Button asChild><Link href="/shop">Start Shopping</Link></Button>
+          <p className="text-[#2E2A7B]/60 mb-6">Your order history will appear here.</p>
+          <Button className="bg-[#F8D84E] text-[#2E2A7B] hover:bg-[#F2D98B]" asChild><Link href="/shop">Start Shopping</Link></Button>
         </Card>
       ) : (
         <div className="space-y-3">
           {orders.map((order: any) => (
             <Link key={order.id} href={`/orders/${order.id}`}>
-              <Card className="cursor-pointer hover:shadow-md transition-all hover:border-primary/30">
+              <Card className="cursor-pointer hover:shadow-md transition-all bg-white border-[#F2D98B]">
                 <CardContent className="p-4 flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                  <div className="h-12 w-12 rounded-xl bg-[#FFF1B8] flex items-center justify-center text-[#2E2A7B] shrink-0">
                     <ShoppingBag className="h-6 w-6" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold">Order #{order.id}</p>
-                    <p className="text-sm text-muted-foreground truncate">
+                    <p className="text-sm text-[#2E2A7B]/60 truncate">
                       {order.vendorName || "Your order"} • {order.itemCount || 0} items
                     </p>
                     <div className="flex items-center gap-2 mt-1">
-                      <Clock className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3 text-[#2E2A7B]/60" />
+                      <span className="text-xs text-[#2E2A7B]/60">
                         {order.createdAt ? new Date(order.createdAt).toLocaleDateString("en-UG", { day: "numeric", month: "short", year: "numeric" }) : "—"}
                       </span>
                     </div>

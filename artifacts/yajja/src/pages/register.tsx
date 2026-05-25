@@ -93,7 +93,7 @@ export function AuthRegister({ role }: { role: AuthRole }) {
       {
         onSuccess: (data) => {
           setToken(data.token);
-          toast({ title: "Welcome to Yajja! 🎉" });
+          toast({ title: "Welcome to Yajja!" });
           setLocation("/");
         },
         onError: (error: any) => {

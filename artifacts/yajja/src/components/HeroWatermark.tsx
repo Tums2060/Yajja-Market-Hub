@@ -1,9 +1,7 @@
 import React from "react";
+import { ShoppingBag, ShoppingCart, Store, Package } from "lucide-react";
 
-const ICONS = [
-  "🍔", "🍕", "🛍️", "💊", "🧴", "🥤", "🍎", "🧺", "🍗", "🥖", "🍷", "🧻",
-  "🥗", "🧼", "💄", "🛒", "🍌", "🧃", "🩹", "🥬", "🍪", "🧊",
-];
+const ICONS = [ShoppingBag, ShoppingCart, Store, Package];
 
 export function HeroWatermark({ density = 1 }: { density?: number }) {
   const count = Math.round(28 * density);
@@ -14,7 +12,7 @@ export function HeroWatermark({ density = 1 }: { density?: number }) {
       const r2 = ((i * 53) % 97) / 97;
       const r3 = ((i * 73 + 17) % 89) / 89;
       return {
-        icon: ICONS[i % ICONS.length],
+        Icon: ICONS[i % ICONS.length],
         top: `${(r * 100).toFixed(1)}%`,
         left: `${(r2 * 100).toFixed(1)}%`,
         size: `${(1.1 + r3 * 1.8).toFixed(2)}rem`,
@@ -37,7 +35,7 @@ export function HeroWatermark({ density = 1 }: { density?: number }) {
             filter: "grayscale(1) brightness(2)",
           }}
         >
-          {it.icon}
+          <it.Icon className="h-full w-full text-[#2E2A7B]" />
         </span>
       ))}
     </div>

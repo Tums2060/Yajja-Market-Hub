@@ -21,11 +21,6 @@ import Cart from "@/pages/cart";
 import Checkout from "@/pages/checkout";
 import Orders from "@/pages/orders";
 import OrderDetail from "@/pages/order-detail";
-import Groups from "@/pages/groups";
-import GroupDetail from "@/pages/group-detail";
-import CreateGroup from "@/pages/create-group";
-import Invites from "@/pages/invites";
-import Leaderboard from "@/pages/leaderboard";
 import Profile from "@/pages/profile";
 import VendorDetail from "@/pages/vendor-detail";
 
@@ -94,11 +89,6 @@ function Router() {
         <Route path="/checkout"><ProtectedRoute component={Checkout} allowedRoles={["customer"]} /></Route>
         <Route path="/orders"><ProtectedRoute component={Orders} allowedRoles={["customer"]} /></Route>
         <Route path="/orders/:orderId"><ProtectedRoute component={OrderDetail} allowedRoles={["customer"]} /></Route>
-        <Route path="/groups"><ProtectedRoute component={Groups} allowedRoles={["customer"]} /></Route>
-        <Route path="/groups/new"><ProtectedRoute component={CreateGroup} allowedRoles={["customer"]} /></Route>
-        <Route path="/groups/:groupId"><ProtectedRoute component={GroupDetail} allowedRoles={["customer"]} /></Route>
-        <Route path="/invites"><ProtectedRoute component={Invites} allowedRoles={["customer"]} /></Route>
-        <Route path="/leaderboard"><ProtectedRoute component={Leaderboard} allowedRoles={["customer"]} /></Route>
         <Route path="/profile"><ProtectedRoute component={Profile} allowedRoles={["customer"]} /></Route>
 
         {/* Vendor Routes */}

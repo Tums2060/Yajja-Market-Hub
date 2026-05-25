@@ -11,21 +11,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  ShoppingBag, ShoppingCart, Users, Trophy, Mail, User,
-  LayoutDashboard, Package, Bike, Map, Menu, LogOut, Home,
-  Shield, Store, TrendingUp, Truck, Receipt
+  ShoppingBag, ShoppingCart, Users, User,
+  LayoutDashboard, Package, Map, Menu, LogOut, Home,
+  Store, Truck, Receipt
 } from "lucide-react";
-import { useGetCart, useListMyInvites } from "@workspace/api-client-react";
-import { Logo } from "@/components/Logo";
+import { useGetCart } from "@workspace/api-client-react";
 
 const customerLinks = [
   { href: "/", label: "Home", icon: Home },
   { href: "/shop", label: "Explore", icon: ShoppingBag },
   { href: "/cart", label: "Cart", icon: ShoppingCart },
   { href: "/orders", label: "Orders", icon: Receipt },
-  { href: "/groups", label: "Groups", icon: Users },
-  { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
-  { href: "/invites", label: "Invites", icon: Mail },
 ];
 
 const vendorLinks = [
@@ -49,7 +45,7 @@ const adminLinks = [
 ];
 
 export default function Navbar() {
-  const { user, logout, activeMode } = useAuth();
+  const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
 
   const handleLogout = () => {
@@ -60,10 +56,7 @@ export default function Navbar() {
   };
 
   const { data: cart } = useGetCart({ query: { enabled: !!user && user.role === "customer" } });
-  const { data: invites } = useListMyInvites({ query: { enabled: !!user && user.role === "customer" } });
-
   const cartCount = (cart as any)?.items?.length || 0;
-  const pendingInvites = (invites as any[])?.filter((i: any) => i.status === "pending").length || 0;
 
   const navLinks = !user ? [] :
     user.role === "vendor" ? vendorLinks :
@@ -80,21 +73,20 @@ export default function Navbar() {
     user?.role === "rider" ? "Rider Portal" :
     user?.role === "admin" ? "Admin Portal" : null;
 
+  const isCustomer = user?.role === "customer";
+
   return (
-    <nav className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
+    <nav className={`sticky top-0 z-50 w-full border-b ${isCustomer ? "bg-white border-[#F2D98B]" : "bg-card/95"} backdrop-blur supports-[backdrop-filter]:bg-card/80`}>
       <div className="container flex h-14 items-center px-4 max-w-7xl mx-auto">
         <Link
           href={user?.role === "vendor" ? "/vendor-portal" : user?.role === "rider" ? "/rider-portal" : user?.role === "admin" ? "/admin" : "/"}
           className="mr-6 flex items-center gap-2 shrink-0"
         >
-          <Logo size={36} className="-my-1" />
+          <img src="/yajja-icon2.jpeg" alt="Yajja" className="h-9 w-9 rounded-xl object-cover" />
           {portalLabel && (
             <Badge variant="outline" className="text-xs hidden sm:inline-flex border-primary/40 text-primary">
               {portalLabel}
             </Badge>
-          )}
-          {user?.role === "customer" && activeMode !== "individual" && (
-            <Badge variant="secondary" className="text-xs">Group</Badge>
           )}
         </Link>
 
@@ -105,15 +97,12 @@ export default function Navbar() {
                 <Button
                   variant={isActive(href) ? "default" : "ghost"}
                   size="sm"
-                  className="gap-2 relative"
+                  className={`gap-2 relative ${isCustomer ? "text-[#2E2A7B]" : ""}`}
                 >
                   <Icon className="h-4 w-4" />
                   {label}
                   {label === "Cart" && cartCount > 0 && (
                     <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 text-[10px] flex items-center justify-center">{cartCount}</Badge>
-                  )}
-                  {label === "Invites" && pendingInvites > 0 && (
-                    <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 text-[10px] flex items-center justify-center bg-destructive">{pendingInvites}</Badge>
                   )}
                 </Button>
               </Link>
@@ -136,25 +125,14 @@ export default function Navbar() {
                     {user.role === "customer" && (
                       <>
                         <DropdownMenuItem asChild>
-                          <Link href="/groups" className="flex items-center gap-2">
-                            <Users className="h-4 w-4" /> My Groups
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href="/leaderboard" className="flex items-center gap-2">
-                            <Trophy className="h-4 w-4" /> Leaderboard
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href="/invites" className="flex items-center gap-2">
-                            <Mail className="h-4 w-4" /> Invites
-                            {pendingInvites > 0 && <Badge className="ml-auto h-4 px-1 text-[10px]">{pendingInvites}</Badge>}
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
                           <Link href="/cart" className="flex items-center gap-2">
                             <ShoppingCart className="h-4 w-4" /> Cart
                             {cartCount > 0 && <Badge className="ml-auto h-4 px-1 text-[10px]">{cartCount}</Badge>}
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href="/orders" className="flex items-center gap-2">
+                            <Receipt className="h-4 w-4" /> Orders
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />

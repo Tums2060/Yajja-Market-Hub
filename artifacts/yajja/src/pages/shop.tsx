@@ -5,7 +5,7 @@ import { useListVendors, Category } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Star, Clock, Search, ShoppingBag } from "lucide-react";
+import { Star, Clock, Search, ShoppingBag, Store, Package, ShoppingCart } from "lucide-react";
 import { formatKES } from "@/lib/format";
 
 export default function Shop() {
@@ -13,11 +13,11 @@ export default function Shop() {
   const { data: vendors, isLoading } = useListVendors({ query: { enabled: true } });
   
   const categories = [
-    { id: "all", name: "All", icon: "🏪" },
-    { id: "food", name: "Food", icon: "🍔" },
-    { id: "liquor", name: "Liquor", icon: "🍷" },
-    { id: "pharmacy", name: "Pharmacy", icon: "💊" },
-    { id: "household", name: "Household", icon: "🧻" },
+    { id: "all", name: "All", Icon: Store },
+    { id: "food", name: "Food", Icon: ShoppingBag },
+    { id: "liquor", name: "Liquor", Icon: Store },
+    { id: "pharmacy", name: "Pharmacy", Icon: Package },
+    { id: "household", name: "Household", Icon: ShoppingCart },
   ];
   
   const [activeCategory, setActiveCategory] = useState<string>("all");
@@ -33,14 +33,14 @@ export default function Shop() {
     <div className="container py-8 px-4 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Explore Neighborhood</h1>
-          <p className="text-muted-foreground mt-1">Discover local favorites and essentials</p>
+          <h1 className="text-3xl font-bold text-[#2E2A7B]">Explore Neighborhood</h1>
+          <p className="text-[#2E2A7B]/60 mt-1">Discover local favorites and essentials</p>
         </div>
         <div className="relative w-full md:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#2E2A7B]/60" />
           <Input 
             placeholder="Search stores..." 
-            className="pl-9 h-11"
+            className="pl-9 h-11 bg-[#FFF7DA] border-0 shadow-sm text-[#2E2A7B] placeholder:text-[#2E2A7B]/50"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -54,11 +54,11 @@ export default function Shop() {
             onClick={() => setActiveCategory(cat.id)}
             className={`flex flex-col items-center justify-center min-w-[100px] p-3 rounded-xl border transition-all ${
               activeCategory === cat.id 
-                ? "border-primary bg-primary/10 text-primary shadow-sm" 
-                : "border-border bg-card hover:bg-accent/50 text-foreground"
+                ? "border-[#F2D98B] bg-[#F8D84E] text-[#2E2A7B] shadow-sm" 
+                : "border-[#F2D98B] bg-white hover:bg-[#FFF7DA] text-[#2E2A7B]"
             }`}
           >
-            <span className="text-3xl mb-2">{cat.icon}</span>
+            <cat.Icon className="h-6 w-6 mb-2" />
             <span className="text-sm font-semibold">{cat.name}</span>
           </button>
         ))}
@@ -67,7 +67,7 @@ export default function Shop() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {isLoading ? (
           Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} className="overflow-hidden animate-pulse">
+            <Card key={i} className="overflow-hidden animate-pulse bg-white border-[#F2D98B]">
               <div className="h-48 bg-muted w-full" />
               <CardContent className="p-4 space-y-3">
                 <div className="h-5 bg-muted rounded w-2/3" />
@@ -76,14 +76,14 @@ export default function Shop() {
             </Card>
           ))
         ) : filteredVendors?.length === 0 ? (
-          <div className="col-span-full py-12 text-center text-muted-foreground">
+          <div className="col-span-full py-12 text-center text-[#2E2A7B]/70">
             <ShoppingBag className="mx-auto h-12 w-12 opacity-20 mb-4" />
             <p>No stores found matching your criteria</p>
           </div>
         ) : (
           filteredVendors?.map(vendor => (
             <Link key={vendor.id} href={`/vendor/${vendor.id}`}>
-              <Card className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group">
+              <Card className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group bg-white border-[#F2D98B]">
                 <div className="relative h-48 bg-muted overflow-hidden">
                   {vendor.imageUrl ? (
                     <img 
@@ -92,7 +92,7 @@ export default function Shop() {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-primary/5 text-primary/20">
+                    <div className="w-full h-full flex items-center justify-center bg-[#FFF1B8] text-[#2E2A7B]/30">
                       <ShoppingBag className="h-16 w-16" />
                     </div>
                   )}
@@ -112,11 +112,11 @@ export default function Shop() {
                     <h3 className="font-bold text-lg leading-tight truncate pr-2">{vendor.name}</h3>
                     <Badge variant="outline" className="capitalize shrink-0">{vendor.category}</Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground line-clamp-2 mb-4 h-10">
+                  <p className="text-sm text-[#2E2A7B]/70 line-clamp-2 mb-4 h-10">
                     {vendor.description || "No description available"}
                   </p>
-                  <div className="flex items-center text-sm text-muted-foreground font-medium">
-                    <Clock className="h-4 w-4 mr-1 text-primary/70" />
+                  <div className="flex items-center text-sm text-[#2E2A7B]/70 font-medium">
+                    <Clock className="h-4 w-4 mr-1 text-[#2E2A7B]/70" />
                     <span>{vendor.deliveryTime || "30-45 min"}</span>
                     <span className="mx-2">•</span>
                     <span>Min {formatKES(vendor.minOrder || 0)}</span>

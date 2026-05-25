@@ -4,11 +4,8 @@ import {
   useGetVendor,
   useListProducts,
   useAddToCart,
-  useAddToGroupCart,
   getGetCartQueryKey,
-  getGetGroupCartQueryKey,
 } from "@workspace/api-client-react";
-import { useAuth } from "@/hooks/use-auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,7 +17,6 @@ import { formatKES } from "@/lib/format";
 
 export default function VendorDetail() {
   const { vendorId } = useParams();
-  const { activeMode } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -36,8 +32,6 @@ export default function VendorDetail() {
   );
 
   const addToCartMutation = useAddToCart();
-  const addToGroupCartMutation = useAddToGroupCart();
-
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -63,24 +57,13 @@ export default function VendorDetail() {
       [prefs, trimmedInstructions].filter(Boolean).join(" • ") || undefined;
 
     const onSuccess = () => {
-      if (activeMode === "individual") {
-        queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() });
-      } else {
-        queryClient.invalidateQueries({ queryKey: getGetGroupCartQueryKey(activeMode as number) });
-      }
-      toast({ title: activeMode === "individual" ? "Added to cart" : "Added to group cart" });
+      queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() });
+      toast({ title: "Added to cart" });
       setModalOpen(false);
     };
     const onError = () => toast({ variant: "destructive", title: "Failed to add" });
 
-    if (activeMode === "individual") {
-      addToCartMutation.mutate({ data: { productId, quantity, notes } }, { onSuccess, onError });
-    } else {
-      addToGroupCartMutation.mutate(
-        { groupId: activeMode as number, data: { productId, quantity, notes } } as any,
-        { onSuccess, onError },
-      );
-    }
+    addToCartMutation.mutate({ data: { productId, quantity, notes } }, { onSuccess, onError });
   };
 
   if (vendorLoading) {
@@ -95,7 +78,7 @@ export default function VendorDetail() {
     return <div className="p-8 text-center">Vendor not found.</div>;
   }
 
-  const isAdding = addToCartMutation.isPending || addToGroupCartMutation.isPending;
+  const isAdding = addToCartMutation.isPending;
 
   return (
     <div className="min-h-screen bg-muted/20 pb-12">

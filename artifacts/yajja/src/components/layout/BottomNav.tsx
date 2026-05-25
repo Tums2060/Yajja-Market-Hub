@@ -1,15 +1,15 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { Home, ShoppingBag, Search, User } from "lucide-react";
+import { Home, ShoppingBag, Search, ShoppingCart } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Badge } from "@/components/ui/badge";
 import { useGetCart } from "@workspace/api-client-react";
 
 const tabs = [
   { href: "/", label: "Home", icon: Home },
-  { href: "/orders", label: "Orders", icon: ShoppingBag },
   { href: "/shop", label: "Explore", icon: Search },
-  { href: "/profile", label: "Profile", icon: User },
+  { href: "/cart", label: "Cart", icon: ShoppingCart },
+  { href: "/orders", label: "Orders", icon: ShoppingBag },
 ];
 
 export default function BottomNav() {
@@ -37,7 +37,7 @@ export default function BottomNav() {
           >
             <div className="relative">
               <Icon className={`h-5 w-5 ${isActive(href) ? "stroke-[2.5]" : "stroke-[1.5]"}`} />
-              {label === "Orders" && cartCount > 0 && (
+              {label === "Cart" && cartCount > 0 && (
                 <Badge className="absolute -top-2 -right-2 h-4 w-4 p-0 text-[9px] flex items-center justify-center bg-primary text-primary-foreground border-0">
                   {cartCount}
                 </Badge>
