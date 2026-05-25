@@ -160,6 +160,16 @@ export function AuthLogin({ role }: { role: AuthRole }) {
                   Forgot Password?
                 </Link>
               </div>
+              {role !== "customer" && (
+                <Link href="/login">
+                  <Button
+                    variant="outline"
+                    className="w-full h-10 rounded-xl border-[#F2D98B] text-[#2E2A7B] font-semibold hover:bg-[#F8D84E]/30"
+                  >
+                    Back to Customer Sign In
+                  </Button>
+                </Link>
+              )}
             </form>
           </Form>
 
