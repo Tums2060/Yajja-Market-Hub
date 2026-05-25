@@ -23,7 +23,17 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     }
     const token = authHeader.slice(7);
     const payload = verifyToken(token);
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, payload.userId)).limit(1);
+    const [user] = await db.select({
+      id: usersTable.id,
+      name: usersTable.name,
+      email: usersTable.email,
+      passwordHash: usersTable.passwordHash,
+      role: usersTable.role,
+      phone: usersTable.phone,
+      avatarUrl: usersTable.avatarUrl,
+      address: usersTable.address,
+      createdAt: usersTable.createdAt,
+    }).from(usersTable).where(eq(usersTable.id, payload.userId)).limit(1);
     if (!user) {
       res.status(401).json({ message: "User not found" });
       return;

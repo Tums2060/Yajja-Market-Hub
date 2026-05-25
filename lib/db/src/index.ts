@@ -9,6 +9,18 @@ if (!process.env.DATABASE_URL) {
 }
 
 export const pool = mysql.createPool(process.env.DATABASE_URL);
-export const db = drizzle(pool, { schema, mode: "default" });
+const enableQueryLog = process.env.DB_LOG_QUERIES === "1";
+
+export const db = drizzle(pool, {
+  schema,
+  mode: "default",
+  logger: enableQueryLog
+    ? {
+      logQuery(query, params) {
+        console.log("[db]", query, params);
+      },
+    }
+    : undefined,
+});
 
 export * from "./schema";

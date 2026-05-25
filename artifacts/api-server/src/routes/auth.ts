@@ -7,6 +7,18 @@ import { generateToken, requireAuth, getUser } from "../lib/auth";
 
 const router = Router();
 
+const userSelect = {
+  id: usersTable.id,
+  name: usersTable.name,
+  email: usersTable.email,
+  passwordHash: usersTable.passwordHash,
+  role: usersTable.role,
+  phone: usersTable.phone,
+  avatarUrl: usersTable.avatarUrl,
+  address: usersTable.address,
+  createdAt: usersTable.createdAt,
+};
+
 router.post("/auth/register", async (req, res) => {
   const parsed = RegisterBody.safeParse(req.body);
   if (!parsed.success) {
@@ -22,7 +34,7 @@ router.post("/auth/register", async (req, res) => {
   }
 
   // Check email uniqueness
-  const [existingEmail] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+  const [existingEmail] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, email)).limit(1);
   if (existingEmail) {
     res.status(409).json({ message: "Email already registered" });
     return;
@@ -30,7 +42,7 @@ router.post("/auth/register", async (req, res) => {
 
   // Anti-fraud: check phone uniqueness (one account per phone number)
   if (phone) {
-    const [existingPhone] = await db.select().from(usersTable).where(eq(usersTable.phone, phone)).limit(1);
+    const [existingPhone] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.phone, phone)).limit(1);
     if (existingPhone) {
       res.status(409).json({ message: "A Yajja account already exists with this phone number. Each phone number can only be linked to one account." });
       return;
@@ -39,7 +51,7 @@ router.post("/auth/register", async (req, res) => {
 
   const passwordHash = await bcrypt.hash(password, 10);
   await db.insert(usersTable).values({ name, email, passwordHash, role: role as any, phone });
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+  const [user] = await db.select(userSelect).from(usersTable).where(eq(usersTable.email, email)).limit(1);
   if (!user) {
     res.status(500).json({ message: "Failed to create user" });
     return;
@@ -56,7 +68,7 @@ router.post("/auth/login", async (req, res) => {
     return;
   }
   const { email, password } = parsed.data;
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+  const [user] = await db.select(userSelect).from(usersTable).where(eq(usersTable.email, email)).limit(1);
   if (!user) {
     res.status(401).json({ message: "Invalid credentials" });
     return;
