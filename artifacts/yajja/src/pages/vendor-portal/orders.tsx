@@ -10,18 +10,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, ShoppingBag, Loader2, ChevronRight } from "lucide-react";
 
 const statusColor: Record<string, string> = {
-  pending: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30",
-  confirmed: "bg-blue-500/15 text-blue-700 border-blue-500/30",
+  pending: "bg-secondary/30 text-amber-800 border-secondary/50",
+  accepted: "bg-primary/15 text-primary border-primary/30",
+  confirmed: "bg-primary/15 text-primary border-primary/30",
   preparing: "bg-orange-500/15 text-orange-700 border-orange-500/30",
-  out_for_delivery: "bg-purple-500/15 text-purple-700 border-purple-500/30",
+  ready: "bg-primary/10 text-primary border-primary/20",
+  picked_up: "bg-slate-500/10 text-slate-700 border-slate-500/20",
   delivered: "bg-green-500/15 text-green-700 border-green-500/30",
   cancelled: "bg-red-500/15 text-red-700 border-red-500/30",
+  rejected: "bg-red-500/15 text-red-700 border-red-500/30",
 };
 
 const nextStatus: Record<string, string> = {
-  pending: "confirmed",
+  pending: "accepted",
+  accepted: "preparing",
   confirmed: "preparing",
-  preparing: "out_for_delivery",
+  preparing: "ready",
 };
 
 export default function VendorOrders() {
@@ -49,6 +53,16 @@ export default function VendorOrders() {
     });
   };
 
+  const handleReject = (orderId: number) => {
+    updateStatus.mutate({ orderId, data: { status: "rejected" } } as any, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListVendorOrdersQueryKey() });
+        toast({ title: "Order rejected" });
+      },
+      onError: () => toast({ variant: "destructive", title: "Failed to update status" })
+    });
+  };
+
   return (
     <div className="container max-w-3xl mx-auto py-8 px-4 space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center gap-3">
@@ -63,10 +77,12 @@ export default function VendorOrders() {
           <SelectContent>
             <SelectItem value="all">All</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="confirmed">Confirmed</SelectItem>
+            <SelectItem value="accepted">Accepted</SelectItem>
             <SelectItem value="preparing">Preparing</SelectItem>
-            <SelectItem value="out_for_delivery">Out for Delivery</SelectItem>
+            <SelectItem value="ready">Ready</SelectItem>
+            <SelectItem value="picked_up">Picked Up</SelectItem>
             <SelectItem value="delivered">Delivered</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -87,9 +103,9 @@ export default function VendorOrders() {
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-center gap-3">
                   <div className="flex-1">
-                    <p className="font-semibold">Order #{order.id}</p>
+                    <p className="font-semibold">Order {order.orderCode || `#${order.id}`}</p>
                     <p className="text-sm text-muted-foreground">
-                      {order.customerName} • {order.itemCount} items • KES {Math.round(order.totalAmount || 0).toLocaleString()}
+                      {order.customerName || "Customer"} • {order.customerPhone || "No phone"}
                     </p>
                     {order.deliveryAddress && (
                       <p className="text-xs text-muted-foreground mt-1">📍 {order.deliveryAddress}</p>
@@ -99,16 +115,52 @@ export default function VendorOrders() {
                     {order.status?.replace(/_/g, " ")}
                   </Badge>
                 </div>
-                {nextStatus[order.status] && (
-                  <Button
-                    size="sm"
-                    className="w-full"
-                    onClick={() => handleAdvance(order.id, order.status)}
-                    disabled={updateStatus.isPending}
-                  >
-                    Mark as {nextStatus[order.status]?.replace(/_/g, " ")}
-                  </Button>
-                )}
+                <div className="space-y-2">
+                  {(order.items || []).map((item: any) => (
+                    <div key={item.id} className="text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{item.productName}</span>
+                        <span className="text-muted-foreground">x{item.quantity}</span>
+                      </div>
+                      {item.notes && (
+                        <p className="text-xs text-muted-foreground italic">Note: {item.notes}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  {order.status === "pending" && (
+                    <Button
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => handleAdvance(order.id, order.status)}
+                      disabled={updateStatus.isPending}
+                    >
+                      Accept Order
+                    </Button>
+                  )}
+                  {order.status === "pending" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 text-destructive"
+                      onClick={() => handleReject(order.id)}
+                      disabled={updateStatus.isPending}
+                    >
+                      Reject
+                    </Button>
+                  )}
+                  {order.status !== "pending" && nextStatus[order.status] && (
+                    <Button
+                      size="sm"
+                      className="w-full"
+                      onClick={() => handleAdvance(order.id, order.status)}
+                      disabled={updateStatus.isPending}
+                    >
+                      Mark as {nextStatus[order.status]?.replace(/_/g, " ")}
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           ))}

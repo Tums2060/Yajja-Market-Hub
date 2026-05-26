@@ -1,10 +1,29 @@
 import { Router } from "express";
+import fs from "fs";
+import path from "path";
 import { db, productsTable, vendorsTable } from "@workspace/db";
-import { eq, and, ilike } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { CreateProductBody } from "@workspace/api-zod";
-import { requireAuth } from "../lib/auth";
+import { requireAuth, getUser } from "../lib/auth";
+import multer from "multer";
 
 const router = Router();
+
+const uploadDir = path.resolve(process.cwd(), "uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: uploadDir,
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname || "");
+      const safeName = `${Date.now()}-${Math.random().toString(16).slice(2)}${ext}`;
+      cb(null, safeName);
+    },
+  }),
+});
 
 function serializeProduct(p: typeof productsTable.$inferSelect, vendorName?: string) {
   return { ...p, vendorName: vendorName || "", createdAt: p.createdAt.toISOString() };
@@ -20,18 +39,43 @@ router.get("/products", async (req, res) => {
   let filtered = rows;
   if (vendorId) filtered = filtered.filter(r => r.product.vendorId === parseInt(vendorId));
   if (category) filtered = filtered.filter(r => r.product.category === category);
-  if (search) filtered = filtered.filter(r => r.product.name.toLowerCase().includes(search.toLowerCase()));
+  if (search) {
+    const term = search.toLowerCase();
+    filtered = filtered.filter(r =>
+      r.product.name.toLowerCase().includes(term) ||
+      (r.product.description || "").toLowerCase().includes(term)
+    );
+  }
 
   res.json(filtered.map(r => serializeProduct(r.product, r.vendorName ?? undefined)));
 });
 
+router.post("/uploads/products", requireAuth, upload.single("image"), async (req, res) => {
+  if (!req.file) {
+    res.status(400).json({ message: "No file uploaded" });
+    return;
+  }
+  res.status(201).json({
+    url: `/uploads/${req.file.filename}`,
+  });
+});
+
 router.post("/products", requireAuth, async (req, res) => {
+  const user = getUser(req);
+  const [vendor] = await db.select().from(vendorsTable).where(eq(vendorsTable.userId, user.id)).limit(1);
+  if (!vendor) {
+    res.status(403).json({ message: "Vendor profile required" });
+    return;
+  }
   const parsed = CreateProductBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ message: "Invalid body" });
     return;
   }
-  const [product] = await db.insert(productsTable).values(parsed.data).returning();
+  const [product] = await db.insert(productsTable).values({
+    ...parsed.data,
+    vendorId: vendor.id,
+  }).returning();
   res.status(201).json(serializeProduct(product));
 });
 
@@ -50,13 +94,27 @@ router.get("/products/:productId", async (req, res) => {
 });
 
 router.put("/products/:productId", requireAuth, async (req, res) => {
+  const user = getUser(req);
+  const [vendor] = await db.select().from(vendorsTable).where(eq(vendorsTable.userId, user.id)).limit(1);
+  if (!vendor) {
+    res.status(403).json({ message: "Vendor profile required" });
+    return;
+  }
   const productId = parseInt(req.params.productId);
+  const [existing] = await db.select().from(productsTable).where(eq(productsTable.id, productId)).limit(1);
+  if (!existing || existing.vendorId !== vendor.id) {
+    res.status(403).json({ message: "Not allowed to edit this product" });
+    return;
+  }
   const parsed = CreateProductBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ message: "Invalid body" });
     return;
   }
-  const [product] = await db.update(productsTable).set(parsed.data).where(eq(productsTable.id, productId)).returning();
+  const [product] = await db.update(productsTable)
+    .set({ ...parsed.data, vendorId: vendor.id })
+    .where(eq(productsTable.id, productId))
+    .returning();
   if (!product) {
     res.status(404).json({ message: "Product not found" });
     return;
@@ -65,7 +123,18 @@ router.put("/products/:productId", requireAuth, async (req, res) => {
 });
 
 router.delete("/products/:productId", requireAuth, async (req, res) => {
+  const user = getUser(req);
+  const [vendor] = await db.select().from(vendorsTable).where(eq(vendorsTable.userId, user.id)).limit(1);
+  if (!vendor) {
+    res.status(403).json({ message: "Vendor profile required" });
+    return;
+  }
   const productId = parseInt(req.params.productId);
+  const [existing] = await db.select().from(productsTable).where(eq(productsTable.id, productId)).limit(1);
+  if (!existing || existing.vendorId !== vendor.id) {
+    res.status(403).json({ message: "Not allowed to delete this product" });
+    return;
+  }
   await db.delete(productsTable).where(eq(productsTable.id, productId));
   res.json({ message: "Product deleted" });
 });

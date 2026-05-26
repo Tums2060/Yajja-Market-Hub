@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { ShoppingBag, Package, TrendingUp, Star, LogOut, ChevronRight } from "lucide-react";
 
 const statusColor: Record<string, string> = {
-  pending: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30",
-  confirmed: "bg-blue-500/15 text-blue-700 border-blue-500/30",
+  pending: "bg-secondary/30 text-amber-800 border-secondary/50",
+  accepted: "bg-primary/15 text-primary border-primary/30",
+  confirmed: "bg-primary/15 text-primary border-primary/30",
   preparing: "bg-orange-500/15 text-orange-700 border-orange-500/30",
-  out_for_delivery: "bg-purple-500/15 text-purple-700 border-purple-500/30",
+  ready: "bg-primary/10 text-primary border-primary/20",
   delivered: "bg-green-500/15 text-green-700 border-green-500/30",
 };
 
@@ -40,7 +41,7 @@ export default function VendorPortal() {
         <Card>
           <CardContent className="p-5">
             <div className="flex items-center gap-3 mb-2">
-              <div className="h-10 w-10 rounded-xl bg-yellow-500/10 flex items-center justify-center text-yellow-600">
+              <div className="h-10 w-10 rounded-xl bg-secondary/30 flex items-center justify-center text-amber-700">
                 <ShoppingBag className="h-5 w-5" />
               </div>
               <p className="text-sm text-muted-foreground font-medium">Pending Orders</p>
@@ -69,7 +70,7 @@ export default function VendorPortal() {
         </Button>
         <Button asChild className="h-14 text-base">
           <Link href="/vendor-portal/products">
-            <Package className="mr-2 h-5 w-5" /> Products
+            <Package className="mr-2 h-5 w-5" /> My Menu
           </Link>
         </Button>
       </div>

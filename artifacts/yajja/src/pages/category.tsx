@@ -90,33 +90,33 @@ export default function CategoryPage() {
   }) || [];
 
   return (
-    <div className="min-h-screen bg-[#FFF7DA]">
+    <div className="min-h-screen bg-background">
       {/* Hero header */}
       <div className="relative overflow-hidden" style={{ minHeight: "200px" }}>
         <div className="relative z-10 px-4 pt-4 pb-6 max-w-2xl mx-auto">
-          <div className="bg-white rounded-3xl shadow-2xl px-6 pt-5 pb-6 border border-[#F2D98B]">
+            <div className="bg-white rounded-3xl shadow-2xl px-6 pt-5 pb-6 border border-secondary/40">
             <Button
               variant="ghost"
               size="icon"
-              className="text-[#2E2A7B]/70 hover:text-[#2E2A7B] hover:bg-[#FFF1B8] mb-3 -ml-1"
+              className="text-primary/70 hover:text-primary hover:bg-secondary/30 mb-3 -ml-1"
               onClick={() => setLocation("/")}
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="flex items-center gap-3 mb-4">
-              <div className="h-12 w-12 rounded-2xl bg-[#FFF1B8] flex items-center justify-center">
-                <meta.Icon className="h-6 w-6 text-[#2E2A7B]" />
+                <div className="h-12 w-12 rounded-2xl bg-secondary/30 flex items-center justify-center">
+                <meta.Icon className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-2xl font-extrabold text-[#2E2A7B] tracking-tight">{meta.label}</h1>
-                <p className="text-[#2E2A7B]/70 text-sm">{filtered.length} stores nearby</p>
+                  <h1 className="text-2xl font-extrabold text-primary tracking-tight">{meta.label}</h1>
+                  <p className="text-muted-foreground text-sm">{filtered.length} stores nearby</p>
               </div>
             </div>
             <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#2E2A7B]/60" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder={`Search ${meta.label.toLowerCase()}...`}
-                className="pl-10 h-11 rounded-xl bg-[#FFF7DA] border-0 shadow-md text-[#2E2A7B] placeholder:text-[#2E2A7B]/50"
+                  className="pl-10 h-11 rounded-xl bg-secondary/20 border-0 shadow-md text-foreground placeholder:text-foreground/50"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -126,7 +126,7 @@ export default function CategoryPage() {
       </div>
 
       {/* Scrollable subcategory tabs */}
-      <div className="sticky top-14 z-20 bg-[#FFF7DA] border-b border-[#F2D98B] shadow-sm">
+      <div className="sticky top-14 z-20 bg-background border-b border-secondary/40 shadow-sm">
         <div className="flex gap-2 overflow-x-auto scrollbar-hide px-4 py-3 max-w-2xl mx-auto">
           {meta.subcategories.map((sub) => (
             <button
@@ -134,8 +134,8 @@ export default function CategoryPage() {
               onClick={() => setActiveSub(sub.id)}
               className={`flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium border transition-all shrink-0 ${
                 activeSub === sub.id
-                  ? "bg-[#F8D84E] text-[#2E2A7B] border-[#F2D98B] shadow-sm"
-                  : "bg-white text-[#2E2A7B] border-[#F2D98B] hover:border-[#E8CD7A]"
+                    ? "bg-secondary/60 text-primary border-secondary/60 shadow-sm"
+                    : "bg-white text-primary border-secondary/40 hover:border-secondary/70"
               }`}
             >
               <sub.Icon className="h-4 w-4" />
@@ -149,7 +149,7 @@ export default function CategoryPage() {
       <div className="max-w-2xl mx-auto px-4 py-5 space-y-3">
         {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i} className="overflow-hidden animate-pulse bg-white border-[#F2D98B]">
+            <Card key={i} className="overflow-hidden animate-pulse bg-white border-secondary/40">
               <CardContent className="p-0 flex gap-4">
                 <div className="h-28 w-28 bg-muted shrink-0" />
                 <div className="p-4 space-y-2 flex-1">
@@ -160,7 +160,7 @@ export default function CategoryPage() {
             </Card>
           ))
         ) : filtered.length === 0 ? (
-          <div className="text-center py-16 text-[#2E2A7B]/70">
+          <div className="text-center py-16 text-muted-foreground">
             <ShoppingBag className="mx-auto h-12 w-12 opacity-20 mb-4" />
             <p className="font-medium">No stores found</p>
             <p className="text-sm mt-1">Try a different search or subcategory</p>
@@ -168,14 +168,14 @@ export default function CategoryPage() {
         ) : (
           filtered.map((vendor: any) => (
             <Link key={vendor.id} href={`/vendor/${vendor.id}`}>
-              <Card className="overflow-hidden cursor-pointer hover:shadow-md transition-all active:scale-[0.99] bg-white border-[#F2D98B]">
+              <Card className="overflow-hidden cursor-pointer hover:shadow-md transition-all active:scale-[0.99] bg-white border-secondary/40">
                 <CardContent className="p-0 flex">
                   <div className="h-28 w-28 bg-muted shrink-0 relative overflow-hidden">
                     {vendor.imageUrl ? (
                       <img src={vendor.imageUrl} alt={vendor.name} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-[#FFF1B8]">
-                        <meta.Icon className="h-6 w-6 text-[#2E2A7B]" />
+                      <div className="w-full h-full flex items-center justify-center bg-secondary/30">
+                          <meta.Icon className="h-6 w-6 text-primary" />
                       </div>
                     )}
                     {!vendor.isOpen && (
@@ -187,11 +187,11 @@ export default function CategoryPage() {
                   <div className="p-4 flex-1 flex flex-col justify-between min-w-0">
                     <div>
                       <h3 className="font-bold text-base leading-tight truncate">{vendor.name}</h3>
-                      <p className="text-xs text-[#2E2A7B]/70 line-clamp-2 mt-0.5">
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
                         {vendor.description || "Fresh & ready to deliver"}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-[#2E2A7B]/70 mt-2">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2">
                       <span className="flex items-center gap-1">
                         <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
                         {vendor.rating?.toFixed(1) || "4.5"}

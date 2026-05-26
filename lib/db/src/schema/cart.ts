@@ -1,6 +1,6 @@
 import { mysqlTable, int, timestamp, text } from "drizzle-orm/mysql-core";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod/v4";
+import { z } from "zod";
 
 export const cartItemsTable = mysqlTable("cart_items", {
   id: int("id").primaryKey().autoincrement(),

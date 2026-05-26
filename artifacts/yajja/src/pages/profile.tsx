@@ -20,12 +20,12 @@ export default function Profile() {
 
   return (
     <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6 animate-in fade-in duration-500">
-      <h1 className="text-3xl font-extrabold tracking-tight text-[#2E2A7B]">My Profile</h1>
+      <h1 className="text-3xl font-extrabold tracking-tight text-primary">My Profile</h1>
 
-      <Card className="bg-white border-[#F2D98B]">
+      <Card className="bg-white border-secondary/40">
         <CardContent className="pt-6">
           <div className="flex items-center gap-5">
-            <div className="h-20 w-20 rounded-full bg-[#FFF1B8] flex items-center justify-center text-[#2E2A7B] text-3xl font-bold shrink-0 overflow-hidden border-4 border-[#F2D98B]">
+            <div className="h-20 w-20 rounded-full bg-secondary/30 flex items-center justify-center text-primary text-3xl font-bold shrink-0 overflow-hidden border-4 border-secondary/50">
               {user.avatarUrl ? (
                 <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
               ) : (
@@ -40,10 +40,10 @@ export default function Profile() {
         </CardContent>
       </Card>
 
-      <Card className="bg-white border-[#F2D98B]">
+      <Card className="bg-white border-secondary/40">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <User className="h-4 w-4 text-[#2E2A7B]" />
+            <User className="h-4 w-4 text-primary" />
             Account Details
           </CardTitle>
         </CardHeader>
@@ -51,7 +51,7 @@ export default function Profile() {
           <div className="flex items-center gap-3">
             <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
             <div>
-              <p className="text-xs text-[#2E2A7B]/60">Email</p>
+              <p className="text-xs text-muted-foreground">Email</p>
               <p className="font-medium">{user.email}</p>
             </div>
           </div>
@@ -61,7 +61,7 @@ export default function Profile() {
               <div className="flex items-center gap-3">
                 <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div>
-                  <p className="text-xs text-[#2E2A7B]/60">Phone</p>
+                  <p className="text-xs text-muted-foreground">Phone</p>
                   <p className="font-medium">{user.phone}</p>
                 </div>
               </div>
@@ -73,7 +73,7 @@ export default function Profile() {
               <div className="flex items-center gap-3">
                 <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div>
-                  <p className="text-xs text-[#2E2A7B]/60">Default Address</p>
+                  <p className="text-xs text-muted-foreground">Default Address</p>
                   <p className="font-medium">{user.address}</p>
                 </div>
               </div>
@@ -82,10 +82,10 @@ export default function Profile() {
         </CardContent>
       </Card>
 
-      <Card className="bg-white border-[#F2D98B]">
+      <Card className="bg-white border-secondary/40">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Shield className="h-4 w-4 text-[#2E2A7B]" />
+            <Shield className="h-4 w-4 text-primary" />
             Quick Links
           </CardTitle>
         </CardHeader>

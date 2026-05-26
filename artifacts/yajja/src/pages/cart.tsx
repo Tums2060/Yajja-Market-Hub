@@ -78,26 +78,26 @@ export default function Cart() {
   return (
     <div className="container max-w-4xl mx-auto py-8 px-4 animate-in fade-in duration-500">
       <div className="flex items-center gap-3 mb-8">
-        <div className="p-3 rounded-xl bg-[#FFF1B8] text-[#2E2A7B]">
+        <div className="p-3 rounded-xl bg-secondary/30 text-primary">
           <ShoppingCart className="h-6 w-6" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-[#2E2A7B]">Your Cart</h1>
-          <p className="text-[#2E2A7B]/60">{items.length} {items.length === 1 ? 'item' : 'items'}</p>
+          <h1 className="text-3xl font-bold text-primary">Your Cart</h1>
+          <p className="text-muted-foreground">{items.length} {items.length === 1 ? "item" : "items"}</p>
         </div>
       </div>
 
       {items.length === 0 ? (
-        <Card className="text-center py-16 border-dashed bg-white border-[#F2D98B]">
+        <Card className="text-center py-16 border-dashed bg-white border-secondary/40">
           <ShoppingCart className="mx-auto h-16 w-16 opacity-20 mb-4" />
           <h2 className="text-xl font-semibold mb-2">Your cart is empty</h2>
-          <p className="text-[#2E2A7B]/60 mb-6">Looks like you haven't added anything yet.</p>
-          <Button onClick={() => setLocation("/shop")} className="bg-[#F8D84E] text-[#2E2A7B] hover:bg-[#F2D98B]">Start Shopping</Button>
+          <p className="text-muted-foreground mb-6">Looks like you haven't added anything yet.</p>
+          <Button onClick={() => setLocation("/shop")}>Start Shopping</Button>
         </Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-4">
-            <Card className="bg-white border-[#F2D98B]">
+            <Card className="bg-white border-secondary/40">
               <CardHeader>
                 <CardTitle>Items</CardTitle>
               </CardHeader>
@@ -119,8 +119,13 @@ export default function Cart() {
                         <div className="flex justify-between items-start">
                           <div>
                             <h3 className="font-semibold">{item.product?.name}</h3>
+                            {item.product?.vendorName && (
+                              <p className="text-xs text-muted-foreground">
+                                {item.product.vendorName}
+                              </p>
+                            )}
                             {item.notes && (
-                              <p className="text-xs text-[#2E2A7B]/60 mt-1 italic">
+                              <p className="text-xs text-muted-foreground mt-1 italic">
                                 Note: {item.notes}
                               </p>
                             )}
@@ -129,7 +134,7 @@ export default function Cart() {
                         </div>
                         
                         <div className="flex items-center justify-between mt-2">
-                          <div className="flex items-center gap-3 bg-[#FFF7DA] rounded-full p-1">
+                          <div className="flex items-center gap-3 bg-secondary/20 rounded-full p-1">
                             <Button 
                               variant="ghost" 
                               size="icon" 
@@ -174,17 +179,17 @@ export default function Cart() {
           </div>
 
           <div className="lg:col-span-1">
-            <Card className="sticky top-20 bg-white border-[#F2D98B]">
+            <Card className="sticky top-20 bg-white border-secondary/40">
               <CardHeader>
                 <CardTitle>Order Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-[#2E2A7B]/60">Subtotal</span>
+                  <span className="text-muted-foreground">Subtotal</span>
                   <span className="font-medium">{formatKES(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-[#2E2A7B]/60">Delivery Fee</span>
+                  <span className="text-muted-foreground">Delivery Fee</span>
                   <span className="font-medium">Calculated at checkout</span>
                 </div>
                 <Separator />

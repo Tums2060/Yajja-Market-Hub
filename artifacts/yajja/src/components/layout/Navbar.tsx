@@ -27,7 +27,7 @@ const customerLinks = [
 const vendorLinks = [
   { href: "/vendor-portal", label: "Dashboard", icon: LayoutDashboard },
   { href: "/vendor-portal/orders", label: "Orders", icon: Receipt },
-  { href: "/vendor-portal/products", label: "Products", icon: Package },
+  { href: "/vendor-portal/products", label: "My Menu", icon: Package },
 ];
 
 const riderLinks = [
@@ -76,7 +76,7 @@ export default function Navbar() {
   const isCustomer = user?.role === "customer";
 
   return (
-    <nav className={`sticky top-0 z-50 w-full border-b ${isCustomer ? "bg-white border-[#F2D98B]" : "bg-card/95"} backdrop-blur supports-[backdrop-filter]:bg-card/80`}>
+    <nav className={`sticky top-0 z-50 w-full border-b ${isCustomer ? "bg-white border-secondary/40" : "bg-card/95"} backdrop-blur supports-[backdrop-filter]:bg-card/80`}>
       <div className="container flex h-14 items-center px-4 max-w-7xl mx-auto">
         <Link
           href={user?.role === "vendor" ? "/vendor-portal" : user?.role === "rider" ? "/rider-portal" : user?.role === "admin" ? "/admin" : "/"}
@@ -84,7 +84,7 @@ export default function Navbar() {
         >
           <img src="/yajja-icon2.jpeg" alt="Yajja" className="h-9 w-9 rounded-xl object-cover" />
           {portalLabel && (
-            <Badge variant="outline" className="text-xs hidden sm:inline-flex border-primary/40 text-primary">
+            <Badge variant="outline" className="text-xs hidden sm:inline-flex border-secondary/60 text-primary">
               {portalLabel}
             </Badge>
           )}
@@ -97,7 +97,7 @@ export default function Navbar() {
                 <Button
                   variant={isActive(href) ? "default" : "ghost"}
                   size="sm"
-                  className={`gap-2 relative ${isCustomer ? "text-[#2E2A7B]" : ""}`}
+                  className={`gap-2 relative ${isCustomer ? "text-primary" : ""}`}
                 >
                   <Icon className="h-4 w-4" />
                   {label}

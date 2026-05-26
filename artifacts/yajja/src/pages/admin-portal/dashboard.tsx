@@ -59,7 +59,7 @@ export default function AdminDashboard() {
       {/* Key metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard title="Total Users" value={s?.totalUsers || 0} sub="Registered accounts" icon={Users} color="bg-blue-500" />
-        <StatCard title="Vendors" value={s?.totalVendors || 0} sub={`${s?.pendingVendors || 0} pending review`} icon={Store} color="bg-purple-500" />
+        <StatCard title="Vendors" value={s?.totalVendors || 0} sub={`${s?.pendingVendors || 0} pending review`} icon={Store} color="bg-primary" />
         <StatCard title="Orders Today" value={s?.todayOrders || 0} sub={`${s?.pendingOrders || 0} in progress`} icon={Package} color="bg-amber-500" />
         <StatCard title="Active Riders" value={s?.activeRiders || 0} sub="Available now" icon={Truck} color="bg-emerald-500" />
       </div>

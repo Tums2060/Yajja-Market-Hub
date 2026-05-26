@@ -35,7 +35,7 @@ export function HeroWatermark({ density = 1 }: { density?: number }) {
             filter: "grayscale(1) brightness(2)",
           }}
         >
-          <it.Icon className="h-full w-full text-[#2E2A7B]" />
+          <it.Icon className="h-full w-full text-primary" />
         </span>
       ))}
     </div>

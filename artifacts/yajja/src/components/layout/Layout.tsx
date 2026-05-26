@@ -37,7 +37,7 @@ export default function Layout({ children }: LayoutProps) {
   const showBottomNav = isCustomer && !isAuthPage;
 
   return (
-    <div className={`min-h-[100dvh] w-full flex flex-col ${isCustomer && !isAuthPage ? "bg-[#FFF7DA]" : "bg-background"} text-foreground`}>
+    <div className={`min-h-[100dvh] w-full flex flex-col bg-background text-foreground`}>
       {!isAuthPage && <Navbar />}
       <main className={`flex-1 flex flex-col ${showBottomNav ? "pb-16 md:pb-0" : ""}`}>
         {children}

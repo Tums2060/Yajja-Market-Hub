@@ -1,6 +1,6 @@
 import { mysqlTable, int, text, timestamp, double, mysqlEnum, boolean } from "drizzle-orm/mysql-core";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod/v4";
+import { z } from "zod";
 
 export const ordersTable = mysqlTable("orders", {
   id: int("id").primaryKey().autoincrement(),
@@ -9,9 +9,22 @@ export const ordersTable = mysqlTable("orders", {
   riderId: int("rider_id"),
   groupOrderId: int("group_order_id"),
   status: mysqlEnum("status", [
-    "pending", "confirmed", "preparing", "ready", "picked_up", "delivered", "cancelled"
+    "pending",
+    "accepted",
+    "confirmed",
+    "preparing",
+    "ready",
+    "picked_up",
+    "delivered",
+    "cancelled",
+    "rejected",
   ]).notNull().default("pending"),
+  orderCode: text("order_code").notNull(),
+  customerName: text("customer_name"),
+  customerPhone: text("customer_phone"),
   deliveryAddress: text("delivery_address").notNull(),
+  deliveryLat: double("delivery_lat"),
+  deliveryLng: double("delivery_lng"),
   subtotal: double("subtotal").notNull(),
   deliveryFee: double("delivery_fee").notNull().default(2.5),
   total: double("total").notNull(),
@@ -28,6 +41,7 @@ export const orderItemsTable = mysqlTable("order_items", {
   quantity: int("quantity").notNull(),
   unitPrice: double("unit_price").notNull(),
   totalPrice: double("total_price").notNull(),
+  notes: text("notes"),
 });
 
 export const groupOrdersTable = mysqlTable("group_orders", {

@@ -15,7 +15,7 @@ function useAdminUsers() {
 
 const ROLE_STYLE: Record<string, string> = {
   customer: "bg-blue-100 text-blue-700 border-blue-200",
-  vendor: "bg-purple-100 text-purple-700 border-purple-200",
+  vendor: "bg-blue-100 text-blue-700 border-blue-200",
   rider: "bg-amber-100 text-amber-700 border-amber-200",
   admin: "bg-red-100 text-red-700 border-red-200",
 };

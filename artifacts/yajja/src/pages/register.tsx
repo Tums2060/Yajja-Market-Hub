@@ -114,7 +114,7 @@ export function AuthRegister({ role }: { role: AuthRole }) {
           <Button
             variant="ghost"
             size="icon"
-            className="absolute left-0 top-0 text-[#2E2A7B] hover:bg-black/5"
+            className="absolute left-0 top-0 text-primary hover:bg-black/5"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -128,7 +128,7 @@ export function AuthRegister({ role }: { role: AuthRole }) {
             />
           </div>
           <div className="flex justify-center pb-3">
-            <span className="rounded-full border border-[#F2D98B] px-3 py-1 text-xs font-semibold text-[#2E2A7B] bg-[#FFF7DA]">
+            <span className="rounded-full border border-secondary/40 px-3 py-1 text-xs font-semibold text-primary bg-secondary/20">
               {config.label} Account
             </span>
           </div>
@@ -146,7 +146,7 @@ export function AuthRegister({ role }: { role: AuthRole }) {
                       <Input
                         placeholder="Full name"
                         autoComplete="name"
-                        className="h-12 rounded-xl bg-[#FFF7DA] border-0 focus-visible:ring-[#F8D84E]"
+                        className="h-12 rounded-xl bg-secondary/20 border-0 focus-visible:ring-secondary"
                         {...field}
                       />
                     </FormControl>
@@ -164,7 +164,7 @@ export function AuthRegister({ role }: { role: AuthRole }) {
                         placeholder={`Phone number (e.g. ${KENYA.phonePlaceholder})`}
                         type="tel"
                         autoComplete="tel"
-                        className="h-12 rounded-xl bg-[#FFF7DA] border-0 focus-visible:ring-[#F8D84E]"
+                        className="h-12 rounded-xl bg-secondary/20 border-0 focus-visible:ring-secondary"
                         {...field}
                       />
                     </FormControl>
@@ -185,7 +185,7 @@ export function AuthRegister({ role }: { role: AuthRole }) {
                         placeholder="Email address"
                         type="email"
                         autoComplete="email"
-                        className="h-12 rounded-xl bg-[#FFF7DA] border-0 focus-visible:ring-[#F8D84E]"
+                        className="h-12 rounded-xl bg-secondary/20 border-0 focus-visible:ring-secondary"
                         {...field}
                       />
                     </FormControl>
@@ -204,7 +204,7 @@ export function AuthRegister({ role }: { role: AuthRole }) {
                           placeholder="Password (min 6 characters)"
                           type={showPassword ? "text" : "password"}
                           autoComplete="new-password"
-                          className="h-12 rounded-xl bg-[#FFF7DA] border-0 focus-visible:ring-[#F8D84E] pr-11"
+                          className="h-12 rounded-xl bg-secondary/20 border-0 focus-visible:ring-secondary pr-11"
                           {...field}
                         />
                         <button
@@ -233,7 +233,7 @@ export function AuthRegister({ role }: { role: AuthRole }) {
                           placeholder="Confirm password"
                           type={showConfirm ? "text" : "password"}
                           autoComplete="new-password"
-                          className="h-12 rounded-xl bg-[#FFF7DA] border-0 focus-visible:ring-[#F8D84E] pr-11"
+                          className="h-12 rounded-xl bg-secondary/20 border-0 focus-visible:ring-secondary pr-11"
                           {...field}
                         />
                         <button
@@ -257,7 +257,7 @@ export function AuthRegister({ role }: { role: AuthRole }) {
 
               <Button
                 type="submit"
-                className="w-full h-12 text-base font-bold rounded-xl mt-2 bg-[#F8D84E] text-[#2E2A7B] hover:bg-[#F6D236] disabled:opacity-100 disabled:bg-[#F8D84E] disabled:text-[#2E2A7B]"
+                className="w-full h-12 text-base font-bold rounded-xl mt-2 disabled:opacity-100"
                 disabled={registerMutation.isPending || !passwordsMatch || !form.formState.isValid}
               >
                 {registerMutation.isPending && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
@@ -268,7 +268,7 @@ export function AuthRegister({ role }: { role: AuthRole }) {
 
           <p className="text-center text-sm text-muted-foreground mt-6">
             Already have an account?{" "}
-            <Link href={config.loginPath} className="text-[#2E2A7B] font-semibold hover:underline">
+            <Link href={config.loginPath} className="text-primary font-semibold hover:underline">
               {`Sign in as ${config.label}`}
             </Link>
           </p>
@@ -279,14 +279,14 @@ export function AuthRegister({ role }: { role: AuthRole }) {
 
           {/* Portal access */}
           {config.showCustomerExtras && (
-            <div className="mt-6 p-4 rounded-xl bg-[#FFF7DA] border border-[#F2D98B]">
+            <div className="mt-6 p-4 rounded-xl bg-secondary/20 border border-secondary/40">
               <p className="text-xs font-medium text-muted-foreground mb-2">Want to join as a vendor or rider?</p>
               <div className="flex gap-2">
                 <Link href="/vendor/login" className="flex-1">
-                  <Button variant="outline" size="sm" className="w-full text-xs h-8 border-[#F2D98B] text-[#2E2A7B] hover:bg-[#F8D84E]/30">Vendor Portal →</Button>
+                  <Button variant="outline" size="sm" className="w-full text-xs h-8 border-secondary/40 text-primary hover:bg-secondary/30">Vendor Portal →</Button>
                 </Link>
                 <Link href="/rider/login" className="flex-1">
-                  <Button variant="outline" size="sm" className="w-full text-xs h-8 border-[#F2D98B] text-[#2E2A7B] hover:bg-[#F8D84E]/30">Rider Portal →</Button>
+                  <Button variant="outline" size="sm" className="w-full text-xs h-8 border-secondary/40 text-primary hover:bg-secondary/30">Rider Portal →</Button>
                 </Link>
               </div>
             </div>

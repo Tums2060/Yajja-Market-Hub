@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useParams, useLocation } from "wouter";
 import { useGetOrder } from "@workspace/api-client-react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,21 +9,54 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Loader2, MapPin, Package } from "lucide-react";
 
 const statusColor: Record<string, string> = {
-  pending: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30",
-  confirmed: "bg-blue-500/15 text-blue-700 border-blue-500/30",
+  pending: "bg-secondary/30 text-amber-800 border-secondary/50",
+  accepted: "bg-primary/15 text-primary border-primary/30",
+  confirmed: "bg-primary/15 text-primary border-primary/30",
   preparing: "bg-orange-500/15 text-orange-700 border-orange-500/30",
-  out_for_delivery: "bg-purple-500/15 text-purple-700 border-purple-500/30",
+  ready: "bg-primary/10 text-primary border-primary/20",
+  picked_up: "bg-slate-500/10 text-slate-700 border-slate-500/20",
   delivered: "bg-green-500/15 text-green-700 border-green-500/30",
   cancelled: "bg-red-500/15 text-red-700 border-red-500/30",
+  rejected: "bg-red-500/15 text-red-700 border-red-500/30",
 };
 
-const statusSteps = ["pending", "confirmed", "preparing", "out_for_delivery", "delivered"];
+const statusSteps = ["pending", "accepted", "preparing", "ready", "picked_up", "delivered"];
 
 export default function OrderDetail() {
   const { orderId } = useParams();
   const [, setLocation] = useLocation();
   const id = parseInt(orderId || "0", 10);
-  const { data: order, isLoading } = useGetOrder(id, { query: { enabled: !!id } });
+  const { data: order, isLoading } = useGetOrder(id, { query: { enabled: !!id, refetchInterval: 10000 } });
+
+  const orderCode = (order as any)?.orderCode as string | undefined;
+  const { data: bundleOrders } = useQuery({
+    queryKey: ["orders", "code", orderCode],
+    queryFn: async () => {
+      const token = localStorage.getItem("yajja_token");
+      const res = await fetch(`/api/orders?orderCode=${encodeURIComponent(orderCode || "")}`,
+        { headers: token ? { Authorization: `Bearer ${token}` } : undefined });
+      if (!res.ok) throw new Error("Failed to load order bundle");
+      return res.json();
+    },
+    enabled: !!orderCode,
+    refetchInterval: 10000,
+  });
+
+  const orders = ((bundleOrders as any[])?.length ? bundleOrders : order ? [order] : []) as any[];
+
+  const itemsByVendor = useMemo(() => {
+    const map = new Map<string, any[]>();
+    orders.forEach((o) => {
+      const vendorKey = o.vendorName || `Vendor ${o.vendorId}`;
+      if (!map.has(vendorKey)) map.set(vendorKey, []);
+      (o.items || []).forEach((item: any) => map.get(vendorKey)!.push(item));
+    });
+    return Array.from(map.entries());
+  }, [orders]);
+
+  const deliveryLat = orders[0]?.deliveryLat;
+  const deliveryLng = orders[0]?.deliveryLng;
+  const riderLocation = orders.find((o) => o.riderLocation)?.riderLocation;
 
   if (isLoading) return (
     <div className="flex-1 flex items-center justify-center min-h-[50vh]">
@@ -46,7 +80,7 @@ export default function OrderDetail() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-extrabold">Order #{order.id}</h1>
+          <h1 className="text-2xl font-extrabold">Order {orderCode || `#${order.id}`}</h1>
           <p className="text-sm text-muted-foreground">
             {(order as any).createdAt ? new Date((order as any).createdAt).toLocaleString("en-UG") : "—"}
           </p>
@@ -63,7 +97,7 @@ export default function OrderDetail() {
           </div>
         </CardHeader>
         <CardContent>
-          {(order as any).status !== "cancelled" && (
+          {!(order as any).status || !["cancelled", "rejected"].includes((order as any).status) && (
             <div className="flex items-center gap-1 mb-4">
               {statusSteps.map((step, i) => (
                 <div key={step} className={`flex-1 h-2 rounded-full transition-all ${i <= currentStep ? "bg-primary" : "bg-muted"}`} />
@@ -86,19 +120,27 @@ export default function OrderDetail() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {((order as any).items || []).map((item: any) => (
-            <div key={item.id} className="flex items-center gap-4">
-              <div className="h-14 w-14 bg-muted rounded-lg shrink-0 overflow-hidden">
-                {item.product?.imageUrl
-                  ? <img src={item.product.imageUrl} alt={item.product.name} className="h-full w-full object-cover" />
-                  : <div className="h-full w-full flex items-center justify-center text-muted-foreground font-bold text-lg">{item.product?.name?.charAt(0) || "P"}</div>
-                }
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">{item.product?.name}</p>
-                <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
-              </div>
-              <p className="font-bold shrink-0">KES {Math.round((item.product?.price || item.unitPrice || 0) * item.quantity).toLocaleString()}</p>
+          {itemsByVendor.map(([vendorName, items]) => (
+            <div key={vendorName} className="space-y-3">
+              <p className="text-sm font-semibold text-primary">{vendorName}</p>
+              {items.map((item: any) => (
+                <div key={item.id} className="flex items-center gap-4">
+                  <div className="h-14 w-14 bg-muted rounded-lg shrink-0 overflow-hidden">
+                    {item.product?.imageUrl
+                      ? <img src={item.product.imageUrl} alt={item.product.name} className="h-full w-full object-cover" />
+                      : <div className="h-full w-full flex items-center justify-center text-muted-foreground font-bold text-lg">{item.productName?.charAt(0) || "P"}</div>
+                    }
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{item.productName || item.product?.name}</p>
+                    <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
+                    {item.notes && (
+                      <p className="text-xs text-muted-foreground italic">Note: {item.notes}</p>
+                    )}
+                  </div>
+                  <p className="font-bold shrink-0">KES {Math.round((item.product?.price || item.unitPrice || 0) * item.quantity).toLocaleString()}</p>
+                </div>
+              ))}
             </div>
           ))}
           <Separator />
@@ -108,10 +150,28 @@ export default function OrderDetail() {
           </div>
           <div className="flex justify-between font-bold text-lg">
             <span>Total</span>
-            <span>KES {Math.round((order as any).totalAmount || 0).toLocaleString()}</span>
+            <span>KES {Math.round((order as any).total || 0).toLocaleString()}</span>
           </div>
         </CardContent>
       </Card>
+
+      {deliveryLat && deliveryLng && riderLocation?.lat && riderLocation?.lng && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Live Rider Tracking</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-xl overflow-hidden border">
+              <iframe
+                title="Delivery tracking"
+                className="w-full h-64"
+                src={`https://maps.google.com/maps?daddr=${deliveryLat},${deliveryLng}&saddr=${riderLocation.lat},${riderLocation.lng}&z=14&output=embed`}
+                loading="lazy"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

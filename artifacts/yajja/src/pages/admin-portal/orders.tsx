@@ -17,15 +17,17 @@ function useAdminOrders() {
 
 const STATUS_STYLES: Record<string, string> = {
   pending: "bg-amber-100 text-amber-700 border-amber-200",
+  accepted: "bg-blue-100 text-blue-700 border-blue-200",
   confirmed: "bg-blue-100 text-blue-700 border-blue-200",
   preparing: "bg-violet-100 text-violet-700 border-violet-200",
   ready: "bg-cyan-100 text-cyan-700 border-cyan-200",
   picked_up: "bg-orange-100 text-orange-700 border-orange-200",
   delivered: "bg-emerald-100 text-emerald-700 border-emerald-200",
   cancelled: "bg-red-100 text-red-700 border-red-200",
+  rejected: "bg-red-100 text-red-700 border-red-200",
 };
 
-const STATUS_LIST = ["all", "pending", "confirmed", "preparing", "ready", "picked_up", "delivered", "cancelled"];
+const STATUS_LIST = ["all", "pending", "accepted", "preparing", "ready", "picked_up", "delivered", "cancelled", "rejected"];
 
 export default function AdminOrders() {
   const { data: orders, isLoading } = useAdminOrders();
@@ -90,7 +92,7 @@ export default function AdminOrders() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-sm">Order #{order.id}</span>
+                    <span className="font-bold text-sm">Order {order.orderCode || `#${order.id}`}</span>
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${STATUS_STYLES[order.status] || "bg-muted text-muted-foreground border-border"}`}>
                       {order.status.replace("_", " ")}
                     </span>

@@ -1,18 +1,64 @@
 import { Router } from "express";
-import { db, ordersTable, orderItemsTable, groupOrdersTable, billAssignmentsTable, cartItemsTable, groupCartItemsTable, productsTable, vendorsTable, usersTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
-import { CreateOrderBody, UpdateOrderStatusBody, AssignRiderBody, CreateGroupOrderBody, SubmitBillAssignmentBody } from "@workspace/api-zod";
+import { db, ordersTable, orderItemsTable, groupOrdersTable, billAssignmentsTable, cartItemsTable, groupCartItemsTable, productsTable, vendorsTable, usersTable, riderProfilesTable } from "@workspace/db";
+import { eq, and, inArray } from "drizzle-orm";
+import { UpdateOrderStatusBody, AssignRiderBody, CreateGroupOrderBody, SubmitBillAssignmentBody } from "@workspace/api-zod";
 import { requireAuth, getUser } from "../lib/auth";
+import { z } from "zod";
 
 const router = Router();
 
+const createOrderBodySchema = z.object({
+  deliveryAddress: z.string(),
+  notes: z.string().optional(),
+  phoneNumber: z.string().optional(),
+  customerName: z.string().optional(),
+  deliveryLat: z.number().optional(),
+  deliveryLng: z.number().optional(),
+});
+
+async function generateOrderCode() {
+  for (let i = 0; i < 6; i += 1) {
+    const code = `YJA-${Math.floor(1000 + Math.random() * 9000)}`;
+    const [existing] = await db.select({ id: ordersTable.id }).from(ordersTable)
+      .where(eq(ordersTable.orderCode, code))
+      .limit(1);
+    if (!existing) return code;
+  }
+  return `YJA-${Date.now().toString().slice(-6)}`;
+}
+
 async function enrichOrder(order: typeof ordersTable.$inferSelect) {
-  const items = await db.select().from(orderItemsTable).where(eq(orderItemsTable.orderId, order.id));
+  const items = await db.select({
+    item: orderItemsTable,
+    product: productsTable,
+  })
+    .from(orderItemsTable)
+    .leftJoin(productsTable, eq(orderItemsTable.productId, productsTable.id))
+    .where(eq(orderItemsTable.orderId, order.id));
+
   const [vendor] = await db.select().from(vendorsTable).where(eq(vendorsTable.id, order.vendorId)).limit(1);
+  const [customer] = await db.select({ name: usersTable.name, phone: usersTable.phone })
+    .from(usersTable)
+    .where(eq(usersTable.id, order.userId))
+    .limit(1);
+  const [rider] = order.riderId
+    ? await db.select({ currentLat: riderProfilesTable.currentLat, currentLng: riderProfilesTable.currentLng })
+      .from(riderProfilesTable)
+      .where(eq(riderProfilesTable.id, order.riderId))
+      .limit(1)
+    : [null];
+
   return {
     ...order,
     vendorName: vendor?.name || "",
-    items,
+    customerName: order.customerName || customer?.name || "",
+    customerPhone: order.customerPhone || customer?.phone || "",
+    riderLocation: rider ? { lat: rider.currentLat, lng: rider.currentLng } : null,
+    items: items.map(({ item, product }) => ({
+      ...item,
+      product: product || null,
+    })),
+    itemCount: items.reduce((sum, row) => sum + row.item.quantity, 0),
     status: order.status as string,
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
@@ -22,16 +68,18 @@ async function enrichOrder(order: typeof ordersTable.$inferSelect) {
 // Individual orders
 router.get("/orders", requireAuth, async (req, res) => {
   const user = getUser(req);
-  const { status } = req.query as { status?: string };
-  let orders = await db.select().from(ordersTable).where(eq(ordersTable.userId, user.id));
-  if (status) orders = orders.filter(o => o.status === status);
+  const { status, orderCode } = req.query as { status?: string; orderCode?: string };
+  const conditions = [eq(ordersTable.userId, user.id)];
+  if (status) conditions.push(eq(ordersTable.status, status as any));
+  if (orderCode) conditions.push(eq(ordersTable.orderCode, orderCode));
+  const orders = await db.select().from(ordersTable).where(and(...conditions));
   const enriched = await Promise.all(orders.map(enrichOrder));
   res.json(enriched);
 });
 
 router.post("/orders", requireAuth, async (req, res) => {
   const user = getUser(req);
-  const parsed = CreateOrderBody.safeParse(req.body);
+  const parsed = createOrderBodySchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ message: "Invalid body" });
     return;
@@ -43,26 +91,41 @@ router.post("/orders", requireAuth, async (req, res) => {
     return;
   }
 
+  const productIds = cartItems.map((item) => item.productId);
+  const products = await db.select().from(productsTable).where(inArray(productsTable.id, productIds));
+  const productMap = new Map(products.map((p) => [p.id, p]));
+
   // Group by vendor and create one order per vendor
   const vendorMap = new Map<number, typeof cartItems>();
   for (const ci of cartItems) {
-    const [product] = await db.select().from(productsTable).where(eq(productsTable.id, ci.productId)).limit(1);
+    const product = productMap.get(ci.productId);
     if (!product) continue;
     if (!vendorMap.has(product.vendorId)) vendorMap.set(product.vendorId, []);
-    vendorMap.get(product.vendorId)!.push({ ...ci, productId: ci.productId });
+    vendorMap.get(product.vendorId)!.push(ci);
   }
 
-  const createdOrders = [];
+  const orderCode = await generateOrderCode();
+  const customerName = parsed.data.customerName || user.name;
+  const customerPhone = parsed.data.phoneNumber || user.phone || null;
+
+  const createdOrders = [] as Array<Awaited<ReturnType<typeof enrichOrder>>>;
   for (const [vendorId, items] of vendorMap) {
-    const products = await Promise.all(items.map(i => db.select().from(productsTable).where(eq(productsTable.id, i.productId)).limit(1)));
-    const subtotal = products.reduce((s, p, idx) => s + (p[0]?.price || 0) * items[idx].quantity, 0);
-    const deliveryFee = 2.5;
+    const subtotal = items.reduce((sum, item) => {
+      const product = productMap.get(item.productId);
+      return sum + (product?.price || 0) * item.quantity;
+    }, 0);
+    const deliveryFee = 200;
     const total = subtotal + deliveryFee;
 
     const [order] = await db.insert(ordersTable).values({
       userId: user.id,
       vendorId,
       deliveryAddress: parsed.data.deliveryAddress,
+      deliveryLat: parsed.data.deliveryLat ?? null,
+      deliveryLng: parsed.data.deliveryLng ?? null,
+      customerName,
+      customerPhone,
+      orderCode,
       subtotal,
       deliveryFee,
       total,
@@ -71,23 +134,28 @@ router.post("/orders", requireAuth, async (req, res) => {
     }).returning();
 
     await db.insert(orderItemsTable).values(
-      products.map((p, i) => ({
-        orderId: order.id,
-        productId: items[i].productId,
-        productName: p[0]?.name || "",
-        quantity: items[i].quantity,
-        unitPrice: p[0]?.price || 0,
-        totalPrice: (p[0]?.price || 0) * items[i].quantity,
-        notes: items[i].notes || null,
-      }))
+      items.map((item) => {
+        const product = productMap.get(item.productId);
+        const unitPrice = product?.price || 0;
+        return {
+          orderId: order.id,
+          productId: item.productId,
+          productName: product?.name || "",
+          quantity: item.quantity,
+          unitPrice,
+          totalPrice: unitPrice * item.quantity,
+          notes: item.notes || null,
+        };
+      })
     );
+
     createdOrders.push(await enrichOrder(order));
   }
 
   // Clear cart
   await db.delete(cartItemsTable).where(eq(cartItemsTable.userId, user.id));
 
-  res.status(201).json(createdOrders[0] || null);
+  res.status(201).json({ orderCode, orders: createdOrders, primaryOrderId: createdOrders[0]?.id || null });
 });
 
 router.get("/orders/:orderId", requireAuth, async (req, res) => {
@@ -150,12 +218,20 @@ router.get("/vendor-orders", requireAuth, async (req, res) => {
 // Rider orders
 router.get("/rider-orders", requireAuth, async (req, res) => {
   const { status } = req.query as { status?: string };
+  const user = getUser(req);
+  const [rider] = await db.select().from(riderProfilesTable).where(eq(riderProfilesTable.userId, user.id)).limit(1);
+
   let orders = await db.select().from(ordersTable);
   if (status) {
-    orders = orders.filter(o => o.status === status);
+    orders = orders.filter((o) => o.status === status);
   } else {
-    orders = orders.filter(o => o.status === "ready" || o.status === "picked_up");
+    orders = orders.filter((o) => o.status === "accepted" || o.status === "ready" || o.status === "picked_up");
   }
+
+  if (rider) {
+    orders = orders.filter((o) => !o.riderId || o.riderId === rider.id);
+  }
+
   const enriched = await Promise.all(orders.map(enrichOrder));
   res.json(enriched);
 });

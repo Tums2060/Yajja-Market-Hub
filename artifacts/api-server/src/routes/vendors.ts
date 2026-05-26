@@ -21,6 +21,16 @@ router.get("/vendors", async (req, res) => {
   res.json(vendors.map(serializeVendor));
 });
 
+router.get("/vendors/me", requireAuth, async (req, res) => {
+  const user = getUser(req);
+  const [vendor] = await db.select().from(vendorsTable).where(eq(vendorsTable.userId, user.id)).limit(1);
+  if (!vendor) {
+    res.status(404).json({ message: "Vendor profile not found" });
+    return;
+  }
+  res.json(serializeVendor(vendor));
+});
+
 router.post("/vendors", requireAuth, async (req, res) => {
   const parsed = CreateVendorBody.safeParse(req.body);
   if (!parsed.success) {
@@ -67,7 +77,13 @@ router.get("/vendors/:vendorId/stats", requireAuth, async (req, res) => {
 
   const todayOrders = allOrders.filter(o => new Date(o.createdAt) >= todayStart);
   const weekOrders = allOrders.filter(o => new Date(o.createdAt) >= weekStart);
-  const pendingOrders = allOrders.filter(o => o.status === "pending" || o.status === "confirmed" || o.status === "preparing");
+  const pendingOrders = allOrders.filter(o =>
+    o.status === "pending" ||
+    o.status === "accepted" ||
+    o.status === "confirmed" ||
+    o.status === "preparing" ||
+    o.status === "ready"
+  );
 
   const todayRevenue = todayOrders.reduce((s, o) => s + o.total, 0);
   const weekRevenue = weekOrders.reduce((s, o) => s + o.total, 0);

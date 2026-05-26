@@ -1,7 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { useListRiderOrders, useUpdateRiderLocation, getListRiderOrdersQueryKey } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useListRiderOrders, useUpdateRiderLocation } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,15 +12,17 @@ import { ArrowLeft, Navigation, MapPin, Loader2 } from "lucide-react";
 export default function RiderMap() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   const { data: orders } = useListRiderOrders({ query: { enabled: true } });
-  const activeOrders = (orders as any[])?.filter(o => o.status === "out_for_delivery") || [];
+  const activeOrders = (orders as any[])?.filter(o => o.status === "picked_up") || [];
 
   const updateLocation = useUpdateRiderLocation();
   const [lat, setLat] = useState("");
   const [lng, setLng] = useState("");
   const [isTracking, setIsTracking] = useState(false);
+  const watchIdRef = useRef<number | null>(null);
+  const intervalRef = useRef<number | null>(null);
+  const lastCoordsRef = useRef<{ lat: number; lng: number } | null>(null);
 
   const handleShareLocation = () => {
     if (!navigator.geolocation) {
@@ -29,28 +30,18 @@ export default function RiderMap() {
       return;
     }
     setIsTracking(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const latitude = pos.coords.latitude;
-        const longitude = pos.coords.longitude;
-        setLat(latitude.toFixed(6));
-        setLng(longitude.toFixed(6));
-        updateLocation.mutate({ data: { latitude, longitude } } as any, {
-          onSuccess: () => {
-            toast({ title: "Location updated!" });
-            setIsTracking(false);
-          },
-          onError: () => {
-            toast({ variant: "destructive", title: "Failed to update location" });
-            setIsTracking(false);
-          }
-        });
-      },
-      () => {
-        toast({ variant: "destructive", title: "Could not get your location" });
-        setIsTracking(false);
-      }
-    );
+  };
+
+  const stopTracking = () => {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    if (intervalRef.current !== null) {
+      window.clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    setIsTracking(false);
   };
 
   const handleManualUpdate = () => {
@@ -60,11 +51,40 @@ export default function RiderMap() {
       toast({ variant: "destructive", title: "Invalid coordinates" });
       return;
     }
-    updateLocation.mutate({ data: { latitude, longitude } } as any, {
+    updateLocation.mutate({ data: { lat: latitude, lng: longitude } } as any, {
       onSuccess: () => toast({ title: "Location updated!" }),
       onError: () => toast({ variant: "destructive", title: "Failed to update" })
     });
   };
+
+  useEffect(() => {
+    if (!isTracking) return;
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        const latitude = pos.coords.latitude;
+        const longitude = pos.coords.longitude;
+        lastCoordsRef.current = { lat: latitude, lng: longitude };
+        setLat(latitude.toFixed(6));
+        setLng(longitude.toFixed(6));
+      },
+      () => {
+        toast({ variant: "destructive", title: "Could not get your location" });
+        stopTracking();
+      },
+      { enableHighAccuracy: true }
+    );
+
+    intervalRef.current = window.setInterval(() => {
+      const coords = lastCoordsRef.current;
+      if (!coords) return;
+      updateLocation.mutate({ data: { lat: coords.lat, lng: coords.lng } } as any, {
+        onError: () => toast({ variant: "destructive", title: "Failed to update location" }),
+      });
+    }, 12000);
+
+    return () => stopTracking();
+  }, [isTracking, toast, updateLocation]);
 
   return (
     <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6 animate-in fade-in duration-500">
@@ -85,11 +105,11 @@ export default function RiderMap() {
         <CardContent className="space-y-4">
           <Button
             className="w-full gap-2"
-            onClick={handleShareLocation}
-            disabled={isTracking || updateLocation.isPending}
+            onClick={isTracking ? stopTracking : handleShareLocation}
+            disabled={updateLocation.isPending}
           >
             {isTracking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Navigation className="h-4 w-4" />}
-            Use Device GPS
+            {isTracking ? "Sharing Location..." : "Start GPS Sharing"}
           </Button>
 
           <div className="relative">
@@ -130,7 +150,7 @@ export default function RiderMap() {
             {activeOrders.map((order: any) => (
               <Card key={order.id}>
                 <CardContent className="p-4 flex items-start gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-600 shrink-0">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
                     <MapPin className="h-5 w-5" />
                   </div>
                   <div className="flex-1">
@@ -140,7 +160,7 @@ export default function RiderMap() {
                       <p className="text-xs text-muted-foreground mt-1">📍 {order.deliveryAddress}</p>
                     )}
                   </div>
-                  <Badge className="bg-purple-500/15 text-purple-700 border-purple-500/30 text-xs" variant="outline">
+                  <Badge className="bg-primary/10 text-primary border-primary/30 text-xs" variant="outline">
                     In Transit
                   </Badge>
                 </CardContent>

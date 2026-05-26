@@ -1,6 +1,6 @@
 import { mysqlTable, int, text, timestamp, boolean, double } from "drizzle-orm/mysql-core";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod/v4";
+import { z } from "zod";
 
 export const riderProfilesTable = mysqlTable("rider_profiles", {
   id: int("id").primaryKey().autoincrement(),

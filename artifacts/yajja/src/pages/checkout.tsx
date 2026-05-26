@@ -11,16 +11,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { ShoppingCart, CreditCard, MapPin, Loader2 } from "lucide-react";
+import { ShoppingCart, CreditCard, MapPin, Loader2, CheckCircle2, Phone, Navigation } from "lucide-react";
 import { formatKES, KENYA } from "@/lib/format";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function Checkout() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState(user?.phone || "");
+  const [deliveryLat, setDeliveryLat] = useState<number | null>(null);
+  const [deliveryLng, setDeliveryLng] = useState<number | null>(null);
+  const [step, setStep] = useState<"form" | "processing" | "success">("form");
+  const [orderCode, setOrderCode] = useState<string | null>(null);
+  const [primaryOrderId, setPrimaryOrderId] = useState<number | null>(null);
 
   const { data: cartData } = useGetCart({ query: { enabled: true } });
 
@@ -35,36 +43,100 @@ export default function Checkout() {
       toast({ variant: "destructive", title: "Please enter a delivery address" });
       return;
     }
-    createOrder.mutate({ data: { deliveryAddress: address, notes } } as any, {
-      onSuccess: (order: any) => {
-        queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() });
-        toast({ title: "Order placed successfully!" });
-        setLocation(`/orders/${order.id}`);
-      },
-      onError: () => toast({ variant: "destructive", title: "Failed to place order" })
-    });
+    if (!phoneNumber.trim()) {
+      toast({ variant: "destructive", title: "Please enter your phone number" });
+      return;
+    }
+
+    setStep("processing");
+    setTimeout(() => {
+      createOrder.mutate({
+        data: {
+          deliveryAddress: address,
+          notes,
+          phoneNumber,
+          customerName: user?.name,
+          deliveryLat: deliveryLat ?? undefined,
+          deliveryLng: deliveryLng ?? undefined,
+        },
+      } as any, {
+        onSuccess: (payload: any) => {
+          queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() });
+          setOrderCode(payload?.orderCode || null);
+          setPrimaryOrderId(payload?.primaryOrderId || null);
+          toast({ title: "Payment confirmed" });
+          setStep("success");
+        },
+        onError: () => {
+          toast({ variant: "destructive", title: "Failed to place order" });
+          setStep("form");
+        }
+      });
+    }, 2000);
   };
 
   const isPlacing = createOrder.isPending;
 
+  const handleUseLocation = () => {
+    if (!navigator.geolocation) {
+      toast({ variant: "destructive", title: "Geolocation not supported" });
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setDeliveryLat(pos.coords.latitude);
+        setDeliveryLng(pos.coords.longitude);
+        toast({ title: "Location captured" });
+      },
+      () => toast({ variant: "destructive", title: "Could not get your location" })
+    );
+  };
+
   return (
     <div className="container max-w-4xl mx-auto py-8 px-4 animate-in fade-in duration-500">
       <div className="flex items-center gap-3 mb-8">
-        <div className="p-3 rounded-xl bg-[#FFF1B8] text-[#2E2A7B]">
+        <div className="p-3 rounded-xl bg-secondary/30 text-primary">
           <ShoppingCart className="h-6 w-6" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-[#2E2A7B]">Checkout</h1>
-          <p className="text-[#2E2A7B]/60">{items.length} items</p>
+          <h1 className="text-3xl font-bold text-primary">Checkout</h1>
+          <p className="text-muted-foreground">{items.length} items</p>
         </div>
       </div>
 
+      {step === "processing" && (
+        <Card className="bg-white border-secondary/40 mb-6">
+          <CardContent className="p-6 text-center space-y-2">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+            <p className="font-semibold">Awaiting M-Pesa confirmation...</p>
+            <p className="text-sm text-muted-foreground">Please complete the prompt on your phone.</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {step === "success" && (
+        <Card className="bg-white border-secondary/40 mb-6">
+          <CardContent className="p-6 text-center space-y-3">
+            <CheckCircle2 className="h-10 w-10 text-primary mx-auto" />
+            <p className="font-semibold text-lg">Payment confirmed</p>
+            {orderCode && (
+              <p className="text-sm">Order code: <span className="font-bold">{orderCode}</span></p>
+            )}
+            <Button onClick={() => setLocation(primaryOrderId ? `/orders/${primaryOrderId}` : "/orders")}
+              className="w-full"
+            >
+              Track Order
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          <Card className="bg-white border-[#F2D98B]">
+          <Card className="bg-white border-secondary/40">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-[#2E2A7B]" /> Delivery Address
+                <MapPin className="h-4 w-4 text-primary" /> Delivery Address
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -75,7 +147,7 @@ export default function Checkout() {
                   placeholder={KENYA.addressPlaceholder}
                   value={address}
                   onChange={e => setAddress(e.target.value)}
-                  className="bg-[#FFF7DA] border-0 shadow-sm text-[#2E2A7B] placeholder:text-[#2E2A7B]/50"
+                  className="bg-secondary/20 border-0 shadow-sm text-foreground placeholder:text-foreground/50"
                 />
               </div>
               <div className="space-y-2">
@@ -85,13 +157,28 @@ export default function Checkout() {
                   placeholder="Any special instructions..."
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
-                  className="bg-[#FFF7DA] border-0 shadow-sm text-[#2E2A7B] placeholder:text-[#2E2A7B]/50"
+                  className="bg-secondary/20 border-0 shadow-sm text-foreground placeholder:text-foreground/50"
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">M-Pesa phone number</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="phone"
+                    placeholder="07xx xxx xxx"
+                    value={phoneNumber}
+                    onChange={e => setPhoneNumber(e.target.value)}
+                    className="pl-9 bg-secondary/20 border-0 shadow-sm text-foreground placeholder:text-foreground/50"
+                  />
+              </div>
+              <Button variant="outline" className="gap-2" onClick={handleUseLocation}>
+                <Navigation className="h-4 w-4" /> Use Current Location
+              </Button>
             </CardContent>
           </Card>
 
-          <Card className="bg-white border-[#F2D98B]">
+          <Card className="bg-white border-secondary/40">
             <CardHeader>
               <CardTitle className="text-base">Order Items</CardTitle>
             </CardHeader>
@@ -101,12 +188,12 @@ export default function Checkout() {
                   <div className="h-12 w-12 bg-muted rounded-lg shrink-0 overflow-hidden">
                     {item.product?.imageUrl
                       ? <img src={item.product.imageUrl} alt={item.product.name} className="h-full w-full object-cover" />
-                      : <div className="h-full w-full flex items-center justify-center text-[#2E2A7B]/50 font-bold">{item.product?.name?.charAt(0)}</div>
+                      : <div className="h-full w-full flex items-center justify-center text-muted-foreground font-bold">{item.product?.name?.charAt(0)}</div>
                     }
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{item.product?.name}</p>
-                    <p className="text-xs text-[#2E2A7B]/60">x{item.quantity}</p>
+                    <p className="text-xs text-muted-foreground">x{item.quantity}</p>
                   </div>
                   <p className="font-bold shrink-0">{formatKES((item.product?.price || 0) * item.quantity)}</p>
                 </div>
@@ -116,19 +203,19 @@ export default function Checkout() {
         </div>
 
         <div className="lg:col-span-1">
-          <Card className="sticky top-20 bg-white border-[#F2D98B]">
+          <Card className="sticky top-20 bg-white border-secondary/40">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5 text-[#2E2A7B]" /> Payment Summary
+                <CreditCard className="h-5 w-5 text-primary" /> Payment Summary
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between text-sm">
-                <span className="text-[#2E2A7B]/60">Subtotal</span>
+                <span className="text-muted-foreground">Subtotal</span>
                 <span>{formatKES(subtotal)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-[#2E2A7B]/60">Delivery fee</span>
+                <span className="text-muted-foreground">Delivery fee</span>
                 <span>{formatKES(deliveryFee)}</span>
               </div>
               <Separator />
@@ -139,9 +226,9 @@ export default function Checkout() {
             </CardContent>
             <CardFooter>
               <Button
-                className="w-full h-12 text-base bg-[#F8D84E] text-[#2E2A7B] hover:bg-[#F2D98B]"
+                className="w-full h-12 text-base"
                 onClick={handlePlaceOrder}
-                disabled={isPlacing || items.length === 0}
+                disabled={isPlacing || items.length === 0 || step !== "form"}
               >
                 {isPlacing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
                 Place Order
