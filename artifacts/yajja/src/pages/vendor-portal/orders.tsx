@@ -36,7 +36,7 @@ export default function VendorOrders() {
 
   const { data: orders, isLoading } = useListVendorOrders(
     filterStatus !== "all" ? { status: filterStatus } : {},
-    { query: { enabled: true } }
+    { query: { enabled: true, refetchInterval: 5000 } }
   );
 
   const updateStatus = useUpdateOrderStatus();

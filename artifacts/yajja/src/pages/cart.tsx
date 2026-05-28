@@ -21,9 +21,7 @@ export default function Cart() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: cartData, isLoading } = useGetCart({
-    query: { enabled: true }
-  });
+const { data: cartData, isLoading } = useGetCart();
 
   const updateItemMutation = useUpdateCartItem();
   const removeItemMutation = useRemoveCartItem();

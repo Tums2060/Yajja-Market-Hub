@@ -137,7 +137,6 @@ export interface Product {
 }
 
 export interface CreateProductBody {
-  vendorId: number;
   name: string;
   description?: string;
   price: number;

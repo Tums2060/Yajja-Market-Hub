@@ -19,7 +19,7 @@ const statusColor: Record<string, string> = {
 };
 
 export default function Orders() {
-  const { data: orders, isLoading } = useListOrders({ query: { enabled: true } });
+  const { data: orders, isLoading } = useListOrders({ query: { enabled: true, refetchInterval: 5000 } });
 
   return (
     <div className="container max-w-3xl mx-auto py-8 px-4 space-y-6 animate-in fade-in duration-500">

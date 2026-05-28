@@ -1217,8 +1217,6 @@ components:
     CreateProductBody:
       type: object
       properties:
-        vendorId:
-          type: integer
         name:
           type: string
         description:
@@ -1231,7 +1229,7 @@ components:
           $ref: "#/components/schemas/Category"
         isAvailable:
           type: boolean
-      required: [vendorId, name, price, category]
+      required: [name, price, category]
 
     # ── Cart ─────────────────────────────────────────────────────────────────────
     CartItem:

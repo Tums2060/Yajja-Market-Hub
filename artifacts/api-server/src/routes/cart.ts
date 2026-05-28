@@ -24,6 +24,11 @@ function serializeCartItem(item: typeof cartItemsTable.$inferSelect, product: an
   };
 }
 
+async function hydrateCartItem(item: typeof cartItemsTable.$inferSelect) {
+  const row = await getProductWithVendor(item.productId);
+  return serializeCartItem(item, row ? { ...row.product, vendorName: row.vendorName, createdAt: row.product.createdAt.toISOString() } : null);
+}
+
 // Individual cart
 router.get("/cart", requireAuth, async (req, res) => {
   const user = getUser(req);
@@ -72,22 +77,25 @@ router.post("/cart/items", requireAuth, async (req, res) => {
   const incomingNotes = parsed.data.notes?.trim() || null;
   let item;
   if (existing) {
-    [item] = await db.update(cartItemsTable).set({
+    await db.update(cartItemsTable).set({
       quantity: existing.quantity + parsed.data.quantity,
       notes: incomingNotes ?? existing.notes,
     })
-      .where(eq(cartItemsTable.id, existing.id)).returning();
+      .where(eq(cartItemsTable.id, existing.id));
+    [item] = await db.select().from(cartItemsTable).where(eq(cartItemsTable.id, existing.id)).limit(1);
   } else {
-    [item] = await db.insert(cartItemsTable).values({
+    await db.insert(cartItemsTable).values({
       userId: user.id,
       productId: parsed.data.productId,
       quantity: parsed.data.quantity,
       notes: incomingNotes,
-    }).returning();
+    });
+    [item] = await db.select().from(cartItemsTable)
+      .where(and(eq(cartItemsTable.userId, user.id), eq(cartItemsTable.productId, parsed.data.productId)))
+      .limit(1);
   }
 
-  const row = await getProductWithVendor(item.productId);
-  res.status(201).json(serializeCartItem(item, row ? { ...row.product, vendorName: row.vendorName, createdAt: row.product.createdAt.toISOString() } : null));
+  res.status(201).json(await hydrateCartItem(item));
 });
 
 router.put("/cart/items/:cartItemId", requireAuth, async (req, res) => {
@@ -98,26 +106,31 @@ router.put("/cart/items/:cartItemId", requireAuth, async (req, res) => {
     res.status(400).json({ message: "Invalid body" });
     return;
   }
-  const [item] = await db.update(cartItemsTable).set({ quantity: parsed.data.quantity })
-    .where(and(eq(cartItemsTable.id, cartItemId), eq(cartItemsTable.userId, user.id))).returning();
-  if (!item) {
+  const [existingItem] = await db.select().from(cartItemsTable)
+    .where(and(eq(cartItemsTable.id, cartItemId), eq(cartItemsTable.userId, user.id)))
+    .limit(1);
+  if (!existingItem) {
     res.status(404).json({ message: "Cart item not found" });
     return;
   }
-  const row = await getProductWithVendor(item.productId);
-  res.json(serializeCartItem(item, row ? { ...row.product, vendorName: row.vendorName, createdAt: row.product.createdAt.toISOString() } : null));
+  await db.update(cartItemsTable).set({ quantity: parsed.data.quantity })
+    .where(and(eq(cartItemsTable.id, cartItemId), eq(cartItemsTable.userId, user.id)));
+  const [item] = await db.select().from(cartItemsTable).where(eq(cartItemsTable.id, cartItemId)).limit(1);
+  res.json(await hydrateCartItem(item));
 });
 
 router.delete("/cart/items/:cartItemId", requireAuth, async (req, res) => {
   const user = getUser(req);
   const cartItemId = parseInt(req.params.cartItemId);
-  const result = await db.delete(cartItemsTable)
+  const [existingItem] = await db.select().from(cartItemsTable)
     .where(and(eq(cartItemsTable.id, cartItemId), eq(cartItemsTable.userId, user.id)))
-    .returning();
-  if (result.length === 0) {
+    .limit(1);
+  if (!existingItem) {
     res.status(404).json({ message: "Cart item not found" });
     return;
   }
+  await db.delete(cartItemsTable)
+    .where(and(eq(cartItemsTable.id, cartItemId), eq(cartItemsTable.userId, user.id)));
   res.json({ message: "Item removed" });
 });
 
@@ -178,19 +191,23 @@ router.post("/groups/:groupId/cart/items", requireAuth, async (req, res) => {
   const incomingNotes = parsed.data.notes?.trim() || null;
   let item;
   if (existing) {
-    [item] = await db.update(groupCartItemsTable).set({
+    await db.update(groupCartItemsTable).set({
       quantity: existing.quantity + parsed.data.quantity,
       notes: incomingNotes ?? existing.notes,
     })
-      .where(eq(groupCartItemsTable.id, existing.id)).returning();
+      .where(eq(groupCartItemsTable.id, existing.id));
+    [item] = await db.select().from(groupCartItemsTable).where(eq(groupCartItemsTable.id, existing.id)).limit(1);
   } else {
-    [item] = await db.insert(groupCartItemsTable).values({
+    await db.insert(groupCartItemsTable).values({
       groupId,
       userId: user.id,
       productId: parsed.data.productId,
       quantity: parsed.data.quantity,
       notes: incomingNotes,
-    }).returning();
+    });
+    [item] = await db.select().from(groupCartItemsTable)
+      .where(and(eq(groupCartItemsTable.groupId, groupId), eq(groupCartItemsTable.userId, user.id), eq(groupCartItemsTable.productId, parsed.data.productId)))
+      .limit(1);
   }
 
   const row = await getProductWithVendor(item.productId);
@@ -225,18 +242,25 @@ router.put("/groups/:groupId/cart/items/:cartItemId", requireAuth, async (req, r
     return;
   }
   // Only the user who added the item can change its quantity
-  const [item] = await db.update(groupCartItemsTable)
-    .set({ quantity: parsed.data.quantity })
+  const [existingItem] = await db.select().from(groupCartItemsTable)
     .where(and(
       eq(groupCartItemsTable.id, cartItemId),
       eq(groupCartItemsTable.groupId, groupId),
       eq(groupCartItemsTable.userId, user.id),
     ))
-    .returning();
-  if (!item) {
+    .limit(1);
+  if (!existingItem) {
     res.status(404).json({ message: "Cart item not found" });
     return;
   }
+  await db.update(groupCartItemsTable)
+    .set({ quantity: parsed.data.quantity })
+    .where(and(
+      eq(groupCartItemsTable.id, cartItemId),
+      eq(groupCartItemsTable.groupId, groupId),
+      eq(groupCartItemsTable.userId, user.id),
+    ));
+  const [item] = await db.select().from(groupCartItemsTable).where(eq(groupCartItemsTable.id, cartItemId)).limit(1);
   const row = await getProductWithVendor(item.productId);
   broadcastToGroup(groupId, { type: "cart:update", groupId, actorUserId: user.id });
   res.json({
@@ -252,17 +276,23 @@ router.delete("/groups/:groupId/cart/items/:cartItemId", requireAuth, async (req
   const groupId = parseInt(req.params.groupId);
   const cartItemId = parseInt(req.params.cartItemId);
   // Only the user who added the item can remove it from the group cart
-  const result = await db.delete(groupCartItemsTable)
+  const [existingItem] = await db.select().from(groupCartItemsTable)
     .where(and(
       eq(groupCartItemsTable.id, cartItemId),
       eq(groupCartItemsTable.groupId, groupId),
       eq(groupCartItemsTable.userId, user.id),
     ))
-    .returning();
-  if (result.length === 0) {
+    .limit(1);
+  if (!existingItem) {
     res.status(404).json({ message: "Cart item not found" });
     return;
   }
+  await db.delete(groupCartItemsTable)
+    .where(and(
+      eq(groupCartItemsTable.id, cartItemId),
+      eq(groupCartItemsTable.groupId, groupId),
+      eq(groupCartItemsTable.userId, user.id),
+    ));
   broadcastToGroup(groupId, { type: "cart:update", groupId, actorUserId: user.id });
   res.json({ message: "Item removed" });
 });

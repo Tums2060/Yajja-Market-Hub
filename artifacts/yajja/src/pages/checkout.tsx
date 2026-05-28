@@ -30,7 +30,7 @@ export default function Checkout() {
   const [orderCode, setOrderCode] = useState<string | null>(null);
   const [primaryOrderId, setPrimaryOrderId] = useState<number | null>(null);
 
-  const { data: cartData } = useGetCart({ query: { enabled: true } });
+  const { data: cartData } = useGetCart({ query: { queryKey: getGetCartQueryKey(), enabled: true } });
 
   const createOrder = useCreateOrder();
   const items = (cartData as any)?.items || [];
@@ -38,44 +38,58 @@ export default function Checkout() {
   const deliveryFee = 200;
   const total = subtotal + deliveryFee;
 
-  const handlePlaceOrder = () => {
-    if (!address.trim()) {
-      toast({ variant: "destructive", title: "Please enter a delivery address" });
-      return;
-    }
-    if (!phoneNumber.trim()) {
-      toast({ variant: "destructive", title: "Please enter your phone number" });
-      return;
+  const handlePlaceOrder = async () => {
+  if (!address.trim()) {
+    toast({ variant: "destructive", title: "Please enter a delivery address" });
+    return;
+  }
+  if (!phoneNumber.trim()) {
+    toast({ variant: "destructive", title: "Please enter your phone number" });
+    return;
+  }
+
+  setStep("processing");
+
+  const token = localStorage.getItem("yajja_token");
+
+  try {
+    await new Promise(r => setTimeout(r, 2000)); // keep the UX delay
+
+    const res = await fetch("/api/orders", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        deliveryAddress: address,
+        notes,
+        phoneNumber,
+        customerName: user?.name,
+        deliveryLat: deliveryLat ?? undefined,
+        deliveryLng: deliveryLng ?? undefined,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || "Failed to place order");
     }
 
-    setStep("processing");
-    setTimeout(() => {
-      createOrder.mutate({
-        data: {
-          deliveryAddress: address,
-          notes,
-          phoneNumber,
-          customerName: user?.name,
-          deliveryLat: deliveryLat ?? undefined,
-          deliveryLng: deliveryLng ?? undefined,
-        },
-      } as any, {
-        onSuccess: (payload: any) => {
-          queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() });
-          setOrderCode(payload?.orderCode || null);
-          setPrimaryOrderId(payload?.primaryOrderId || null);
-          toast({ title: "Payment confirmed" });
-          setStep("success");
-        },
-        onError: () => {
-          toast({ variant: "destructive", title: "Failed to place order" });
-          setStep("form");
-        }
-      });
-    }, 2000);
-  };
+    const payload = await res.json();
+    queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() });
+    setOrderCode(payload?.orderCode || null);
+    setPrimaryOrderId(payload?.primaryOrderId || null);
+    toast({ title: "Payment confirmed" });
+    setStep("success");
+  } catch (err) {
+    console.error(err);
+    toast({ variant: "destructive", title: "Failed to place order" });
+    setStep("form");
+  }
+};
 
-  const isPlacing = createOrder.isPending;
+  const isPlacing = step === "processing";
 
   const handleUseLocation = () => {
     if (!navigator.geolocation) {
@@ -171,6 +185,7 @@ export default function Checkout() {
                     onChange={e => setPhoneNumber(e.target.value)}
                     className="pl-9 bg-secondary/20 border-0 shadow-sm text-foreground placeholder:text-foreground/50"
                   />
+                </div>
               </div>
               <Button variant="outline" className="gap-2" onClick={handleUseLocation}>
                 <Navigation className="h-4 w-4" /> Use Current Location

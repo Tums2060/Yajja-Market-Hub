@@ -30,7 +30,7 @@ export default function RiderPortal() {
   const queryClient = useQueryClient();
   const [activeCode, setActiveCode] = useState<string | null>(null);
 
-  const { data: orders, isLoading } = useListRiderOrders({ query: { enabled: true } });
+  const { data: orders, isLoading } = useListRiderOrders({ query: { enabled: true, refetchInterval: 5000 } });
   const assignRider = useAssignRider();
   const pickup = usePickupOrder();
   const deliver = useDeliverOrder();

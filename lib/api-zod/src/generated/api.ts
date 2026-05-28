@@ -237,7 +237,6 @@ export const ListProductsResponse = zod.array(ListProductsResponseItem);
  * @summary Create product (vendor)
  */
 export const CreateProductBody = zod.object({
-  vendorId: zod.number(),
   name: zod.string(),
   description: zod.string().optional(),
   price: zod.number(),
@@ -268,7 +267,6 @@ export const UpdateProductParams = zod.object({
 });
 
 export const UpdateProductBody = zod.object({
-  vendorId: zod.number(),
   name: zod.string(),
   description: zod.string().optional(),
   price: zod.number(),
@@ -528,14 +526,12 @@ export const ListOrdersQueryParams = zod.object({
   status: zod
     .enum([
       "pending",
-      "accepted",
       "confirmed",
       "preparing",
       "ready",
       "picked_up",
       "delivered",
       "cancelled",
-      "rejected",
     ])
     .optional(),
 });
@@ -546,27 +542,19 @@ export const ListOrdersResponseItem = zod.object({
   vendorId: zod.number(),
   vendorName: zod.string().optional(),
   riderId: zod.number().optional(),
-  orderCode: zod.string().optional(),
-  customerName: zod.string().optional(),
-  customerPhone: zod.string().optional(),
   status: zod.enum([
     "pending",
-    "accepted",
     "confirmed",
     "preparing",
     "ready",
     "picked_up",
     "delivered",
     "cancelled",
-    "rejected",
   ]),
   deliveryAddress: zod.string().optional(),
-  deliveryLat: zod.number().optional(),
-  deliveryLng: zod.number().optional(),
   subtotal: zod.number(),
   deliveryFee: zod.number(),
   total: zod.number(),
-  itemCount: zod.number().optional(),
   items: zod.array(
     zod.object({
       id: zod.number(),
@@ -592,10 +580,6 @@ export const ListOrdersResponse = zod.array(ListOrdersResponseItem);
 export const CreateOrderBody = zod.object({
   deliveryAddress: zod.string(),
   notes: zod.string().optional(),
-  phoneNumber: zod.string().optional(),
-  customerName: zod.string().optional(),
-  deliveryLat: zod.number().optional(),
-  deliveryLng: zod.number().optional(),
 });
 
 export const GetOrderParams = zod.object({
@@ -608,27 +592,19 @@ export const GetOrderResponse = zod.object({
   vendorId: zod.number(),
   vendorName: zod.string().optional(),
   riderId: zod.number().optional(),
-  orderCode: zod.string().optional(),
-  customerName: zod.string().optional(),
-  customerPhone: zod.string().optional(),
   status: zod.enum([
     "pending",
-    "accepted",
     "confirmed",
     "preparing",
     "ready",
     "picked_up",
     "delivered",
     "cancelled",
-    "rejected",
   ]),
   deliveryAddress: zod.string().optional(),
-  deliveryLat: zod.number().optional(),
-  deliveryLng: zod.number().optional(),
   subtotal: zod.number(),
   deliveryFee: zod.number(),
   total: zod.number(),
-  itemCount: zod.number().optional(),
   items: zod.array(
     zod.object({
       id: zod.number(),
@@ -657,14 +633,12 @@ export const UpdateOrderStatusParams = zod.object({
 export const UpdateOrderStatusBody = zod.object({
   status: zod.enum([
     "pending",
-    "accepted",
     "confirmed",
     "preparing",
     "ready",
     "picked_up",
     "delivered",
     "cancelled",
-    "rejected",
   ]),
 });
 
@@ -674,27 +648,19 @@ export const UpdateOrderStatusResponse = zod.object({
   vendorId: zod.number(),
   vendorName: zod.string().optional(),
   riderId: zod.number().optional(),
-  orderCode: zod.string().optional(),
-  customerName: zod.string().optional(),
-  customerPhone: zod.string().optional(),
   status: zod.enum([
     "pending",
-    "accepted",
     "confirmed",
     "preparing",
     "ready",
     "picked_up",
     "delivered",
     "cancelled",
-    "rejected",
   ]),
   deliveryAddress: zod.string().optional(),
-  deliveryLat: zod.number().optional(),
-  deliveryLng: zod.number().optional(),
   subtotal: zod.number(),
   deliveryFee: zod.number(),
   total: zod.number(),
-  itemCount: zod.number().optional(),
   items: zod.array(
     zod.object({
       id: zod.number(),
@@ -730,27 +696,19 @@ export const AssignRiderResponse = zod.object({
   vendorId: zod.number(),
   vendorName: zod.string().optional(),
   riderId: zod.number().optional(),
-  orderCode: zod.string().optional(),
-  customerName: zod.string().optional(),
-  customerPhone: zod.string().optional(),
   status: zod.enum([
     "pending",
-    "accepted",
     "confirmed",
     "preparing",
     "ready",
     "picked_up",
     "delivered",
     "cancelled",
-    "rejected",
   ]),
   deliveryAddress: zod.string().optional(),
-  deliveryLat: zod.number().optional(),
-  deliveryLng: zod.number().optional(),
   subtotal: zod.number(),
   deliveryFee: zod.number(),
   total: zod.number(),
-  itemCount: zod.number().optional(),
   items: zod.array(
     zod.object({
       id: zod.number(),
@@ -776,14 +734,12 @@ export const ListVendorOrdersQueryParams = zod.object({
   status: zod
     .enum([
       "pending",
-      "accepted",
       "confirmed",
       "preparing",
       "ready",
       "picked_up",
       "delivered",
       "cancelled",
-      "rejected",
     ])
     .optional(),
 });
@@ -794,27 +750,19 @@ export const ListVendorOrdersResponseItem = zod.object({
   vendorId: zod.number(),
   vendorName: zod.string().optional(),
   riderId: zod.number().optional(),
-  orderCode: zod.string().optional(),
-  customerName: zod.string().optional(),
-  customerPhone: zod.string().optional(),
   status: zod.enum([
     "pending",
-    "accepted",
     "confirmed",
     "preparing",
     "ready",
     "picked_up",
     "delivered",
     "cancelled",
-    "rejected",
   ]),
   deliveryAddress: zod.string().optional(),
-  deliveryLat: zod.number().optional(),
-  deliveryLng: zod.number().optional(),
   subtotal: zod.number(),
   deliveryFee: zod.number(),
   total: zod.number(),
-  itemCount: zod.number().optional(),
   items: zod.array(
     zod.object({
       id: zod.number(),
@@ -841,14 +789,12 @@ export const ListRiderOrdersQueryParams = zod.object({
   status: zod
     .enum([
       "pending",
-      "accepted",
       "confirmed",
       "preparing",
       "ready",
       "picked_up",
       "delivered",
       "cancelled",
-      "rejected",
     ])
     .optional(),
 });
@@ -859,27 +805,19 @@ export const ListRiderOrdersResponseItem = zod.object({
   vendorId: zod.number(),
   vendorName: zod.string().optional(),
   riderId: zod.number().optional(),
-  orderCode: zod.string().optional(),
-  customerName: zod.string().optional(),
-  customerPhone: zod.string().optional(),
   status: zod.enum([
     "pending",
-    "accepted",
     "confirmed",
     "preparing",
     "ready",
     "picked_up",
     "delivered",
     "cancelled",
-    "rejected",
   ]),
   deliveryAddress: zod.string().optional(),
-  deliveryLat: zod.number().optional(),
-  deliveryLng: zod.number().optional(),
   subtotal: zod.number(),
   deliveryFee: zod.number(),
   total: zod.number(),
-  itemCount: zod.number().optional(),
   items: zod.array(
     zod.object({
       id: zod.number(),
@@ -1277,27 +1215,19 @@ export const PickupOrderResponse = zod.object({
   vendorId: zod.number(),
   vendorName: zod.string().optional(),
   riderId: zod.number().optional(),
-  orderCode: zod.string().optional(),
-  customerName: zod.string().optional(),
-  customerPhone: zod.string().optional(),
   status: zod.enum([
     "pending",
-    "accepted",
     "confirmed",
     "preparing",
     "ready",
     "picked_up",
     "delivered",
     "cancelled",
-    "rejected",
   ]),
   deliveryAddress: zod.string().optional(),
-  deliveryLat: zod.number().optional(),
-  deliveryLng: zod.number().optional(),
   subtotal: zod.number(),
   deliveryFee: zod.number(),
   total: zod.number(),
-  itemCount: zod.number().optional(),
   items: zod.array(
     zod.object({
       id: zod.number(),
@@ -1329,27 +1259,19 @@ export const DeliverOrderResponse = zod.object({
   vendorId: zod.number(),
   vendorName: zod.string().optional(),
   riderId: zod.number().optional(),
-  orderCode: zod.string().optional(),
-  customerName: zod.string().optional(),
-  customerPhone: zod.string().optional(),
   status: zod.enum([
     "pending",
-    "accepted",
     "confirmed",
     "preparing",
     "ready",
     "picked_up",
     "delivered",
     "cancelled",
-    "rejected",
   ]),
   deliveryAddress: zod.string().optional(),
-  deliveryLat: zod.number().optional(),
-  deliveryLng: zod.number().optional(),
   subtotal: zod.number(),
   deliveryFee: zod.number(),
   total: zod.number(),
-  itemCount: zod.number().optional(),
   items: zod.array(
     zod.object({
       id: zod.number(),

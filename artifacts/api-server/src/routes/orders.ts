@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, ordersTable, orderItemsTable, groupOrdersTable, billAssignmentsTable, cartItemsTable, groupCartItemsTable, productsTable, vendorsTable, usersTable, riderProfilesTable } from "@workspace/db";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, desc } from "drizzle-orm";
 import { UpdateOrderStatusBody, AssignRiderBody, CreateGroupOrderBody, SubmitBillAssignmentBody } from "@workspace/api-zod";
 import { requireAuth, getUser } from "../lib/auth";
 import { z } from "zod";
@@ -16,15 +16,8 @@ const createOrderBodySchema = z.object({
   deliveryLng: z.number().optional(),
 });
 
-async function generateOrderCode() {
-  for (let i = 0; i < 6; i += 1) {
-    const code = `YJA-${Math.floor(1000 + Math.random() * 9000)}`;
-    const [existing] = await db.select({ id: ordersTable.id }).from(ordersTable)
-      .where(eq(ordersTable.orderCode, code))
-      .limit(1);
-    if (!existing) return code;
-  }
-  return `YJA-${Date.now().toString().slice(-6)}`;
+function formatOrderCode(orderId: number) {
+  return `YJA-${String(orderId).padStart(6, "0")}`;
 }
 
 async function enrichOrder(order: typeof ordersTable.$inferSelect) {
@@ -50,9 +43,10 @@ async function enrichOrder(order: typeof ordersTable.$inferSelect) {
 
   return {
     ...order,
+    orderCode: formatOrderCode(order.id),
     vendorName: vendor?.name || "",
-    customerName: order.customerName || customer?.name || "",
-    customerPhone: order.customerPhone || customer?.phone || "",
+    customerName: customer?.name || "",
+    customerPhone: customer?.phone || "",
     riderLocation: rider ? { lat: rider.currentLat, lng: rider.currentLng } : null,
     items: items.map(({ item, product }) => ({
       ...item,
@@ -71,95 +65,102 @@ router.get("/orders", requireAuth, async (req, res) => {
   const { status, orderCode } = req.query as { status?: string; orderCode?: string };
   const conditions = [eq(ordersTable.userId, user.id)];
   if (status) conditions.push(eq(ordersTable.status, status as any));
-  if (orderCode) conditions.push(eq(ordersTable.orderCode, orderCode));
   const orders = await db.select().from(ordersTable).where(and(...conditions));
   const enriched = await Promise.all(orders.map(enrichOrder));
-  res.json(enriched);
+  const filtered = orderCode ? enriched.filter((order) => order.orderCode === orderCode) : enriched;
+  res.json(filtered);
 });
 
 router.post("/orders", requireAuth, async (req, res) => {
-  const user = getUser(req);
-  const parsed = createOrderBodySchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ message: "Invalid body" });
-    return;
-  }
+  try {
+    const user = getUser(req);
+    const parsed = createOrderBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ message: "Invalid body" });
+      return;
+    }
 
-  const cartItems = await db.select().from(cartItemsTable).where(eq(cartItemsTable.userId, user.id));
-  if (cartItems.length === 0) {
-    res.status(400).json({ message: "Cart is empty" });
-    return;
-  }
+    const cartItems = await db.select().from(cartItemsTable).where(eq(cartItemsTable.userId, user.id));
+    if (cartItems.length === 0) {
+      res.status(400).json({ message: "Cart is empty" });
+      return;
+    }
 
-  const productIds = cartItems.map((item) => item.productId);
-  const products = await db.select().from(productsTable).where(inArray(productsTable.id, productIds));
-  const productMap = new Map(products.map((p) => [p.id, p]));
+    const productIds = cartItems.map((item) => item.productId);
+    const products = await db.select().from(productsTable).where(inArray(productsTable.id, productIds));
+    const productMap = new Map(products.map((p) => [p.id, p]));
 
-  // Group by vendor and create one order per vendor
-  const vendorMap = new Map<number, typeof cartItems>();
-  for (const ci of cartItems) {
-    const product = productMap.get(ci.productId);
-    if (!product) continue;
-    if (!vendorMap.has(product.vendorId)) vendorMap.set(product.vendorId, []);
-    vendorMap.get(product.vendorId)!.push(ci);
-  }
+    // Group by vendor and create one order per vendor
+    const vendorMap = new Map<number, typeof cartItems>();
+    for (const ci of cartItems) {
+      const product = productMap.get(ci.productId);
+      if (!product) continue;
+      if (!vendorMap.has(product.vendorId)) vendorMap.set(product.vendorId, []);
+      vendorMap.get(product.vendorId)!.push(ci);
+    }
 
-  const orderCode = await generateOrderCode();
-  const customerName = parsed.data.customerName || user.name;
-  const customerPhone = parsed.data.phoneNumber || user.phone || null;
-
-  const createdOrders = [] as Array<Awaited<ReturnType<typeof enrichOrder>>>;
-  for (const [vendorId, items] of vendorMap) {
-    const subtotal = items.reduce((sum, item) => {
-      const product = productMap.get(item.productId);
-      return sum + (product?.price || 0) * item.quantity;
-    }, 0);
-    const deliveryFee = 200;
-    const total = subtotal + deliveryFee;
-
-    const [order] = await db.insert(ordersTable).values({
-      userId: user.id,
-      vendorId,
-      deliveryAddress: parsed.data.deliveryAddress,
-      deliveryLat: parsed.data.deliveryLat ?? null,
-      deliveryLng: parsed.data.deliveryLng ?? null,
-      customerName,
-      customerPhone,
-      orderCode,
-      subtotal,
-      deliveryFee,
-      total,
-      notes: parsed.data.notes,
-      status: "pending",
-    }).returning();
-
-    await db.insert(orderItemsTable).values(
-      items.map((item) => {
+    const createdOrders = [] as Array<Awaited<ReturnType<typeof enrichOrder>>>;
+    for (const [vendorId, items] of vendorMap) {
+      const subtotal = items.reduce((sum, item) => {
         const product = productMap.get(item.productId);
-        const unitPrice = product?.price || 0;
-        return {
-          orderId: order.id,
-          productId: item.productId,
-          productName: product?.name || "",
-          quantity: item.quantity,
-          unitPrice,
-          totalPrice: unitPrice * item.quantity,
-          notes: item.notes || null,
-        };
-      })
-    );
+        return sum + (product?.price || 0) * item.quantity;
+      }, 0);
+      const deliveryFee = 200;
+      const total = subtotal + deliveryFee;
 
-    createdOrders.push(await enrichOrder(order));
+      await db.insert(ordersTable).values({
+        userId: user.id,
+        vendorId,
+        deliveryAddress: parsed.data.deliveryAddress,
+        deliveryLat: parsed.data.deliveryLat ?? null,
+        deliveryLng: parsed.data.deliveryLng ?? null,
+        subtotal,
+        deliveryFee,
+        total,
+        notes: parsed.data.notes,
+        status: "pending",
+      });
+
+      const [order] = await db.select().from(ordersTable)
+        .where(and(eq(ordersTable.userId, user.id), eq(ordersTable.vendorId, vendorId)))
+        .orderBy(desc(ordersTable.id))
+        .limit(1);
+
+      await db.insert(orderItemsTable).values(
+        items.map((item) => {
+          const product = productMap.get(item.productId);
+          const unitPrice = product?.price || 0;
+          return {
+            orderId: order.id,
+            productId: item.productId,
+            productName: product?.name || "",
+            quantity: item.quantity,
+            unitPrice,
+            totalPrice: unitPrice * item.quantity,
+            notes: item.notes || null,
+          };
+        })
+      );
+
+      createdOrders.push(await enrichOrder(order));
+    }
+
+    // Clear cart
+    await db.delete(cartItemsTable).where(eq(cartItemsTable.userId, user.id));
+
+    res.status(201).json({
+      orderCode: createdOrders[0] ? formatOrderCode(createdOrders[0].id) : null,
+      orders: createdOrders,
+      primaryOrderId: createdOrders[0]?.id || null,
+    });
+  } catch (err) {
+    console.error("[ORDERS POST] ERROR:", err);
+    res.status(500).json({ message: "Internal server error", error: String(err) });
   }
-
-  // Clear cart
-  await db.delete(cartItemsTable).where(eq(cartItemsTable.userId, user.id));
-
-  res.status(201).json({ orderCode, orders: createdOrders, primaryOrderId: createdOrders[0]?.id || null });
 });
 
 router.get("/orders/:orderId", requireAuth, async (req, res) => {
-  const orderId = parseInt(req.params.orderId);
+  const orderId = parseInt(String(req.params.orderId), 10);
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
   if (!order) {
     res.status(404).json({ message: "Order not found" });
@@ -169,34 +170,38 @@ router.get("/orders/:orderId", requireAuth, async (req, res) => {
 });
 
 router.put("/orders/:orderId/status", requireAuth, async (req, res) => {
-  const orderId = parseInt(req.params.orderId);
+  const orderId = parseInt(String(req.params.orderId), 10);
   const parsed = UpdateOrderStatusBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ message: "Invalid body" });
     return;
   }
-  const [order] = await db.update(ordersTable).set({ status: parsed.data.status as any, updatedAt: new Date() })
-    .where(eq(ordersTable.id, orderId)).returning();
-  if (!order) {
+  const [existing] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
+  if (!existing) {
     res.status(404).json({ message: "Order not found" });
     return;
   }
+  await db.update(ordersTable).set({ status: parsed.data.status as any, updatedAt: new Date() })
+    .where(eq(ordersTable.id, orderId));
+  const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
   res.json(await enrichOrder(order));
 });
 
 router.post("/orders/:orderId/assign-rider", requireAuth, async (req, res) => {
-  const orderId = parseInt(req.params.orderId);
+  const orderId = parseInt(String(req.params.orderId), 10);
   const parsed = AssignRiderBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ message: "Invalid body" });
     return;
   }
-  const [order] = await db.update(ordersTable).set({ riderId: parsed.data.riderId, updatedAt: new Date() })
-    .where(eq(ordersTable.id, orderId)).returning();
-  if (!order) {
+  const [existing] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
+  if (!existing) {
     res.status(404).json({ message: "Order not found" });
     return;
   }
+  await db.update(ordersTable).set({ riderId: parsed.data.riderId, updatedAt: new Date() })
+    .where(eq(ordersTable.id, orderId));
+  const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
   res.json(await enrichOrder(order));
 });
 
@@ -238,7 +243,7 @@ router.get("/rider-orders", requireAuth, async (req, res) => {
 
 // Group orders
 router.get("/groups/:groupId/orders", requireAuth, async (req, res) => {
-  const groupId = parseInt(req.params.groupId);
+  const groupId = parseInt(String(req.params.groupId), 10);
   const groupOrders = await db.select().from(groupOrdersTable).where(eq(groupOrdersTable.groupId, groupId));
   const result = await Promise.all(groupOrders.map(async (go) => {
     const orders = await db.select().from(ordersTable).where(eq(ordersTable.groupOrderId, go.id));
@@ -259,7 +264,7 @@ router.get("/groups/:groupId/orders", requireAuth, async (req, res) => {
 });
 
 router.post("/groups/:groupId/orders", requireAuth, async (req, res) => {
-  const groupId = parseInt(req.params.groupId);
+  const groupId = parseInt(String(req.params.groupId), 10);
   const user = getUser(req);
   const parsed = CreateGroupOrderBody.safeParse(req.body);
   if (!parsed.success) {
@@ -280,14 +285,19 @@ router.post("/groups/:groupId/orders", requireAuth, async (req, res) => {
     total += (p?.price || 0) * ci.quantity;
   }
 
-  const [groupOrder] = await db.insert(groupOrdersTable).values({
+  await db.insert(groupOrdersTable).values({
     groupId,
     initiatedBy: user.id,
     deliveryAddress: parsed.data.deliveryAddress,
     total,
     amountCollected: 0,
     status: "pending_payment",
-  }).returning();
+  });
+
+  const [groupOrder] = await db.select().from(groupOrdersTable)
+    .where(and(eq(groupOrdersTable.groupId, groupId), eq(groupOrdersTable.initiatedBy, user.id)))
+    .orderBy(groupOrdersTable.id)
+    .limit(1);
 
   res.status(201).json({
     ...groupOrder,
@@ -298,7 +308,7 @@ router.post("/groups/:groupId/orders", requireAuth, async (req, res) => {
 });
 
 router.get("/groups/:groupId/orders/:groupOrderId/bill-assignments", requireAuth, async (req, res) => {
-  const groupOrderId = parseInt(req.params.groupOrderId);
+  const groupOrderId = parseInt(String(req.params.groupOrderId), 10);
   const assignments = await db.select().from(billAssignmentsTable).where(eq(billAssignmentsTable.groupOrderId, groupOrderId));
   const enriched = await Promise.all(assignments.map(async (a) => {
     const [u] = await db.select().from(usersTable).where(eq(usersTable.id, a.userId)).limit(1);
@@ -308,7 +318,7 @@ router.get("/groups/:groupId/orders/:groupOrderId/bill-assignments", requireAuth
 });
 
 router.post("/groups/:groupId/orders/:groupOrderId/bill-assignments", requireAuth, async (req, res) => {
-  const groupOrderId = parseInt(req.params.groupOrderId);
+  const groupOrderId = parseInt(String(req.params.groupOrderId), 10);
   const user = getUser(req);
   const parsed = SubmitBillAssignmentBody.safeParse(req.body);
   if (!parsed.success) {
@@ -323,15 +333,19 @@ router.post("/groups/:groupId/orders/:groupOrderId/bill-assignments", requireAut
 
   let assignment;
   if (existing) {
-    [assignment] = await db.update(billAssignmentsTable).set({ amount: parsed.data.amount })
-      .where(eq(billAssignmentsTable.id, existing.id)).returning();
+    await db.update(billAssignmentsTable).set({ amount: parsed.data.amount })
+      .where(eq(billAssignmentsTable.id, existing.id));
+    [assignment] = await db.select().from(billAssignmentsTable).where(eq(billAssignmentsTable.id, existing.id)).limit(1);
   } else {
-    [assignment] = await db.insert(billAssignmentsTable).values({
+    await db.insert(billAssignmentsTable).values({
       groupOrderId,
       userId: user.id,
       amount: parsed.data.amount,
       paid: false,
-    }).returning();
+    });
+    [assignment] = await db.select().from(billAssignmentsTable)
+      .where(and(eq(billAssignmentsTable.groupOrderId, groupOrderId), eq(billAssignmentsTable.userId, user.id)))
+      .limit(1);
   }
 
   // Check if total is met
@@ -350,24 +364,28 @@ router.post("/groups/:groupId/orders/:groupOrderId/bill-assignments", requireAut
 
 // Rider pickup/deliver
 router.post("/riders/pickup/:orderId", requireAuth, async (req, res) => {
-  const orderId = parseInt(req.params.orderId);
-  const [order] = await db.update(ordersTable).set({ status: "picked_up", updatedAt: new Date() })
-    .where(eq(ordersTable.id, orderId)).returning();
-  if (!order) {
+  const orderId = parseInt(String(req.params.orderId), 10);
+  const [existing] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
+  if (!existing) {
     res.status(404).json({ message: "Order not found" });
     return;
   }
+  await db.update(ordersTable).set({ status: "picked_up", updatedAt: new Date() })
+    .where(eq(ordersTable.id, orderId));
+  const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
   res.json(await enrichOrder(order));
 });
 
 router.post("/riders/deliver/:orderId", requireAuth, async (req, res) => {
-  const orderId = parseInt(req.params.orderId);
-  const [order] = await db.update(ordersTable).set({ status: "delivered", updatedAt: new Date() })
-    .where(eq(ordersTable.id, orderId)).returning();
-  if (!order) {
+  const orderId = parseInt(String(req.params.orderId), 10);
+  const [existing] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
+  if (!existing) {
     res.status(404).json({ message: "Order not found" });
     return;
   }
+  await db.update(ordersTable).set({ status: "delivered", updatedAt: new Date() })
+    .where(eq(ordersTable.id, orderId));
+  const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
   res.json(await enrichOrder(order));
 });
 
