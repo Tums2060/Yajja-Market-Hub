@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useListVendorOrders, useUpdateOrderStatus, getListVendorOrdersQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useRealtimeOrders } from "@/hooks/use-realtime-orders";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +34,7 @@ export default function VendorOrders() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  useRealtimeOrders();
 
   const { data: orders, isLoading } = useListVendorOrders(
     filterStatus !== "all" ? { status: filterStatus } : {},

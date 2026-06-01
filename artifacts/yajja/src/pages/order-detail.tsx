@@ -2,6 +2,8 @@ import React, { useMemo } from "react";
 import { useParams, useLocation } from "wouter";
 import { useGetOrder } from "@workspace/api-client-react";
 import { useQuery } from "@tanstack/react-query";
+import { useRealtimeOrders } from "@/hooks/use-realtime-orders";
+import { LiveTrackingMap } from "@/components/LiveTrackingMap";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +28,7 @@ export default function OrderDetail() {
   const { orderId } = useParams();
   const [, setLocation] = useLocation();
   const id = parseInt(orderId || "0", 10);
+  useRealtimeOrders();
   const { data: order, isLoading } = useGetOrder(id, { query: { enabled: !!id, refetchInterval: 10000 } });
 
   const orderCode = (order as any)?.orderCode as string | undefined;
@@ -155,20 +158,25 @@ export default function OrderDetail() {
         </CardContent>
       </Card>
 
-      {deliveryLat && deliveryLng && riderLocation?.lat && riderLocation?.lng && (
+      {deliveryLat != null && deliveryLng != null && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Live Rider Tracking</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-primary" /> Live Rider Tracking
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="rounded-xl overflow-hidden border">
-              <iframe
-                title="Delivery tracking"
-                className="w-full h-64"
-                src={`https://maps.google.com/maps?daddr=${deliveryLat},${deliveryLng}&saddr=${riderLocation.lat},${riderLocation.lng}&z=14&output=embed`}
-                loading="lazy"
-              />
-            </div>
+            <LiveTrackingMap
+              destination={{ lat: deliveryLat, lng: deliveryLng }}
+              rider={riderLocation?.lat != null && riderLocation?.lng != null
+                ? { lat: riderLocation.lat, lng: riderLocation.lng }
+                : null}
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              {riderLocation?.lat != null
+                ? "🛵 Your rider is on the move — the map updates in real time."
+                : "📍 Delivery location pinned. The rider will appear here once they pick up your order."}
+            </p>
           </CardContent>
         </Card>
       )}

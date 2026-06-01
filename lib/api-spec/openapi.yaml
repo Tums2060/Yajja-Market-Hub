@@ -1080,7 +1080,7 @@ components:
 
     OrderStatus:
       type: string
-      enum: [pending, confirmed, preparing, ready, picked_up, delivered, cancelled]
+      enum: [pending, accepted, confirmed, preparing, ready, picked_up, delivered, cancelled, rejected]
 
     UserRole:
       type: string

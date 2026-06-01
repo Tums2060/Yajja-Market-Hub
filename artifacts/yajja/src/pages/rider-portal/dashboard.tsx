@@ -9,6 +9,7 @@ import {
   getListRiderOrdersQueryKey,
 } from "@workspace/api-client-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRealtimeOrders } from "@/hooks/use-realtime-orders";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +30,7 @@ export default function RiderPortal() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeCode, setActiveCode] = useState<string | null>(null);
+  useRealtimeOrders();
 
   const { data: orders, isLoading } = useListRiderOrders({ query: { enabled: true, refetchInterval: 5000 } });
   const assignRider = useAssignRider();

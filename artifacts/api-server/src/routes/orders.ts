@@ -3,9 +3,50 @@ import { db, ordersTable, orderItemsTable, groupOrdersTable, billAssignmentsTabl
 import { eq, and, inArray, desc } from "drizzle-orm";
 import { UpdateOrderStatusBody, AssignRiderBody, CreateGroupOrderBody, SubmitBillAssignmentBody } from "@workspace/api-zod";
 import { requireAuth, getUser } from "../lib/auth";
+import { broadcastToUser, broadcastToUsers } from "../lib/ws";
 import { z } from "zod";
 
 const router = Router();
+
+async function getVendorOwnerId(vendorId: number): Promise<number | null> {
+  const [v] = await db
+    .select({ userId: vendorsTable.userId })
+    .from(vendorsTable)
+    .where(eq(vendorsTable.id, vendorId))
+    .limit(1);
+  return v?.userId ?? null;
+}
+
+async function getRiderOwnerId(riderId: number): Promise<number | null> {
+  const [r] = await db
+    .select({ userId: riderProfilesTable.userId })
+    .from(riderProfilesTable)
+    .where(eq(riderProfilesTable.id, riderId))
+    .limit(1);
+  return r?.userId ?? null;
+}
+
+async function notifyOrderParties(
+  order: typeof ordersTable.$inferSelect,
+  type: string
+) {
+  const payload = {
+    type,
+    orderId: order.id,
+    orderCode: formatOrderCode(order.id),
+    status: order.status as string,
+  };
+  // Target only the parties involved in this order: customer, vendor owner,
+  // and the assigned rider (if any). No global fanout.
+  const recipients: number[] = [order.userId];
+  const vendorOwnerId = await getVendorOwnerId(order.vendorId);
+  if (vendorOwnerId) recipients.push(vendorOwnerId);
+  if (order.riderId) {
+    const riderOwnerId = await getRiderOwnerId(order.riderId);
+    if (riderOwnerId) recipients.push(riderOwnerId);
+  }
+  broadcastToUsers(recipients, payload);
+}
 
 const createOrderBodySchema = z.object({
   deliveryAddress: z.string(),
@@ -143,7 +184,17 @@ router.post("/orders", requireAuth, async (req, res) => {
       );
 
       createdOrders.push(await enrichOrder(order));
+
+      const [v] = await db
+        .select({ userId: vendorsTable.userId })
+        .from(vendorsTable)
+        .where(eq(vendorsTable.id, vendorId))
+        .limit(1);
+      if (v) broadcastToUser(v.userId, { type: "order:new", orderId: order.id });
     }
+
+    // Refresh the customer's own order views.
+    broadcastToUser(user.id, { type: "orders:changed" });
 
     // Clear cart
     await db.delete(cartItemsTable).where(eq(cartItemsTable.userId, user.id));
@@ -181,9 +232,21 @@ router.put("/orders/:orderId/status", requireAuth, async (req, res) => {
     res.status(404).json({ message: "Order not found" });
     return;
   }
+  // Only the vendor that owns this order, its assigned rider, or an admin may
+  // change order status.
+  const user = getUser(req);
+  if (user.role !== "admin") {
+    const vendorOwnerId = await getVendorOwnerId(existing.vendorId);
+    const riderOwnerId = existing.riderId ? await getRiderOwnerId(existing.riderId) : null;
+    if (user.id !== vendorOwnerId && user.id !== riderOwnerId) {
+      res.status(403).json({ message: "Forbidden" });
+      return;
+    }
+  }
   await db.update(ordersTable).set({ status: parsed.data.status as any, updatedAt: new Date() })
     .where(eq(ordersTable.id, orderId));
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
+  await notifyOrderParties(order, "order:status");
   res.json(await enrichOrder(order));
 });
 
@@ -199,9 +262,21 @@ router.post("/orders/:orderId/assign-rider", requireAuth, async (req, res) => {
     res.status(404).json({ message: "Order not found" });
     return;
   }
+  // Only the vendor that owns this order, the rider claiming it, or an admin
+  // may assign a rider.
+  const user = getUser(req);
+  if (user.role !== "admin") {
+    const vendorOwnerId = await getVendorOwnerId(existing.vendorId);
+    const claimingRiderOwnerId = await getRiderOwnerId(parsed.data.riderId);
+    if (user.id !== vendorOwnerId && user.id !== claimingRiderOwnerId) {
+      res.status(403).json({ message: "Forbidden" });
+      return;
+    }
+  }
   await db.update(ordersTable).set({ riderId: parsed.data.riderId, updatedAt: new Date() })
     .where(eq(ordersTable.id, orderId));
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
+  await notifyOrderParties(order, "order:assigned");
   res.json(await enrichOrder(order));
 });
 
@@ -370,9 +445,19 @@ router.post("/riders/pickup/:orderId", requireAuth, async (req, res) => {
     res.status(404).json({ message: "Order not found" });
     return;
   }
+  // Only the rider assigned to this order (or an admin) may mark it picked up.
+  const user = getUser(req);
+  if (user.role !== "admin") {
+    const riderOwnerId = existing.riderId ? await getRiderOwnerId(existing.riderId) : null;
+    if (user.id !== riderOwnerId) {
+      res.status(403).json({ message: "Forbidden" });
+      return;
+    }
+  }
   await db.update(ordersTable).set({ status: "picked_up", updatedAt: new Date() })
     .where(eq(ordersTable.id, orderId));
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
+  await notifyOrderParties(order, "order:status");
   res.json(await enrichOrder(order));
 });
 
@@ -383,9 +468,19 @@ router.post("/riders/deliver/:orderId", requireAuth, async (req, res) => {
     res.status(404).json({ message: "Order not found" });
     return;
   }
+  // Only the rider assigned to this order (or an admin) may mark it delivered.
+  const user = getUser(req);
+  if (user.role !== "admin") {
+    const riderOwnerId = existing.riderId ? await getRiderOwnerId(existing.riderId) : null;
+    if (user.id !== riderOwnerId) {
+      res.status(403).json({ message: "Forbidden" });
+      return;
+    }
+  }
   await db.update(ordersTable).set({ status: "delivered", updatedAt: new Date() })
     .where(eq(ordersTable.id, orderId));
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
+  await notifyOrderParties(order, "order:status");
   res.json(await enrichOrder(order));
 });
 

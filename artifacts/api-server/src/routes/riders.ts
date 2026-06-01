@@ -1,11 +1,12 @@
 import { Router } from "express";
-import { db, riderProfilesTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, riderProfilesTable, ordersTable } from "@workspace/db";
+import { and, eq } from "drizzle-orm";
 import {
   RegisterRiderBody,
   UpdateRiderLocationBody,
 } from "@workspace/api-zod";
 import { requireAuth, getUser } from "../lib/auth";
+import { broadcastToUser } from "../lib/ws";
 
 const router = Router();
 
@@ -158,6 +159,25 @@ router.put(
       });
 
       return;
+    }
+
+    // Push live location to customers tracking this rider's active deliveries
+    const activeOrders = await db
+      .select({ id: ordersTable.id, userId: ordersTable.userId })
+      .from(ordersTable)
+      .where(
+        and(
+          eq(ordersTable.riderId, rider.id),
+          eq(ordersTable.status, "picked_up")
+        )
+      );
+    for (const o of activeOrders) {
+      broadcastToUser(o.userId, {
+        type: "rider:location",
+        orderId: o.id,
+        lat: parsed.data.lat,
+        lng: parsed.data.lng,
+      });
     }
 
     res.json(

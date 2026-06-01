@@ -26,12 +26,14 @@ export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
 
 export const OrderStatus = {
   pending: "pending",
+  accepted: "accepted",
   confirmed: "confirmed",
   preparing: "preparing",
   ready: "ready",
   picked_up: "picked_up",
   delivered: "delivered",
   cancelled: "cancelled",
+  rejected: "rejected",
 } as const;
 
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
