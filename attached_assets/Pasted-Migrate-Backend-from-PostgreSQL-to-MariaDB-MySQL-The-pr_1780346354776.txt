@@ -1,0 +1,148 @@
+Migrate Backend from PostgreSQL to MariaDB/MySQL
+
+The project backend was originally generated assuming PostgreSQL. My local development environment uses MariaDB (MySQL-compatible), and I need the entire codebase migrated accordingly.
+
+Objective
+
+Perform a complete audit of the backend and replace all PostgreSQL-specific functionality with MariaDB/MySQL-compatible implementations.
+
+Tasks
+1. Database Configuration
+
+Search the entire codebase for PostgreSQL-related configuration and replace it with MariaDB/MySQL configuration.
+
+Examples include:
+
+PostgreSQL JDBC drivers
+PostgreSQL connection strings
+PostgreSQL environment variables
+PostgreSQL Docker configurations
+PostgreSQL ORM settings
+PostgreSQL-specific migration files
+
+Replace with:
+
+MariaDB JDBC driver (preferred) or MySQL driver
+MariaDB connection strings
+MariaDB-compatible ORM configuration
+2. SQL Compatibility Review
+
+Inspect all SQL queries and migrations for PostgreSQL-specific syntax.
+
+Common PostgreSQL features that must be converted include:
+
+SERIAL → AUTO_INCREMENT
+BIGSERIAL → BIGINT AUTO_INCREMENT
+UUID generation functions
+RETURNING clauses
+PostgreSQL JSON/JSONB features
+PostgreSQL array types
+PostgreSQL-specific operators
+PostgreSQL date/time functions
+PostgreSQL text-search features
+PostgreSQL-specific constraints and indexes
+
+Replace each with MariaDB/MySQL-compatible equivalents.
+
+3. ORM Entity Review
+
+Review all ORM entities/models and ensure they are compatible with MariaDB.
+
+Check:
+
+Primary key generation
+UUID fields
+Relationships
+Column definitions
+Enum handling
+Timestamps
+Default values
+
+Update annotations/configuration where necessary.
+
+4. Migration Files
+
+Review every migration file.
+
+For each migration:
+
+Verify compatibility with MariaDB
+Rewrite PostgreSQL-specific SQL
+Ensure migrations can run successfully on a clean MariaDB database
+5. Repository and Query Layer
+
+Inspect:
+
+Repositories
+Custom queries
+Raw SQL statements
+Stored procedures (if any)
+
+Convert any PostgreSQL-specific logic to MariaDB-compatible syntax.
+
+6. Transaction Handling
+
+Verify that:
+
+Transactions work correctly
+Rollbacks function correctly
+Isolation levels are supported by MariaDB
+No PostgreSQL-only transaction features are used
+7. Docker and Deployment
+
+Update:
+
+Docker Compose files
+Dockerfiles
+Environment variables
+Development scripts
+Deployment configurations
+
+Replace PostgreSQL containers and references with MariaDB.
+
+8. Dependencies
+
+Remove PostgreSQL-specific dependencies and install the appropriate MariaDB/MySQL dependencies.
+
+Examples:
+
+PostgreSQL JDBC Driver
+PostgreSQL npm packages
+PostgreSQL ORM adapters
+
+Replace with MariaDB-compatible packages.
+
+9. Environment Variables
+
+Replace all PostgreSQL environment variables.
+
+Example:
+
+POSTGRES_HOST
+POSTGRES_PORT
+POSTGRES_DB
+POSTGRES_USER
+POSTGRES_PASSWORD
+
+with MariaDB equivalents such as:
+
+DB_HOST
+DB_PORT
+DB_NAME
+DB_USER
+DB_PASSWORD
+
+Update all references throughout the codebase.
+
+10. Verification
+
+After migration:
+
+Build the application.
+Run all migrations against MariaDB.
+Verify startup succeeds.
+Verify all API endpoints function correctly.
+Verify authentication still works.
+Verify marketplace functionality still works.
+Verify M-Pesa integration is unaffected.
+Verify file uploads and image storage are unaffected.
