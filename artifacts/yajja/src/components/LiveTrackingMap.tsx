@@ -21,10 +21,12 @@ const riderIcon = L.divIcon({
 export function LiveTrackingMap({
   destination,
   rider,
+  etaLabel,
   className,
 }: {
   destination: LatLng;
   rider?: LatLng | null;
+  etaLabel?: string | null;
   className?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -63,6 +65,13 @@ export function LiveTrackingMap({
       } else {
         riderMarkerRef.current.setLatLng([rider.lat, rider.lng]);
       }
+      if (etaLabel) {
+        riderMarkerRef.current
+          .bindTooltip(etaLabel, { direction: "top", offset: [0, -24], opacity: 0.95 })
+          .openTooltip();
+      } else {
+        riderMarkerRef.current.unbindTooltip();
+      }
       const pts: L.LatLngExpression[] = [
         [rider.lat, rider.lng],
         [destination.lat, destination.lng],
@@ -80,7 +89,7 @@ export function LiveTrackingMap({
     } else {
       map.setView([destination.lat, destination.lng], 14);
     }
-  }, [rider?.lat, rider?.lng, destination.lat, destination.lng]);
+  }, [rider?.lat, rider?.lng, destination.lat, destination.lng, etaLabel]);
 
   return (
     <div

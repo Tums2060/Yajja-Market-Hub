@@ -4,6 +4,7 @@ import { useGetOrder } from "@workspace/api-client-react";
 import { useQuery } from "@tanstack/react-query";
 import { useRealtimeOrders } from "@/hooks/use-realtime-orders";
 import { LiveTrackingMap } from "@/components/LiveTrackingMap";
+import { formatEta } from "@/lib/eta";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,6 +61,17 @@ export default function OrderDetail() {
   const deliveryLat = orders[0]?.deliveryLat;
   const deliveryLng = orders[0]?.deliveryLng;
   const riderLocation = orders.find((o) => o.riderLocation)?.riderLocation;
+
+  const eta = useMemo(() => {
+    if (
+      deliveryLat == null || deliveryLng == null ||
+      riderLocation?.lat == null || riderLocation?.lng == null
+    ) return null;
+    return formatEta(
+      { lat: riderLocation.lat, lng: riderLocation.lng },
+      { lat: deliveryLat, lng: deliveryLng }
+    );
+  }, [deliveryLat, deliveryLng, riderLocation?.lat, riderLocation?.lng]);
 
   if (isLoading) return (
     <div className="flex-1 flex items-center justify-center min-h-[50vh]">
@@ -161,8 +173,15 @@ export default function OrderDetail() {
       {deliveryLat != null && deliveryLng != null && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-primary" /> Live Rider Tracking
+            <CardTitle className="text-base flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-primary" /> Live Rider Tracking
+              </span>
+              {eta && (
+                <Badge className="bg-primary/15 text-primary border-primary/30 font-medium">
+                  ETA {eta.label}
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -171,10 +190,13 @@ export default function OrderDetail() {
               rider={riderLocation?.lat != null && riderLocation?.lng != null
                 ? { lat: riderLocation.lat, lng: riderLocation.lng }
                 : null}
+              etaLabel={eta ? `ETA ${eta.label}` : null}
             />
             <p className="text-xs text-muted-foreground mt-2">
               {riderLocation?.lat != null
-                ? "🛵 Your rider is on the move — the map updates in real time."
+                ? eta
+                  ? `🛵 Your rider is about ${eta.label} — arriving soon.`
+                  : "🛵 Your rider is on the move — the map updates in real time."
                 : "📍 Delivery location pinned. The rider will appear here once they pick up your order."}
             </p>
           </CardContent>
