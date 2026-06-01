@@ -1,12 +1,27 @@
 import { Router } from "express";
 import { db, ordersTable, orderItemsTable, groupOrdersTable, billAssignmentsTable, cartItemsTable, groupCartItemsTable, productsTable, vendorsTable, usersTable, riderProfilesTable } from "@workspace/db";
-import { eq, and, inArray, desc } from "drizzle-orm";
+import { eq, and, inArray, desc, or, isNull } from "drizzle-orm";
 import { UpdateOrderStatusBody, AssignRiderBody, CreateGroupOrderBody, SubmitBillAssignmentBody } from "@workspace/api-zod";
 import { requireAuth, getUser } from "../lib/auth";
 import { broadcastToUser, broadcastToUsers } from "../lib/ws";
+import { createNotification, statusMessage } from "../lib/notify";
+import { releaseEscrowForOrder } from "../lib/payments-core";
+import { formatOrderCode } from "../lib/order-code";
 import { z } from "zod";
 
 const router = Router();
+
+const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+  pending: ["accepted", "confirmed", "rejected", "cancelled"],
+  accepted: ["preparing", "confirmed", "ready", "cancelled"],
+  confirmed: ["preparing", "ready", "cancelled"],
+  preparing: ["ready", "cancelled"],
+  ready: ["picked_up", "cancelled"],
+  picked_up: ["delivered"],
+  delivered: [],
+  rejected: [],
+  cancelled: [],
+};
 
 async function getVendorOwnerId(vendorId: number): Promise<number | null> {
   const [v] = await db
@@ -46,6 +61,40 @@ async function notifyOrderParties(
     if (riderOwnerId) recipients.push(riderOwnerId);
   }
   broadcastToUsers(recipients, payload);
+
+  const code = formatOrderCode(order.id);
+  if (type === "order:status") {
+    const msg = statusMessage(order.status as string, code);
+    if (msg) {
+      await createNotification({
+        userId: order.userId,
+        type: "order:status",
+        title: msg.title,
+        body: msg.body,
+        orderId: order.id,
+      });
+    }
+  } else if (type === "order:assigned") {
+    await createNotification({
+      userId: order.userId,
+      type: "order:assigned",
+      title: "Rider assigned",
+      body: `A rider is on the way to pick up your order ${code}.`,
+      orderId: order.id,
+    });
+    if (order.riderId) {
+      const riderOwnerId = await getRiderOwnerId(order.riderId);
+      if (riderOwnerId) {
+        await createNotification({
+          userId: riderOwnerId,
+          type: "order:assigned",
+          title: "New delivery",
+          body: `You've been assigned order ${code}.`,
+          orderId: order.id,
+        });
+      }
+    }
+  }
 }
 
 const createOrderBodySchema = z.object({
@@ -56,10 +105,6 @@ const createOrderBodySchema = z.object({
   deliveryLat: z.number().optional(),
   deliveryLng: z.number().optional(),
 });
-
-function formatOrderCode(orderId: number) {
-  return `YJA-${String(orderId).padStart(6, "0")}`;
-}
 
 async function enrichOrder(order: typeof ordersTable.$inferSelect) {
   const items = await db.select({
@@ -243,7 +288,47 @@ router.put("/orders/:orderId/status", requireAuth, async (req, res) => {
       return;
     }
   }
+  // Enforce a coherent status lifecycle (admins may override).
+  const next = parsed.data.status as string;
+  if (user.role !== "admin" && next !== existing.status) {
+    const allowed = ALLOWED_TRANSITIONS[existing.status as string] ?? [];
+    if (!allowed.includes(next)) {
+      res.status(400).json({
+        message: `Cannot move order from "${existing.status}" to "${next}".`,
+      });
+      return;
+    }
+  }
   await db.update(ordersTable).set({ status: parsed.data.status as any, updatedAt: new Date() })
+    .where(eq(ordersTable.id, orderId));
+  const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
+  // On delivery, release the escrow into vendor/rider/commission payouts.
+  // Idempotent, so the dedicated /riders/deliver route won't double-pay.
+  if (order.status === "delivered") {
+    await releaseEscrowForOrder(order);
+  }
+  await notifyOrderParties(order, "order:status");
+  res.json(await enrichOrder(order));
+});
+
+// Customer cancels their own order while it is still pending.
+router.post("/orders/:orderId/cancel", requireAuth, async (req, res) => {
+  const orderId = parseInt(String(req.params.orderId), 10);
+  const user = getUser(req);
+  const [existing] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
+  if (!existing) {
+    res.status(404).json({ message: "Order not found" });
+    return;
+  }
+  if (existing.userId !== user.id && user.role !== "admin") {
+    res.status(403).json({ message: "Forbidden" });
+    return;
+  }
+  if (existing.status !== "pending") {
+    res.status(400).json({ message: "Only pending orders can be cancelled." });
+    return;
+  }
+  await db.update(ordersTable).set({ status: "cancelled", updatedAt: new Date() })
     .where(eq(ordersTable.id, orderId));
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
   await notifyOrderParties(order, "order:status");
@@ -273,8 +358,31 @@ router.post("/orders/:orderId/assign-rider", requireAuth, async (req, res) => {
       return;
     }
   }
-  await db.update(ordersTable).set({ riderId: parsed.data.riderId, updatedAt: new Date() })
-    .where(eq(ordersTable.id, orderId));
+  if (user.role === "admin") {
+    // Admins can (re)assign regardless of state.
+    await db.update(ordersTable).set({ riderId: parsed.data.riderId, updatedAt: new Date() })
+      .where(eq(ordersTable.id, orderId));
+  } else {
+    // A rider may only claim an order that is READY and not already taken by
+    // someone else. The conditional WHERE makes this atomic against races.
+    const claimed = await db
+      .update(ordersTable)
+      .set({ riderId: parsed.data.riderId, updatedAt: new Date() })
+      .where(
+        and(
+          eq(ordersTable.id, orderId),
+          eq(ordersTable.status, "ready"),
+          or(isNull(ordersTable.riderId), eq(ordersTable.riderId, parsed.data.riderId)),
+        ),
+      )
+      .returning({ id: ordersTable.id });
+    if (claimed.length === 0) {
+      res.status(409).json({
+        message: "This order is not available to claim (it must be ready and unassigned).",
+      });
+      return;
+    }
+  }
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
   await notifyOrderParties(order, "order:assigned");
   res.json(await enrichOrder(order));
@@ -309,7 +417,11 @@ router.get("/rider-orders", requireAuth, async (req, res) => {
   }
 
   if (rider) {
-    orders = orders.filter((o) => !o.riderId || o.riderId === rider.id);
+    // A rider sees their own assigned orders (any active status) plus orders
+    // that are available to claim — which must be unassigned AND ready.
+    orders = orders.filter(
+      (o) => o.riderId === rider.id || (!o.riderId && o.status === "ready"),
+    );
   }
 
   const enriched = await Promise.all(orders.map(enrichOrder));
@@ -454,6 +566,10 @@ router.post("/riders/pickup/:orderId", requireAuth, async (req, res) => {
       return;
     }
   }
+  if (!ALLOWED_TRANSITIONS[existing.status as string]?.includes("picked_up")) {
+    res.status(400).json({ message: `Cannot pick up an order in "${existing.status}".` });
+    return;
+  }
   await db.update(ordersTable).set({ status: "picked_up", updatedAt: new Date() })
     .where(eq(ordersTable.id, orderId));
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
@@ -477,9 +593,14 @@ router.post("/riders/deliver/:orderId", requireAuth, async (req, res) => {
       return;
     }
   }
+  if (!ALLOWED_TRANSITIONS[existing.status as string]?.includes("delivered")) {
+    res.status(400).json({ message: `Cannot deliver an order in "${existing.status}".` });
+    return;
+  }
   await db.update(ordersTable).set({ status: "delivered", updatedAt: new Date() })
     .where(eq(ordersTable.id, orderId));
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
+  await releaseEscrowForOrder(order);
   await notifyOrderParties(order, "order:status");
   res.json(await enrichOrder(order));
 });

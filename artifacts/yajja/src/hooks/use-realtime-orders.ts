@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 /**
  * Subscribes to the server WebSocket and invalidates order/rider related
@@ -8,6 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
  */
 export function useRealtimeOrders() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -42,6 +44,13 @@ export function useRealtimeOrders() {
         try {
           const msg = JSON.parse(ev.data);
           if (!msg?.type || msg.type === "connected") return;
+          if (msg.type === "notification") {
+            queryClient.invalidateQueries({ queryKey: ["notifications"] });
+            const n = msg.notification;
+            if (n?.title) {
+              toast({ title: n.title, description: n.body });
+            }
+          }
           invalidate();
         } catch {
           /* ignore malformed frames */
@@ -64,5 +73,5 @@ export function useRealtimeOrders() {
       if (reconnectTimer) window.clearTimeout(reconnectTimer);
       try { wsRef.current?.close(); } catch {}
     };
-  }, [queryClient]);
+  }, [queryClient, toast]);
 }

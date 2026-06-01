@@ -6,3 +6,5 @@ export * from "./cart";
 export * from "./orders";
 export * from "./riders";
 export * from "./password-reset-tokens";
+export * from "./notifications";
+export * from "./payments";

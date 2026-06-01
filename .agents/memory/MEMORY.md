@@ -1,6 +1,2 @@
-- [DB engine is PostgreSQL](db-engine.md) — the provisioned DB is Postgres (holds the data); never reintroduce MySQL/mysql2/mysql-core.
-- [drizzle-zod + zod 3.25 TS2344](drizzle-zod-zod-mismatch.md) — createInsertSchema return type breaks z.infer; derive insert types from $inferInsert instead.
-- [bash/rg output token mangling](bash-output-token-mangling.md) — bash stdout redacts some tokens (Route→ln, uploads→n); not real corruption, verify with read tool.
-- [yajja query-hook calling convention](yajja-orval-hooks.md) — orval GET hooks: useGetMyVendor/useListPopularVendors/useListVendors/useListOrders; mutations take {data}; pre-existing typecheck errors from queryKey/params shape.
-- [Seed data has no source file](seed-data-location.md) — product/vendor seed lives only in the DB; modify demo data via SQL, not a seed script.
-- [OrderStatus enum sync](order-status-enum-sync.md) — OpenAPI OrderStatus must include all DB/frontend values (accepted, rejected) or status transitions silently 400 via Zod.
+- [Order lifecycle write paths](order-lifecycle-paths.md) — status changes + escrow release happen via multiple routes; mirror guards/side-effects on all of them.
+- [Yajja frontend typecheck baseline](yajja-typecheck-baseline.md) — known pre-existing tsc errors (queryKey/params shape) across query hooks; don't chase, app runs fine on tsx/vite.

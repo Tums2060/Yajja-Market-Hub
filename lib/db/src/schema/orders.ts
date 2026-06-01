@@ -1,4 +1,5 @@
 import { pgTable, serial, integer, text, timestamp, real, boolean, pgEnum } from "drizzle-orm/pg-core";
+import { paymentStatusEnum } from "./payments";
 
 export const orderStatusEnum = pgEnum("order_status", [
   "pending",
@@ -32,6 +33,7 @@ export const ordersTable = pgTable("orders", {
   subtotal: real("subtotal").notNull(),
   deliveryFee: real("delivery_fee").notNull().default(2.5),
   total: real("total").notNull(),
+  paymentStatus: paymentStatusEnum("payment_status").notNull().default("unpaid"),
   notes: text("notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

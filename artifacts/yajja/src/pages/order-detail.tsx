@@ -1,7 +1,8 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { useGetOrder } from "@workspace/api-client-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import { useRealtimeOrders } from "@/hooks/use-realtime-orders";
 import { LiveTrackingMap } from "@/components/LiveTrackingMap";
 import { formatEta } from "@/lib/eta";
@@ -30,7 +31,32 @@ export default function OrderDetail() {
   const [, setLocation] = useLocation();
   const id = parseInt(orderId || "0", 10);
   useRealtimeOrders();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [cancelling, setCancelling] = useState(false);
   const { data: order, isLoading } = useGetOrder(id, { query: { enabled: !!id, refetchInterval: 10000 } });
+
+  const handleCancel = async () => {
+    setCancelling(true);
+    try {
+      const token = localStorage.getItem("yajja_token");
+      const res = await fetch(`/api/orders/${id}/cancel`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to cancel order");
+      }
+      toast({ title: "Order cancelled", description: "Your order has been cancelled." });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries();
+    } catch (e: any) {
+      toast({ title: "Could not cancel", description: e.message, variant: "destructive" });
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   const orderCode = (order as any)?.orderCode as string | undefined;
   const { data: bundleOrders } = useQuery({
@@ -124,6 +150,18 @@ export default function OrderDetail() {
               <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
               <span>{(order as any).deliveryAddress}</span>
             </div>
+          )}
+          {(order as any).status === "pending" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-4 text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700"
+              onClick={handleCancel}
+              disabled={cancelling}
+            >
+              {cancelling ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Cancel order
+            </Button>
           )}
         </CardContent>
       </Card>

@@ -25,6 +25,10 @@ Yajja is a Uganda-based multi-category delivery platform (Food, Liquor, Pharmacy
 - Rider "Kasim" registered
 
 ## Key Features
+- **In-app notifications**: persisted `notifications` table + bell in Navbar (unread badge, dropdown). Created on order status changes, new paid order, rider assignment, payment received. Pushed live over WebSocket (`{type:"notification"}`) and surfaced as toasts via `use-realtime-orders`.
+- **Payments (M-Pesa Daraja STK Push)**: env-driven. Real STK Push activates automatically when `MPESA_*` keys are set (see `artifacts/api-server/.env.example`); otherwise degrades to auto-confirmed **simulation** so checkout works in dev. Endpoints: `POST /api/payments/stk-push`, `GET /api/payments/status?checkoutRequestId=`, public `POST /api/payments/callback`.
+- **Escrow + payout ledger**: `payments` + `ledger_entries` tables. On payment success → `escrow_in` (held). On delivery → released into `payout_vendor` (subtotal − commission), `payout_rider` (delivery fee), `commission` (15% subtotal, `MPESA_COMMISSION_RATE`). Idempotent.
+- **Order-flow consistency**: server-side `ALLOWED_TRANSITIONS` guard on `PUT /api/orders/:id/status` (invalid jumps → 400). Riders can only claim **ready + unassigned** orders; double-claim returns 409. Customers can cancel their own **pending** orders (`POST /api/orders/:id/cancel`).
 - **Brand color**: Getir-style purple `hsl(258, 62%, 49%)` (light), `hsl(258, 70%, 62%)` (dark). Secondary is warm yellow `hsl(45, 95%, 55%)`.
 - **Hero watermark**: `<HeroWatermark />` component scatters food/health/household emojis at low opacity over `bg-primary` sections (home hero, login, register)
 - **Glovo-inspired home**: circular category cards, search bar, banner carousel

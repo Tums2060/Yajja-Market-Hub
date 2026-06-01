@@ -51,16 +51,14 @@ export default function Checkout() {
   setStep("processing");
 
   const token = localStorage.getItem("yajja_token");
+  const authHeaders: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) authHeaders.Authorization = `Bearer ${token}`;
 
   try {
-    await new Promise(r => setTimeout(r, 2000)); // keep the UX delay
-
+    // 1. Create the order(s) from the cart.
     const res = await fetch("/api/orders", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
+      headers: authHeaders,
       body: JSON.stringify({
         deliveryAddress: address,
         notes,
@@ -80,11 +78,61 @@ export default function Checkout() {
     queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() });
     setOrderCode(payload?.orderCode || null);
     setPrimaryOrderId(payload?.primaryOrderId || null);
+
+    const orderIds: number[] = (payload?.orders || [])
+      .map((o: any) => o?.id)
+      .filter((id: any) => typeof id === "number");
+
+    // 2. Initiate the M-Pesa STK push for the created order(s).
+    const stkRes = await fetch("/api/payments/stk-push", {
+      method: "POST",
+      headers: authHeaders,
+      body: JSON.stringify({ orderIds, phone: phoneNumber }),
+    });
+    if (!stkRes.ok) {
+      const err = await stkRes.json().catch(() => ({}));
+      throw new Error(err.message || "Payment request failed");
+    }
+    const stk = await stkRes.json();
+
+    // 3. Confirm payment. Simulation mode returns paid immediately; real mode
+    //    requires polling until Safaricom posts the callback.
+    if (stk?.status === "paid") {
+      queryClient.invalidateQueries({ predicate: (q) => JSON.stringify(q.queryKey).toLowerCase().includes("order") });
+      toast({ title: "Payment confirmed" });
+      setStep("success");
+      return;
+    }
+
+    const checkoutRequestId = stk?.checkoutRequestId;
+    const deadline = Date.now() + 90_000;
+    let settled = false;
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 3000));
+      const sres = await fetch(
+        `/api/payments/status?checkoutRequestId=${encodeURIComponent(checkoutRequestId)}`,
+        { headers: authHeaders },
+      );
+      if (!sres.ok) continue;
+      const sdata = await sres.json();
+      if (sdata?.status === "paid") {
+        settled = true;
+        break;
+      }
+      if (sdata?.status === "failed") {
+        throw new Error(sdata?.resultDesc || "Payment was not completed");
+      }
+    }
+    if (!settled) {
+      throw new Error("Payment timed out. Please try again.");
+    }
+
+    queryClient.invalidateQueries({ predicate: (q) => JSON.stringify(q.queryKey).toLowerCase().includes("order") });
     toast({ title: "Payment confirmed" });
     setStep("success");
-  } catch (err) {
+  } catch (err: any) {
     console.error(err);
-    toast({ variant: "destructive", title: "Failed to place order" });
+    toast({ variant: "destructive", title: err?.message || "Failed to place order" });
     setStep("form");
   }
 };

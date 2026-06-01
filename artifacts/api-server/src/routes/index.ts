@@ -11,6 +11,8 @@ import leaderboardRouter from "./leaderboard";
 import ridersRouter from "./riders";
 import adminRouter from "./admin";
 import passwordResetRouter from "./password-reset";
+import paymentsRouter from "./payments";
+import notificationsRouter from "./notifications";
 
 const router: IRouter = Router();
 
@@ -26,5 +28,7 @@ router.use(groupsRouter);
 router.use(leaderboardRouter);
 router.use(ridersRouter);
 router.use(adminRouter);
+router.use(paymentsRouter);
+router.use(notificationsRouter);
 
 export default router;

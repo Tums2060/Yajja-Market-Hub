@@ -16,6 +16,7 @@ import {
   Store, Truck, Receipt
 } from "lucide-react";
 import { useGetCart } from "@workspace/api-client-react";
+import NotificationBell from "./NotificationBell";
 
 const customerLinks = [
   { href: "/", label: "Home", icon: Home },
@@ -113,6 +114,7 @@ export default function Navbar() {
         <div className="flex items-center gap-2 ml-auto">
           {user ? (
             <>
+              <NotificationBell />
               {/* Mobile hamburger — all nav links */}
               <div className={user.role === "customer" ? "md:hidden" : ""}>
                 <DropdownMenu>
