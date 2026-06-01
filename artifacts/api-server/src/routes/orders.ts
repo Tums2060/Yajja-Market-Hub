@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, ordersTable, orderItemsTable, groupOrdersTable, billAssignmentsTable, cartItemsTable, groupCartItemsTable, productsTable, vendorsTable, usersTable, riderProfilesTable } from "@workspace/db";
+import { db, dbUpdateReturning, ordersTable, orderItemsTable, groupOrdersTable, billAssignmentsTable, cartItemsTable, groupCartItemsTable, productsTable, vendorsTable, usersTable, riderProfilesTable } from "@workspace/db";
 import { eq, and, inArray, desc, or, isNull } from "drizzle-orm";
 import { UpdateOrderStatusBody, AssignRiderBody, CreateGroupOrderBody, SubmitBillAssignmentBody } from "@workspace/api-zod";
 import { requireAuth, getUser } from "../lib/auth";
@@ -365,18 +365,16 @@ router.post("/orders/:orderId/assign-rider", requireAuth, async (req, res) => {
   } else {
     // A rider may only claim an order that is READY and not already taken by
     // someone else. The conditional WHERE makes this atomic against races.
-    const claimed = await db
-      .update(ordersTable)
-      .set({ riderId: parsed.data.riderId, updatedAt: new Date() })
-      .where(
-        and(
-          eq(ordersTable.id, orderId),
-          eq(ordersTable.status, "ready"),
-          or(isNull(ordersTable.riderId), eq(ordersTable.riderId, parsed.data.riderId)),
-        ),
-      )
-      .returning({ id: ordersTable.id });
-    if (claimed.length === 0) {
+    const claimed = await dbUpdateReturning(
+      ordersTable,
+      { riderId: parsed.data.riderId, updatedAt: new Date() },
+      and(
+        eq(ordersTable.id, orderId),
+        eq(ordersTable.status, "ready"),
+        or(isNull(ordersTable.riderId), eq(ordersTable.riderId, parsed.data.riderId)),
+      )!,
+    );
+    if (!claimed) {
       res.status(409).json({
         message: "This order is not available to claim (it must be ready and unassigned).",
       });

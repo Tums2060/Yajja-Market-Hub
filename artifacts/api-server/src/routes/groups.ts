@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, groupsTable, groupMembersTable, groupMessagesTable, invitesTable, usersTable } from "@workspace/db";
+import { db, dbInsertReturning, dbUpdateReturning, groupsTable, groupMembersTable, groupMessagesTable, invitesTable, usersTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { CreateGroupBody, SendGroupMessageBody, SendInviteBody } from "@workspace/api-zod";
 import { requireAuth, getUser } from "../lib/auth";
@@ -35,7 +35,7 @@ router.post("/groups", requireAuth, async (req, res) => {
     res.status(400).json({ message: "Invalid body" });
     return;
   }
-  const [group] = await db.insert(groupsTable).values({ ...parsed.data, adminId: user.id }).returning();
+  const group = await dbInsertReturning(groupsTable, { ...parsed.data, adminId: user.id });
 
   // Add admin as member
   await db.insert(groupMembersTable).values({ groupId: group.id, userId: user.id, isAdmin: true });
@@ -104,7 +104,7 @@ router.post("/groups/:groupId/messages", requireAuth, async (req, res) => {
     res.status(400).json({ message: "Invalid body" });
     return;
   }
-  const [message] = await db.insert(groupMessagesTable).values({ groupId, userId: user.id, content: parsed.data.content }).returning();
+  const message = await dbInsertReturning(groupMessagesTable, { groupId, userId: user.id, content: parsed.data.content });
   broadcastToGroup(groupId, { type: "message:new", groupId, actorUserId: user.id });
   res.status(201).json({
     ...message,
@@ -138,7 +138,7 @@ router.post("/invites", requireAuth, async (req, res) => {
     res.status(400).json({ message: "Invalid body" });
     return;
   }
-  const [invite] = await db.insert(invitesTable).values({ groupId: parsed.data.groupId, fromUserId: user.id, toUserId: parsed.data.toUserId, status: "pending" }).returning();
+  const invite = await dbInsertReturning(invitesTable, { groupId: parsed.data.groupId, fromUserId: user.id, toUserId: parsed.data.toUserId, status: "pending" });
   const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, invite.groupId)).limit(1);
   res.status(201).json({
     ...invite,
@@ -151,7 +151,7 @@ router.post("/invites", requireAuth, async (req, res) => {
 router.post("/invites/:inviteId/accept", requireAuth, async (req, res) => {
   const inviteId = parseInt(req.params.inviteId);
   const user = getUser(req);
-  const [invite] = await db.update(invitesTable).set({ status: "accepted" }).where(eq(invitesTable.id, inviteId)).returning();
+  const invite = await dbUpdateReturning(invitesTable, { status: "accepted" }, eq(invitesTable.id, inviteId));
   if (!invite) {
     res.status(404).json({ message: "Invite not found" });
     return;

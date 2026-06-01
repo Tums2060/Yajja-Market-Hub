@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import multer from "multer";
 
-import { db, productsTable, vendorsTable } from "@workspace/db";
+import { db, dbInsertReturning, productsTable, vendorsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { CreateProductBody } from "@workspace/api-zod";
 import { requireAuth, getUser } from "../lib/auth";
@@ -135,10 +135,10 @@ router.post("/products", requireAuth, async (req, res) => {
       return;
     }
 
-    const [product] = await db.insert(productsTable).values({
+    const product = await dbInsertReturning(productsTable, {
       ...parsed.data,
       vendorId: vendor.id,
-    }).returning();
+    });
 
     res.status(201).json(serializeProduct(product));
   } catch (err) {

@@ -1,4 +1,4 @@
-import { db, notificationsTable } from "@workspace/db";
+import { dbInsertReturning, notificationsTable } from "@workspace/db";
 import { broadcastToUser } from "./ws";
 
 export async function createNotification(opts: {
@@ -8,16 +8,13 @@ export async function createNotification(opts: {
   body: string;
   orderId?: number | null;
 }) {
-  const [n] = await db
-    .insert(notificationsTable)
-    .values({
-      userId: opts.userId,
-      type: opts.type,
-      title: opts.title,
-      body: opts.body,
-      orderId: opts.orderId ?? null,
-    })
-    .returning();
+  const n = await dbInsertReturning(notificationsTable, {
+    userId: opts.userId,
+    type: opts.type,
+    title: opts.title,
+    body: opts.body,
+    orderId: opts.orderId ?? null,
+  });
 
   broadcastToUser(opts.userId, {
     type: "notification",

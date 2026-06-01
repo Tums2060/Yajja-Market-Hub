@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, usersTable, vendorsTable, ordersTable, riderProfilesTable } from "@workspace/db";
+import { db, dbUpdateReturning, usersTable, vendorsTable, ordersTable, riderProfilesTable } from "@workspace/db";
 import { eq, and, desc, sql, count, sum } from "drizzle-orm";
 import { requireAuth, getUser } from "../lib/auth";
 import { Request, Response, NextFunction } from "express";
@@ -76,7 +76,7 @@ router.get("/admin/vendors", requireAdmin, async (req, res) => {
 // Approve vendor
 router.put("/admin/vendors/:vendorId/approve", requireAdmin, async (req, res) => {
   const vendorId = parseInt(req.params.vendorId);
-  const [vendor] = await db.update(vendorsTable).set({ status: "approved" }).where(eq(vendorsTable.id, vendorId)).returning();
+  const vendor = await dbUpdateReturning(vendorsTable, { status: "approved" }, eq(vendorsTable.id, vendorId));
   if (!vendor) { res.status(404).json({ message: "Vendor not found" }); return; }
   res.json({ ...vendor, createdAt: vendor.createdAt.toISOString() });
 });
@@ -84,7 +84,7 @@ router.put("/admin/vendors/:vendorId/approve", requireAdmin, async (req, res) =>
 // Reject vendor
 router.put("/admin/vendors/:vendorId/reject", requireAdmin, async (req, res) => {
   const vendorId = parseInt(req.params.vendorId);
-  const [vendor] = await db.update(vendorsTable).set({ status: "rejected" }).where(eq(vendorsTable.id, vendorId)).returning();
+  const vendor = await dbUpdateReturning(vendorsTable, { status: "rejected" }, eq(vendorsTable.id, vendorId));
   if (!vendor) { res.status(404).json({ message: "Vendor not found" }); return; }
   res.json({ ...vendor, createdAt: vendor.createdAt.toISOString() });
 });
@@ -116,7 +116,8 @@ router.put("/admin/riders/:riderId/toggle", requireAdmin, async (req, res) => {
   const riderId = parseInt(req.params.riderId);
   const [rider] = await db.select().from(riderProfilesTable).where(eq(riderProfilesTable.id, riderId)).limit(1);
   if (!rider) { res.status(404).json({ message: "Rider not found" }); return; }
-  const [updated] = await db.update(riderProfilesTable).set({ isAvailable: !rider.isAvailable }).where(eq(riderProfilesTable.id, riderId)).returning();
+  const updated = await dbUpdateReturning(riderProfilesTable, { isAvailable: !rider.isAvailable }, eq(riderProfilesTable.id, riderId));
+  if (!updated) { res.status(404).json({ message: "Rider not found" }); return; }
   res.json({ ...updated, createdAt: updated.createdAt.toISOString() });
 });
 
