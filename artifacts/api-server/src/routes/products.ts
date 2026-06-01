@@ -107,8 +107,12 @@ router.post(
       return;
     }
 
+    const protocol = req.protocol || "http";
+    const host = req.get("host") || "localhost:3000";
+    const fullUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
+    
     res.status(201).json({
-      url: `/uploads/${req.file.filename}`,
+      url: fullUrl,
     });
   }
 );

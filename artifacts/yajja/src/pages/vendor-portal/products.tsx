@@ -123,7 +123,8 @@ export default function VendorProducts() {
     const token = localStorage.getItem("yajja_token");
     const formData = new FormData();
     formData.append("image", imageFile);
-    const res = await fetch("/api/uploads/products", {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
+    const res = await fetch(`${baseUrl}/api/uploads/products`, {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       body: formData,
