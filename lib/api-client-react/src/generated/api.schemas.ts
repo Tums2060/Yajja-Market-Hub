@@ -49,6 +49,12 @@ export interface RegisterBody {
   password: string;
   role: UserRole;
   phone?: string;
+  businessName?: string;
+  category?: Category;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  imageUrl?: string;
 }
 
 export interface LoginBody {
@@ -76,14 +82,19 @@ export interface Vendor {
   id: number;
   userId: number;
   name: string;
+  ownerName?: string;
   category: Category;
   description?: string;
   imageUrl?: string;
   address?: string;
+  lat?: number;
+  lng?: number;
   rating?: number;
   deliveryTime?: string;
   minOrder?: number;
   isOpen: boolean;
+  status?: string;
+  orderCount?: number;
   createdAt: string;
 }
 
@@ -99,9 +110,13 @@ export interface CreateVendorBody {
 
 export interface UpdateVendorBody {
   name?: string;
+  ownerName?: string;
+  category?: Category;
   description?: string;
   imageUrl?: string;
   address?: string;
+  lat?: number;
+  lng?: number;
   deliveryTime?: string;
   minOrder?: number;
   isOpen?: boolean;
@@ -132,6 +147,7 @@ export interface Product {
   price: number;
   imageUrl?: string;
   category: Category;
+  tags?: string;
   isAvailable: boolean;
   createdAt: string;
 }
@@ -142,6 +158,7 @@ export interface CreateProductBody {
   price: number;
   imageUrl?: string;
   category: Category;
+  tags?: string;
   isAvailable?: boolean;
 }
 
@@ -404,6 +421,10 @@ export type ListUsersParams = {
 export type ListVendorsParams = {
   category?: Category;
   search?: string;
+};
+
+export type ListPopularVendorsParams = {
+  limit?: number;
 };
 
 export type ListProductsParams = {

@@ -115,90 +115,33 @@ router.post("/products", requireAuth, async (req, res) => {
   try {
     const user = getUser(req);
 
-    console.log(
-      "[PRODUCTS POST] User ID:",
-      user.id,
-      "Role:",
-      user.role
-    );
-
-    console.log(
-      "[PRODUCTS POST] Request body:",
-      req.body
-    );
-
     const [vendor] = await db
       .select()
       .from(vendorsTable)
       .where(eq(vendorsTable.userId, user.id))
       .limit(1);
 
-    console.log(
-      "[PRODUCTS POST] Found vendor:",
-      vendor
-    );
-
     if (!vendor) {
-      console.log(
-        "[PRODUCTS POST] No vendor found, returning 403"
-      );
-
-      res.status(403).json({
-        message: "Vendor profile required",
-      });
-
+      res.status(403).json({ message: "Vendor profile required" });
       return;
     }
 
     const parsed = CreateProductBody.safeParse(req.body);
 
     if (!parsed.success) {
-      console.log(
-        "[PRODUCTS POST] Invalid body:",
-        parsed.error
-      );
-
-      res.status(400).json({
-        message: "Invalid body",
-      });
-
+      res.status(400).json({ message: "Invalid body" });
       return;
     }
 
-    console.log(
-      "[PRODUCTS POST] Creating product with vendorId:",
-      vendor.id
-    );
-
-    await db.insert(productsTable).values({
+    const [product] = await db.insert(productsTable).values({
       ...parsed.data,
       vendorId: vendor.id,
-    });
+    }).returning();
 
-    const [product] = await db
-      .select()
-      .from(productsTable)
-      .where(eq(productsTable.name, parsed.data.name))
-      .limit(1);
-
-    console.log(
-      "[PRODUCTS POST] Created product:",
-      product
-    );
-
-    res.status(201).json(
-      serializeProduct(product)
-    );
+    res.status(201).json(serializeProduct(product));
   } catch (err) {
-    console.error(
-      "[PRODUCTS POST] ERROR:",
-      err
-    );
-
-    res.status(500).json({
-      message: "Internal server error",
-      error: String(err),
-    });
+    req.log.error({ err }, "failed to create product");
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 

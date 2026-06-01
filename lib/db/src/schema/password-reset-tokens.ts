@@ -1,9 +1,9 @@
-import { mysqlTable, int, text, timestamp } from "drizzle-orm/mysql-core";
+import { pgTable, serial, integer, text, timestamp } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
 
-export const passwordResetTokensTable = mysqlTable("password_reset_tokens", {
-  id: int("id").primaryKey().autoincrement(),
-  userId: int("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+export const passwordResetTokensTable = pgTable("password_reset_tokens", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   token: text("token").notNull().unique(),
   expiresAt: timestamp("expires_at").notNull(),
   usedAt: timestamp("used_at"),

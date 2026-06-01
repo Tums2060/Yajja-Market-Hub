@@ -23,6 +23,12 @@ export const RegisterBody = zod.object({
   password: zod.string(),
   role: zod.enum(["customer", "vendor", "rider", "admin"]),
   phone: zod.string().optional(),
+  businessName: zod.string().optional(),
+  category: zod.enum(["food", "liquor", "pharmacy", "household"]).optional(),
+  address: zod.string().optional(),
+  latitude: zod.number().optional(),
+  longitude: zod.number().optional(),
+  imageUrl: zod.string().optional(),
 });
 
 /**
@@ -114,14 +120,19 @@ export const ListVendorsResponseItem = zod.object({
   id: zod.number(),
   userId: zod.number(),
   name: zod.string(),
+  ownerName: zod.string().optional(),
   category: zod.enum(["food", "liquor", "pharmacy", "household"]),
   description: zod.string().optional(),
   imageUrl: zod.string().optional(),
   address: zod.string().optional(),
+  lat: zod.number().optional(),
+  lng: zod.number().optional(),
   rating: zod.number().optional(),
   deliveryTime: zod.string().optional(),
   minOrder: zod.number().optional(),
   isOpen: zod.boolean(),
+  status: zod.string().optional(),
+  orderCount: zod.number().optional(),
   createdAt: zod.string(),
 });
 export const ListVendorsResponse = zod.array(ListVendorsResponseItem);
@@ -139,6 +150,96 @@ export const CreateVendorBody = zod.object({
   minOrder: zod.number().optional(),
 });
 
+/**
+ * @summary Get the current user's vendor profile
+ */
+export const GetMyVendorResponse = zod.object({
+  id: zod.number(),
+  userId: zod.number(),
+  name: zod.string(),
+  ownerName: zod.string().optional(),
+  category: zod.enum(["food", "liquor", "pharmacy", "household"]),
+  description: zod.string().optional(),
+  imageUrl: zod.string().optional(),
+  address: zod.string().optional(),
+  lat: zod.number().optional(),
+  lng: zod.number().optional(),
+  rating: zod.number().optional(),
+  deliveryTime: zod.string().optional(),
+  minOrder: zod.number().optional(),
+  isOpen: zod.boolean(),
+  status: zod.string().optional(),
+  orderCount: zod.number().optional(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Update the current user's vendor profile
+ */
+export const UpdateMyVendorBody = zod.object({
+  name: zod.string().optional(),
+  ownerName: zod.string().optional(),
+  category: zod.enum(["food", "liquor", "pharmacy", "household"]).optional(),
+  description: zod.string().optional(),
+  imageUrl: zod.string().optional(),
+  address: zod.string().optional(),
+  lat: zod.number().optional(),
+  lng: zod.number().optional(),
+  deliveryTime: zod.string().optional(),
+  minOrder: zod.number().optional(),
+  isOpen: zod.boolean().optional(),
+});
+
+export const UpdateMyVendorResponse = zod.object({
+  id: zod.number(),
+  userId: zod.number(),
+  name: zod.string(),
+  ownerName: zod.string().optional(),
+  category: zod.enum(["food", "liquor", "pharmacy", "household"]),
+  description: zod.string().optional(),
+  imageUrl: zod.string().optional(),
+  address: zod.string().optional(),
+  lat: zod.number().optional(),
+  lng: zod.number().optional(),
+  rating: zod.number().optional(),
+  deliveryTime: zod.string().optional(),
+  minOrder: zod.number().optional(),
+  isOpen: zod.boolean(),
+  status: zod.string().optional(),
+  orderCount: zod.number().optional(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary List vendors sorted by order count
+ */
+export const ListPopularVendorsQueryParams = zod.object({
+  limit: zod.coerce.number().optional(),
+});
+
+export const ListPopularVendorsResponseItem = zod.object({
+  id: zod.number(),
+  userId: zod.number(),
+  name: zod.string(),
+  ownerName: zod.string().optional(),
+  category: zod.enum(["food", "liquor", "pharmacy", "household"]),
+  description: zod.string().optional(),
+  imageUrl: zod.string().optional(),
+  address: zod.string().optional(),
+  lat: zod.number().optional(),
+  lng: zod.number().optional(),
+  rating: zod.number().optional(),
+  deliveryTime: zod.string().optional(),
+  minOrder: zod.number().optional(),
+  isOpen: zod.boolean(),
+  status: zod.string().optional(),
+  orderCount: zod.number().optional(),
+  createdAt: zod.string(),
+});
+export const ListPopularVendorsResponse = zod.array(
+  ListPopularVendorsResponseItem,
+);
+
 export const GetVendorParams = zod.object({
   vendorId: zod.coerce.number(),
 });
@@ -147,14 +248,19 @@ export const GetVendorResponse = zod.object({
   id: zod.number(),
   userId: zod.number(),
   name: zod.string(),
+  ownerName: zod.string().optional(),
   category: zod.enum(["food", "liquor", "pharmacy", "household"]),
   description: zod.string().optional(),
   imageUrl: zod.string().optional(),
   address: zod.string().optional(),
+  lat: zod.number().optional(),
+  lng: zod.number().optional(),
   rating: zod.number().optional(),
   deliveryTime: zod.string().optional(),
   minOrder: zod.number().optional(),
   isOpen: zod.boolean(),
+  status: zod.string().optional(),
+  orderCount: zod.number().optional(),
   createdAt: zod.string(),
 });
 
@@ -164,9 +270,13 @@ export const UpdateVendorParams = zod.object({
 
 export const UpdateVendorBody = zod.object({
   name: zod.string().optional(),
+  ownerName: zod.string().optional(),
+  category: zod.enum(["food", "liquor", "pharmacy", "household"]).optional(),
   description: zod.string().optional(),
   imageUrl: zod.string().optional(),
   address: zod.string().optional(),
+  lat: zod.number().optional(),
+  lng: zod.number().optional(),
   deliveryTime: zod.string().optional(),
   minOrder: zod.number().optional(),
   isOpen: zod.boolean().optional(),
@@ -176,14 +286,19 @@ export const UpdateVendorResponse = zod.object({
   id: zod.number(),
   userId: zod.number(),
   name: zod.string(),
+  ownerName: zod.string().optional(),
   category: zod.enum(["food", "liquor", "pharmacy", "household"]),
   description: zod.string().optional(),
   imageUrl: zod.string().optional(),
   address: zod.string().optional(),
+  lat: zod.number().optional(),
+  lng: zod.number().optional(),
   rating: zod.number().optional(),
   deliveryTime: zod.string().optional(),
   minOrder: zod.number().optional(),
   isOpen: zod.boolean(),
+  status: zod.string().optional(),
+  orderCount: zod.number().optional(),
   createdAt: zod.string(),
 });
 
@@ -228,6 +343,7 @@ export const ListProductsResponseItem = zod.object({
   price: zod.number(),
   imageUrl: zod.string().optional(),
   category: zod.enum(["food", "liquor", "pharmacy", "household"]),
+  tags: zod.string().optional(),
   isAvailable: zod.boolean(),
   createdAt: zod.string(),
 });
@@ -242,6 +358,7 @@ export const CreateProductBody = zod.object({
   price: zod.number(),
   imageUrl: zod.string().optional(),
   category: zod.enum(["food", "liquor", "pharmacy", "household"]),
+  tags: zod.string().optional(),
   isAvailable: zod.boolean().optional(),
 });
 
@@ -258,6 +375,7 @@ export const GetProductResponse = zod.object({
   price: zod.number(),
   imageUrl: zod.string().optional(),
   category: zod.enum(["food", "liquor", "pharmacy", "household"]),
+  tags: zod.string().optional(),
   isAvailable: zod.boolean(),
   createdAt: zod.string(),
 });
@@ -272,6 +390,7 @@ export const UpdateProductBody = zod.object({
   price: zod.number(),
   imageUrl: zod.string().optional(),
   category: zod.enum(["food", "liquor", "pharmacy", "household"]),
+  tags: zod.string().optional(),
   isAvailable: zod.boolean().optional(),
 });
 
@@ -284,6 +403,7 @@ export const UpdateProductResponse = zod.object({
   price: zod.number(),
   imageUrl: zod.string().optional(),
   category: zod.enum(["food", "liquor", "pharmacy", "household"]),
+  tags: zod.string().optional(),
   isAvailable: zod.boolean(),
   createdAt: zod.string(),
 });
@@ -315,6 +435,7 @@ export const GetCartResponse = zod.object({
           price: zod.number(),
           imageUrl: zod.string().optional(),
           category: zod.enum(["food", "liquor", "pharmacy", "household"]),
+          tags: zod.string().optional(),
           isAvailable: zod.boolean(),
           createdAt: zod.string(),
         })
@@ -345,6 +466,7 @@ export const GetCartResponse = zod.object({
               price: zod.number(),
               imageUrl: zod.string().optional(),
               category: zod.enum(["food", "liquor", "pharmacy", "household"]),
+              tags: zod.string().optional(),
               isAvailable: zod.boolean(),
               createdAt: zod.string(),
             })
@@ -390,6 +512,7 @@ export const UpdateCartItemResponse = zod.object({
       price: zod.number(),
       imageUrl: zod.string().optional(),
       category: zod.enum(["food", "liquor", "pharmacy", "household"]),
+      tags: zod.string().optional(),
       isAvailable: zod.boolean(),
       createdAt: zod.string(),
     })
@@ -439,6 +562,7 @@ export const GetGroupCartResponse = zod.object({
           price: zod.number(),
           imageUrl: zod.string().optional(),
           category: zod.enum(["food", "liquor", "pharmacy", "household"]),
+          tags: zod.string().optional(),
           isAvailable: zod.boolean(),
           createdAt: zod.string(),
         })
@@ -501,6 +625,7 @@ export const UpdateGroupCartItemResponse = zod.object({
       price: zod.number(),
       imageUrl: zod.string().optional(),
       category: zod.enum(["food", "liquor", "pharmacy", "household"]),
+      tags: zod.string().optional(),
       isAvailable: zod.boolean(),
       createdAt: zod.string(),
     })

@@ -1,0 +1,132 @@
+YAJJA PLATFORM — BUG FIXES, FEATURE ADDITIONS & UI OVERHAUL
+You are working on an existing Yajja codebase (a Glovo/UberEats-style food & goods delivery platform for Nairobi). Do not restructure the database schema, authentication system, or monorepo architecture unless explicitly instructed below. Follow the existing stack (TypeScript, React, Express, DrizzleORM, MariaDB, pnpm monorepo). Apply all changes incrementally without breaking existing functionality.
+
+1. AUTHENTICATION & ONBOARDING CLEANUP
+
+On all sign-in and sign-up pages, remove the feature highlight section that shows "Fast Delivery", "Group Orders", and "Bill Splitting". Strip those UI elements entirely.
+Update the Vendor sign-up form to collect: business name, owner full name, phone number, physical location (with a text field for address + optional lat/lng from browser geolocation), business category (e.g. Restaurant, Pharmacy, Grocery, Liquor), and a profile photo upload. These fields must be saved to the vendor record in the database.
+
+
+2. VENDOR PORTAL — PROFILE & PRODUCT MANAGEMENT
+
+The vendor profile page must display: business name, owner name, location/address, phone number, business category, and profile photo. Pull this from the vendor record updated in step 1.
+Implement a fully functional Add Item flow for vendors. Each item must have: name, description, price, category tag(s) (comma-separated, e.g. "chips, fast food, snacks"), stock status (available/unavailable), and an image upload.
+Items added by a vendor must immediately become visible on the customer-facing homepage product feed when a customer scrolls.
+
+
+3. CUSTOMER HOMEPAGE REDESIGN
+
+Remove the existing top navigation bar entirely.
+Replace it with a horizontal category tab bar at the top of the homepage with the following tabs: Yajja Food, Yajja Liquor, Yajja Accessories, Yajja Go. Tapping a tab filters the entire homepage to that category. Style these tabs using the existing Yajja brand colors.
+Remove the "Browse All Stores" section at the bottom of the homepage. Replace it with a "Most Popular Stores" section showing the top 4–6 stores ranked by order count, with an "Explore More" button that navigates to a full store listing page.
+Add a "Recently Ordered" section on the homepage that shows items the customer ordered in the previous day. Each item card should display a prompt: "Same as last time?" with a one-tap reorder button that adds it directly to the cart.
+The cart, order history, and account settings should be moved into a floating sidebar anchored to the right side of the screen. It should open/close with a slide-in animation when triggered by a floating action button.
+
+
+4. SEARCH & ITEM DISCOVERY
+
+Implement a tag-based search system. When a customer types in the search bar (e.g. "chips", "tissue", "soda"), the results page must show a list of stores that carry items matching that tag, grouped by store. Each store card shows the matching items below it.
+Tags are set by vendors when adding items (step 2). Index the tags column for fast lookups.
+
+
+5. MULTI-STORE ORDERING
+
+Customers must be able to add items from multiple different vendors/stores into a single cart session. The cart UI must clearly group items by store, showing the store name as a section header within the cart sidebar.
+At checkout, the order must be split per vendor in the backend — each vendor receives only their portion of the order. A single order session generates one unique order number (e.g. YJJ-20240601-00423) that is shared across the multi-vendor order, but each vendor sees only their sub-order.
+
+
+6. IN-STORE BROWSING — SLIDING CATEGORY NAV
+
+When a customer opens a specific store/restaurant page, add a horizontally scrollable category pill bar just below the store header. Categories are dynamically populated from the item tags belonging to that store (e.g. "All", "Fast Food", "Snacks", "Drinks"). Tapping a pill filters the item grid to that category with a smooth scroll/filter animation.
+
+
+7. EXPLORE PAGE
+
+On the Explore page, remove the "Food" tab and any food-only sections. The Explore page should list Restaurants/Stores only — no individual food items. Each store card shows name, category, rating, and estimated delivery time.
+
+
+8. ORDER FLOW & CART CONSISTENCY
+
+Fix the end-to-end order flow so it is fully consistent:
+
+Customer adds items → they appear in the floating cart sidebar with correct quantities and prices.
+Customer checks out → order is created in the DB with status pending.
+Vendor portal shows the new order in real time (use polling or WebSocket — follow whichever pattern is already in the codebase).
+Vendor marks order as ready → rider is notified.
+Rider accepts → order status updates to in_transit.
+Customer can track order status in real time from the cart/orders sidebar.
+
+
+
+
+9. RIDER PORTAL — ORDER TRACKING & MULTI-PICKUP
+
+Each order must be identified by its unique order number (from step 5) in the rider portal.
+When a rider has a multi-vendor order (items from multiple stores), the rider portal must show a sequential pickup checklist: Store A → Store B → Deliver to customer.
+As the rider completes each pickup, they tap "Picked up from [Store Name]" — this triggers a push notification / status update to the customer, e.g.: "Your order from Kenchic has been picked up. Rider is heading to Java House." Then: "All items picked up. Rider is on the way to you."
+The rider's live GPS location must be tracked and displayed to the customer on a map view in real time. Use the browser Geolocation API on the rider's device, send coordinates to the backend via a websocket or polling endpoint (every 5–10 seconds), and render the rider's position on a map (use Leaflet.js or the mapping library already in the codebase) on the customer's order tracking screen.
+
+
+10. M-PESA DARAJA INTEGRATION (ESCROW + MARKETPLACE FLOW)
+
+Integrate Safaricom Daraja API for payments at checkout using a marketplace escrow model.
+
+1. Payment Flow (Paybill-Based Escrow System)
+At checkout, the customer does NOT pay the vendor directly.
+The customer pays the full order amount to our platform Paybill (Business Shortcode) using:
+Lipa Na M-Pesa Online (STK Push preferred) OR Paybill STK prompt.
+When the customer confirms their order, trigger an STK Push request to their phone number directed to our Paybill account.
+2. Payment Confirmation
+Poll the Daraja API (Callback + optional polling fallback) to confirm payment success.
+On successful payment:
+Mark order as paid_held_in_escrow
+Store transaction metadata (CheckoutRequestID, MpesaReceiptNumber, amount, phone number)
+Trigger vendor notification flow (step 8)
+3. Escrow Handling & Revenue Split
+The payment is first received into the platform Paybill account (escrow wallet).
+The system must calculate:
+Vendor payout amount = order total - platform commission
+Platform commission = configurable percentage or fixed fee per order
+4. Vendor Settlement (Payout Flow)
+After payment confirmation (and optionally after order delivery confirmation depending on business rules):
+Use Daraja B2C or B2B API to transfer the vendor’s share to their registered:
+Till number OR Paybill OR phone number (preferred B2C)
+Update order status:
+settled once vendor payout is successful
+payout_failed if transfer fails (retry mechanism required)
+5. Failure & Edge Cases
+If customer cancels or payment times out:
+Mark order as pending_payment
+Allow retry of STK Push
+If payment is successful but vendor payout fails:
+Keep funds in escrow ledger
+Retry payout automatically or flag for admin review
+Maintain a transaction ledger for reconciliation between:
+Customer payment
+Escrow balance
+Vendor payouts
+Platform commission
+6. Security & Configuration
+Store all Daraja credentials securely in environment variables:
+Consumer Key
+Consumer Secret
+Shortcode (Paybill)
+Passkey
+Do NOT hardcode sensitive credentials.
+Ensure callbacks are verified and authenticated before updating payment status.
+
+
+11. UI CONSISTENCY & VISUAL POLISH
+
+Audit every page and enforce the Yajja color palette consistently.Fix any pages using off-brand colors.
+Typography: enforce Epilogue for headings and Work Sans for body text across all pages.
+Fix any broken layouts, misaligned elements, or overflow issues on mobile viewport.
+All interactive elements (buttons, cards, inputs) must have consistent hover/active states and smooth transitions (150–250ms ease).
+Ensure all loading states, empty states, and error states have proper UI feedback (spinners, skeleton loaders, or toast notifications as appropriate — follow whatever pattern already exists in the codebase).
+
+
+GENERAL RULES
+
+Do not change the database table names or column names unless a step above explicitly adds a new column.
+Do not switch ORMs, frameworks, or package managers.
+If a feature requires a new DB migration via DrizzleORM, generate and apply it.

@@ -41,6 +41,7 @@ import type {
   LeaderboardResponse,
   ListGroupMessagesParams,
   ListOrdersParams,
+  ListPopularVendorsParams,
   ListProductsParams,
   ListRiderOrdersParams,
   ListUsersParams,
@@ -807,6 +808,262 @@ export const useCreateVendor = <
 > => {
   return useMutation(getCreateVendorMutationOptions(options));
 };
+
+/**
+ * @summary Get the current user's vendor profile
+ */
+export const getGetMyVendorUrl = () => {
+  return `/api/vendors/me`;
+};
+
+export const getMyVendor = async (options?: RequestInit): Promise<Vendor> => {
+  return customFetch<Vendor>(getGetMyVendorUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyVendorQueryKey = () => {
+  return [`/api/vendors/me`] as const;
+};
+
+export const getGetMyVendorQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyVendor>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyVendor>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyVendorQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyVendor>>> = ({
+    signal,
+  }) => getMyVendor({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyVendor>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyVendorQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyVendor>>
+>;
+export type GetMyVendorQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get the current user's vendor profile
+ */
+
+export function useGetMyVendor<
+  TData = Awaited<ReturnType<typeof getMyVendor>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyVendor>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyVendorQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update the current user's vendor profile
+ */
+export const getUpdateMyVendorUrl = () => {
+  return `/api/vendors/me`;
+};
+
+export const updateMyVendor = async (
+  updateVendorBody: UpdateVendorBody,
+  options?: RequestInit,
+): Promise<Vendor> => {
+  return customFetch<Vendor>(getUpdateMyVendorUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateVendorBody),
+  });
+};
+
+export const getUpdateMyVendorMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateMyVendor>>,
+    TError,
+    { data: BodyType<UpdateVendorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateMyVendor>>,
+  TError,
+  { data: BodyType<UpdateVendorBody> },
+  TContext
+> => {
+  const mutationKey = ["updateMyVendor"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateMyVendor>>,
+    { data: BodyType<UpdateVendorBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateMyVendor(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateMyVendorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateMyVendor>>
+>;
+export type UpdateMyVendorMutationBody = BodyType<UpdateVendorBody>;
+export type UpdateMyVendorMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update the current user's vendor profile
+ */
+export const useUpdateMyVendor = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateMyVendor>>,
+    TError,
+    { data: BodyType<UpdateVendorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateMyVendor>>,
+  TError,
+  { data: BodyType<UpdateVendorBody> },
+  TContext
+> => {
+  return useMutation(getUpdateMyVendorMutationOptions(options));
+};
+
+/**
+ * @summary List vendors sorted by order count
+ */
+export const getListPopularVendorsUrl = (params?: ListPopularVendorsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/vendors/popular?${stringifiedParams}`
+    : `/api/vendors/popular`;
+};
+
+export const listPopularVendors = async (
+  params?: ListPopularVendorsParams,
+  options?: RequestInit,
+): Promise<Vendor[]> => {
+  return customFetch<Vendor[]>(getListPopularVendorsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListPopularVendorsQueryKey = (
+  params?: ListPopularVendorsParams,
+) => {
+  return [`/api/vendors/popular`, ...(params ? [params] : [])] as const;
+};
+
+export const getListPopularVendorsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listPopularVendors>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListPopularVendorsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listPopularVendors>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListPopularVendorsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listPopularVendors>>
+  > = ({ signal }) => listPopularVendors(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listPopularVendors>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListPopularVendorsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listPopularVendors>>
+>;
+export type ListPopularVendorsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List vendors sorted by order count
+ */
+
+export function useListPopularVendors<
+  TData = Awaited<ReturnType<typeof listPopularVendors>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListPopularVendorsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listPopularVendors>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListPopularVendorsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 export const getGetVendorUrl = (vendorId: number) => {
   return `/api/vendors/${vendorId}`;

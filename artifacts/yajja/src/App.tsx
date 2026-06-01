@@ -27,6 +27,7 @@ import VendorDetail from "@/pages/vendor-detail";
 import VendorPortal from "@/pages/vendor-portal/dashboard";
 import VendorOrders from "@/pages/vendor-portal/orders";
 import VendorProducts from "@/pages/vendor-portal/products";
+import VendorProfile from "@/pages/vendor-portal/profile";
 
 import RiderPortal from "@/pages/rider-portal/dashboard";
 import RiderMap from "@/pages/rider-portal/map";
@@ -95,6 +96,7 @@ function Router() {
         <Route path="/vendor-portal"><ProtectedRoute component={VendorPortal} allowedRoles={["vendor"]} /></Route>
         <Route path="/vendor-portal/orders"><ProtectedRoute component={VendorOrders} allowedRoles={["vendor"]} /></Route>
         <Route path="/vendor-portal/products"><ProtectedRoute component={VendorProducts} allowedRoles={["vendor"]} /></Route>
+        <Route path="/vendor-portal/profile"><ProtectedRoute component={VendorProfile} allowedRoles={["vendor"]} /></Route>
 
         {/* Rider Routes */}
         <Route path="/rider-portal"><ProtectedRoute component={RiderPortal} allowedRoles={["rider"]} /></Route>

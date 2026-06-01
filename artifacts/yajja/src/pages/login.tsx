@@ -3,7 +3,7 @@ import { useLocation, Link } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { Loader2, ShoppingBag, Zap, Users } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useLogin } from "@workspace/api-client-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -188,20 +188,7 @@ export function AuthLogin({ role }: { role: AuthRole }) {
 
           {config.showCustomerExtras && (
             <>
-              <div className="mt-8 grid grid-cols-3 gap-3">
-                {[
-                  { icon: ShoppingBag, label: "Fast Delivery" },
-                  { icon: Users, label: "Group Orders" },
-                  { icon: Zap, label: "Bill Splitting" },
-                ].map(({ icon: Icon, label }) => (
-                  <div key={label} className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-secondary/20">
-                    <Icon className="h-5 w-5 text-primary" />
-                    <span className="text-[10px] font-medium text-center text-muted-foreground leading-tight">{label}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 text-center">
+              <div className="mt-8 text-center">
                 <p className="text-xs text-muted-foreground mb-2">Joining as a business or rider?</p>
                 <div className="flex gap-2 justify-center">
                   <Link href="/vendor/login">

@@ -9,14 +9,20 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -30,8 +36,36 @@ import {
   Package,
   Pencil,
   Trash2,
+  ImagePlus,
 } from "lucide-react";
 import { formatKES } from "@/lib/format";
+
+const CATEGORIES = [
+  { value: "food", label: "Food" },
+  { value: "liquor", label: "Liquor" },
+  { value: "pharmacy", label: "Pharmacy" },
+  { value: "household", label: "Household" },
+];
+
+type ProductForm = {
+  name: string;
+  description: string;
+  price: string;
+  category: string;
+  tags: string;
+  imageUrl: string;
+  isAvailable: boolean;
+};
+
+const emptyForm: ProductForm = {
+  name: "",
+  description: "",
+  price: "",
+  category: "food",
+  tags: "",
+  imageUrl: "",
+  isAvailable: true,
+};
 
 export default function VendorProducts() {
   const [, setLocation] = useLocation();
@@ -40,13 +74,7 @@ export default function VendorProducts() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [form, setForm] = useState({
-    name: "",
-    description: "",
-    price: "",
-    category: "food",
-    imageUrl: "",
-  });
+  const [form, setForm] = useState<ProductForm>(emptyForm);
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -57,13 +85,9 @@ export default function VendorProducts() {
     queryKey: ["vendor", "me"],
     queryFn: async () => {
       const token = localStorage.getItem("yajja_token");
-
       const res = await fetch("/api/vendors/me", {
-        headers: token
-          ? { Authorization: `Bearer ${token}` }
-          : undefined,
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
-
       if (!res.ok) throw new Error("Failed to load vendor profile");
       return res.json();
     },
@@ -73,7 +97,7 @@ export default function VendorProducts() {
 
   const { data: products, isLoading } = useListProducts(
     vendorId ? ({ vendorId } as any) : {},
-    { enabled: !!vendorId } as any
+    { query: { enabled: !!vendorId } } as any
   );
 
   const createProduct = useCreateProduct();
@@ -82,13 +106,7 @@ export default function VendorProducts() {
 
   const openNew = () => {
     setEditingProduct(null);
-    setForm({
-      name: "",
-      description: "",
-      price: "",
-      category: "food",
-      imageUrl: "",
-    });
+    setForm({ ...emptyForm, category: (vendor as any)?.category || "food" });
     setImageFile(null);
     setDialogOpen(true);
   };
@@ -100,7 +118,9 @@ export default function VendorProducts() {
       description: p.description || "",
       price: String(p.price),
       category: p.category,
+      tags: p.tags || "",
       imageUrl: p.imageUrl || "",
+      isAvailable: p.isAvailable ?? true,
     });
     setImageFile(null);
     setDialogOpen(true);
@@ -108,102 +128,79 @@ export default function VendorProducts() {
 
   const uploadImage = async () => {
     if (!imageFile) return null;
-
     setIsUploading(true);
-
     const token = localStorage.getItem("yajja_token");
     const formData = new FormData();
     formData.append("image", imageFile);
-
     const res = await fetch("/api/uploads/products", {
       method: "POST",
-      headers: token
-        ? { Authorization: `Bearer ${token}` }
-        : undefined,
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       body: formData,
     });
-
     setIsUploading(false);
-
     if (!res.ok) throw new Error("Failed to upload image");
-
     const data = await res.json();
     return data.url as string;
   };
 
   const handleSave = async () => {
     if (!vendorId) {
-      toast({
-        variant: "destructive",
-        title: "Vendor profile not found",
-      });
+      toast({ variant: "destructive", title: "Vendor profile not found" });
+      return;
+    }
+    if (!form.name.trim() || !form.price.trim()) {
+      toast({ variant: "destructive", title: "Name and price are required" });
       return;
     }
 
     setIsSaving(true);
-
     try {
       let imageUrl = form.imageUrl;
-
       if (imageFile) {
         const uploaded = await uploadImage();
         imageUrl = uploaded || imageUrl;
       }
 
       const data = {
-        ...form,
-        imageUrl,
+        name: form.name.trim(),
+        description: form.description.trim(),
         price: parseFloat(form.price) || 0,
+        category: form.category,
+        tags: form.tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean)
+          .join(", "),
+        imageUrl,
+        isAvailable: form.isAvailable,
         vendorId,
       };
 
       if (editingProduct) {
-        await updateProduct.mutateAsync({
-          productId: editingProduct.id,
-          data,
-        } as any);
-
+        await updateProduct.mutateAsync({ productId: editingProduct.id, data } as any);
         toast({ title: "Product updated" });
       } else {
-        await createProduct.mutateAsync(
-          { data } as any
-        );
-
+        await createProduct.mutateAsync({ data } as any);
         toast({ title: "Product created" });
       }
 
-      queryClient.invalidateQueries({
-        queryKey: getListProductsQueryKey(),
-      });
-
+      queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
       setDialogOpen(false);
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Failed to save product",
-      });
+      toast({ variant: "destructive", title: "Failed to save product" });
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDelete = (id: number) => {
-    deleteProduct.mutate(
-      { productId: id } as any,
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({
-            queryKey: getListProductsQueryKey(),
-          });
-          toast({ title: "Product deleted" });
-        },
-        onError: () =>
-          toast({
-            variant: "destructive",
-            title: "Failed to delete",
-          }),
-      }
-    );
+    deleteProduct.mutate({ productId: id } as any, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
+        toast({ title: "Product deleted" });
+      },
+      onError: () => toast({ variant: "destructive", title: "Failed to delete" }),
+    });
   };
 
   useEffect(() => {
@@ -211,64 +208,78 @@ export default function VendorProducts() {
       setImagePreview(form.imageUrl || "");
       return;
     }
-
     const url = URL.createObjectURL(imageFile);
     setImagePreview(url);
-
     return () => URL.revokeObjectURL(url);
   }, [imageFile, form.imageUrl]);
 
   return (
     <div className="container max-w-3xl mx-auto py-8 px-4 space-y-6">
       <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setLocation("/vendor-portal")}
-        >
+        <Button variant="ghost" size="icon" onClick={() => setLocation("/vendor-portal")}>
           <ArrowLeft />
         </Button>
-
-        <h1 className="text-2xl font-bold flex-1">
-          My Menu
-        </h1>
-
+        <h1 className="text-2xl font-bold flex-1">My Menu</h1>
         <Button onClick={openNew}>
           <Plus className="w-4 h-4 mr-2" />
-          Add Product
+          Add Item
         </Button>
       </div>
 
       {isLoading ? (
-        <Loader2 className="animate-spin" />
+        <div className="flex justify-center py-12">
+          <Loader2 className="animate-spin text-primary" />
+        </div>
       ) : !(products as any[])?.length ? (
         <Card>
-          <CardContent className="p-6 text-center">
-            <Package className="mx-auto mb-2" />
-            No products yet
+          <CardContent className="p-8 text-center text-muted-foreground">
+            <Package className="mx-auto mb-2 h-10 w-10 opacity-30" />
+            <p>No items yet. Tap "Add Item" to list your first product.</p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-3">
           {(products as any[]).map((p) => (
-            <Card key={p.id}>
-              <CardContent className="p-4 flex justify-between">
-                <div>
-                  <p className="font-bold">{p.name}</p>
-                  <p className="text-sm">{p.description}</p>
+            <Card key={p.id} className="overflow-hidden">
+              <CardContent className="p-4 flex gap-4 items-center">
+                <div className="h-16 w-16 rounded-xl bg-muted overflow-hidden shrink-0 flex items-center justify-center">
+                  {p.imageUrl ? (
+                    <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover" />
+                  ) : (
+                    <Package className="h-6 w-6 text-muted-foreground/40" />
+                  )}
                 </div>
-
-                <div className="flex gap-2">
-                  <Button size="icon" onClick={() => openEdit(p)}>
-                    <Pencil />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold truncate">{p.name}</p>
+                    {p.isAvailable ? (
+                      <Badge variant="secondary" className="text-[10px]">In stock</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px] text-muted-foreground">Unavailable</Badge>
+                    )}
+                  </div>
+                  <p className="text-sm text-primary font-semibold">{formatKES(p.price)}</p>
+                  {p.tags && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {String(p.tags)
+                        .split(",")
+                        .map((t: string) => t.trim())
+                        .filter(Boolean)
+                        .slice(0, 4)
+                        .map((t: string) => (
+                          <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                            {t}
+                          </span>
+                        ))}
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <Button size="icon" variant="outline" onClick={() => openEdit(p)}>
+                    <Pencil className="h-4 w-4" />
                   </Button>
-
-                  <Button
-                    size="icon"
-                    variant="destructive"
-                    onClick={() => handleDelete(p.id)}
-                  >
-                    <Trash2 />
+                  <Button size="icon" variant="destructive" onClick={() => handleDelete(p.id)}>
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </CardContent>
@@ -278,23 +289,115 @@ export default function VendorProducts() {
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {editingProduct ? "Edit" : "Create"} Product
-            </DialogTitle>
+            <DialogTitle>{editingProduct ? "Edit Item" : "Add Item"}</DialogTitle>
           </DialogHeader>
 
-          <Button
-            className="w-full"
-            onClick={handleSave}
-            disabled={isSaving}
-          >
-            {isSaving && (
-              <Loader2 className="animate-spin mr-2" />
-            )}
-            Save
-          </Button>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Item photo</Label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <div className="h-20 w-20 rounded-xl bg-muted overflow-hidden flex items-center justify-center border border-dashed border-border">
+                  {imagePreview ? (
+                    <img src={imagePreview} alt="preview" className="h-full w-full object-cover" />
+                  ) : (
+                    <ImagePlus className="h-6 w-6 text-muted-foreground/50" />
+                  )}
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  {isUploading ? "Uploading…" : "Tap to upload an image"}
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                />
+              </label>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="p-name">Name</Label>
+              <Input
+                id="p-name"
+                placeholder="e.g. Crispy Chicken Burger"
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="p-desc">Description</Label>
+              <Textarea
+                id="p-desc"
+                placeholder="Short description of the item"
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="p-price">Price (KES)</Label>
+                <Input
+                  id="p-price"
+                  type="number"
+                  inputMode="decimal"
+                  placeholder="0"
+                  value={form.price}
+                  onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Category</Label>
+                <Select
+                  value={form.category}
+                  onValueChange={(v) => setForm((f) => ({ ...f, category: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="p-tags">Tags</Label>
+              <Input
+                id="p-tags"
+                placeholder="chips, fast food, snacks"
+                value={form.tags}
+                onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
+              />
+              <p className="text-xs text-muted-foreground">
+                Comma-separated. Customers find your item by searching these tags.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between rounded-xl border border-border p-3">
+              <div>
+                <p className="text-sm font-medium">Available</p>
+                <p className="text-xs text-muted-foreground">Turn off if this item is out of stock</p>
+              </div>
+              <Switch
+                checked={form.isAvailable}
+                onCheckedChange={(v) => setForm((f) => ({ ...f, isAvailable: v }))}
+              />
+            </div>
+
+            <Button className="w-full" onClick={handleSave} disabled={isSaving || isUploading}>
+              {(isSaving || isUploading) && <Loader2 className="animate-spin mr-2 h-4 w-4" />}
+              {editingProduct ? "Save changes" : "Add item"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

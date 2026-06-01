@@ -7,7 +7,16 @@ import { generateToken, requireAuth, getUser } from "../lib/auth";
 
 const router = Router();
 
-async function ensureVendorProfile(user: any) {
+type VendorOnboarding = {
+  businessName?: string;
+  category?: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  imageUrl?: string;
+};
+
+async function ensureVendorProfile(user: any, details?: VendorOnboarding) {
   const [vendor] = await db.select().from(vendorsTable).where(eq(vendorsTable.userId, user.id)).limit(1);
   if (vendor || user.role !== "vendor") {
     return vendor || null;
@@ -15,8 +24,14 @@ async function ensureVendorProfile(user: any) {
 
   await db.insert(vendorsTable).values({
     userId: user.id,
-    name: user.name,
-    category: "food",
+    name: details?.businessName?.trim() || user.name,
+    ownerName: user.name,
+    category: (details?.category as any) || "food",
+    address: details?.address || null,
+    lat: details?.latitude ?? null,
+    lng: details?.longitude ?? null,
+    imageUrl: details?.imageUrl || null,
+    status: "pending_review",
   });
 
   const [created] = await db.select().from(vendorsTable).where(eq(vendorsTable.userId, user.id)).limit(1);
@@ -56,7 +71,7 @@ router.post("/auth/register", async (req, res) => {
     res.status(400).json({ message: "Invalid request body" });
     return;
   }
-  const { name, email, password, role, phone } = parsed.data;
+  const { name, email, password, role, phone, businessName, category, address, latitude, longitude, imageUrl } = parsed.data;
 
   // Anti-fraud: phone is required for customer accounts
   if (role === "customer" && !phone) {
@@ -92,13 +107,9 @@ router.post("/auth/register", async (req, res) => {
 
   // Create role-specific profiles
   if (role === "vendor") {
-    console.log(`[AUTH REGISTER] Creating vendor profile for user ID: ${user.id}`);
-    await ensureVendorProfile(user);
-    console.log(`[AUTH REGISTER] Vendor profile created for user ID: ${user.id}`);
+    await ensureVendorProfile(user, { businessName, category, address, latitude, longitude, imageUrl });
   } else if (role === "rider") {
-    console.log(`[AUTH REGISTER] Creating rider profile for user ID: ${user.id}`);
     await ensureRiderProfile(user);
-    console.log(`[AUTH REGISTER] Rider profile created for user ID: ${user.id}`);
   }
 
   const token = generateToken(user.id);

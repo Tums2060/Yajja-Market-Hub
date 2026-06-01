@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, vendorsTable, ordersTable } from "@workspace/db";
-import { eq, and, ilike } from "drizzle-orm";
+import { eq, and, ilike, sql } from "drizzle-orm";
 import { CreateVendorBody, UpdateVendorBody } from "@workspace/api-zod";
 import { requireAuth, getUser } from "../lib/auth";
 
@@ -43,6 +43,60 @@ router.get("/vendors", async (req, res) => {
   const vendors = await query;
 
   res.json(vendors.map(serializeVendor));
+});
+
+router.get("/vendors/popular", async (req, res) => {
+  const limit = parseInt(String(req.query.limit ?? "")) || 10;
+
+  const counts = await db
+    .select({ vendorId: ordersTable.vendorId, count: sql<number>`count(*)` })
+    .from(ordersTable)
+    .groupBy(ordersTable.vendorId);
+
+  const countMap = new Map(counts.map((c) => [c.vendorId, Number(c.count)]));
+
+  const vendors = await db.select().from(vendorsTable);
+
+  const withCounts = vendors
+    .map((v) => ({ ...serializeVendor(v), orderCount: countMap.get(v.id) ?? 0 }))
+    .sort((a, b) => b.orderCount - a.orderCount)
+    .slice(0, limit);
+
+  res.json(withCounts);
+});
+
+router.put("/vendors/me", requireAuth, async (req, res) => {
+  const parsed = UpdateVendorBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ message: "Invalid body" });
+    return;
+  }
+
+  const user = getUser(req);
+  const [existing] = await db
+    .select()
+    .from(vendorsTable)
+    .where(eq(vendorsTable.userId, user.id))
+    .limit(1);
+
+  if (!existing) {
+    res.status(404).json({ message: "Vendor profile not found" });
+    return;
+  }
+
+  const { category, ...rest } = parsed.data;
+  await db
+    .update(vendorsTable)
+    .set({ ...rest, ...(category ? { category: category as any } : {}) })
+    .where(eq(vendorsTable.id, existing.id));
+
+  const [vendor] = await db
+    .select()
+    .from(vendorsTable)
+    .where(eq(vendorsTable.id, existing.id))
+    .limit(1);
+
+  res.json(serializeVendor(vendor));
 });
 
 router.get("/vendors/me", requireAuth, async (req, res) => {

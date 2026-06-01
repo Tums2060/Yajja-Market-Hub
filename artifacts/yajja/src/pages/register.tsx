@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, Link } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { Loader2, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { Loader2, ArrowLeft, Eye, EyeOff, MapPin, CheckCircle2 } from "lucide-react";
 import { KENYA } from "@/lib/format";
 import { useRegister } from "@workspace/api-client-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -14,18 +14,41 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-const registerSchema = z.object({
-  name: z.string().min(2, "Full name is required"),
-  email: z.string().email("Invalid email address"),
-  phone: z.string().min(9, "Phone number is required (e.g. +254 700 000 000)"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string().min(1, "Please confirm your password"),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
-
 type AuthRole = "customer" | "vendor" | "rider";
+
+const VENDOR_CATEGORIES = [
+  { value: "food", label: "Food & Drinks" },
+  { value: "liquor", label: "Liquor" },
+  { value: "pharmacy", label: "Pharmacy & Health" },
+  { value: "household", label: "Household & Convenience" },
+] as const;
+
+function makeSchema(role: AuthRole) {
+  const base = {
+    name: z.string().min(2, "Full name is required"),
+    email: z.string().email("Invalid email address"),
+    phone: z.string().min(9, "Phone number is required (e.g. +254 700 000 000)"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z.string().min(1, "Please confirm your password"),
+    businessName: z.string().optional(),
+    category: z.enum(["food", "liquor", "pharmacy", "household"]).optional(),
+    address: z.string().optional(),
+    latitude: z.number().optional(),
+    longitude: z.number().optional(),
+  };
+
+  if (role === "vendor") {
+    base.businessName = z.string().min(2, "Business name is required") as any;
+    base.category = z.enum(["food", "liquor", "pharmacy", "household"], {
+      message: "Please choose a category",
+    }) as any;
+  }
+
+  return z.object(base).refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
+}
 
 const roleConfig: Record<AuthRole, {
   label: string;
@@ -46,7 +69,7 @@ const roleConfig: Record<AuthRole, {
   vendor: {
     label: "Vendor",
     heading: "Sign Up as Vendor",
-    subheading: "Create a vendor account to manage your store.",
+    subheading: "Set up your store and start selling on Yajja.",
     loginPath: "/vendor/login",
     registerPath: "/vendor/register",
     showCustomerExtras: false,
@@ -67,15 +90,23 @@ export function AuthRegister({ role }: { role: AuthRole }) {
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [locating, setLocating] = useState(false);
   const config = roleConfig[role];
+  const isVendor = role === "vendor";
 
   useEffect(() => {
     document.title = `${config.heading} - Yajja`;
   }, [config.heading]);
 
-  const form = useForm<z.infer<typeof registerSchema>>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: { name: "", email: "", phone: "", password: "", confirmPassword: "" },
+  const schema = useMemo(() => makeSchema(role), [role]);
+
+  const form = useForm<z.infer<ReturnType<typeof makeSchema>>>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      name: "", email: "", phone: "", password: "", confirmPassword: "",
+      businessName: "", category: undefined, address: "",
+      latitude: undefined, longitude: undefined,
+    },
     mode: "onChange",
   });
 
@@ -83,18 +114,50 @@ export function AuthRegister({ role }: { role: AuthRole }) {
 
   const pw = form.watch("password");
   const cpw = form.watch("confirmPassword");
+  const lat = form.watch("latitude");
+  const lng = form.watch("longitude");
+  const category = form.watch("category");
   const passwordsMatch = pw.length > 0 && pw === cpw;
 
-  function onSubmit(values: z.infer<typeof registerSchema>) {
-    const { confirmPassword: _omit, ...payload } = values;
+  function captureLocation() {
+    if (!navigator.geolocation) {
+      toast({ variant: "destructive", title: "Location unavailable", description: "Your browser does not support geolocation." });
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        form.setValue("latitude", pos.coords.latitude, { shouldValidate: true });
+        form.setValue("longitude", pos.coords.longitude, { shouldValidate: true });
+        setLocating(false);
+        toast({ title: "Location captured", description: "Your store location has been pinned." });
+      },
+      () => {
+        setLocating(false);
+        toast({ variant: "destructive", title: "Couldn't get location", description: "Please allow location access or enter your address." });
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+
+  function onSubmit(values: z.infer<ReturnType<typeof makeSchema>>) {
+    const { confirmPassword: _omit, businessName, category, address, latitude, longitude, ...rest } = values;
     void _omit;
+    const payload: any = { ...rest, role };
+    if (isVendor) {
+      payload.businessName = businessName;
+      payload.category = category;
+      if (address) payload.address = address;
+      if (typeof latitude === "number") payload.latitude = latitude;
+      if (typeof longitude === "number") payload.longitude = longitude;
+    }
     registerMutation.mutate(
-      { data: { ...payload, role } },
+      { data: payload },
       {
         onSuccess: (data) => {
           setToken(data.token);
           toast({ title: "Welcome to Yajja!" });
-          setLocation("/");
+          setLocation(isVendor ? "/vendor-portal" : "/");
         },
         onError: (error: any) => {
           toast({
@@ -106,6 +169,8 @@ export function AuthRegister({ role }: { role: AuthRole }) {
       }
     );
   }
+
+  const inputClass = "h-12 rounded-xl bg-secondary/20 border-0 focus-visible:ring-secondary";
 
   return (
     <div className="min-h-[100dvh] bg-background flex items-center justify-center px-4 py-10">
@@ -137,6 +202,25 @@ export function AuthRegister({ role }: { role: AuthRole }) {
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+              {isVendor && (
+                <FormField
+                  control={form.control}
+                  name="businessName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input
+                          placeholder="Business / store name"
+                          autoComplete="organization"
+                          className={inputClass}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               <FormField
                 control={form.control}
                 name="name"
@@ -144,9 +228,9 @@ export function AuthRegister({ role }: { role: AuthRole }) {
                   <FormItem>
                     <FormControl>
                       <Input
-                        placeholder="Full name"
+                        placeholder={isVendor ? "Owner full name" : "Full name"}
                         autoComplete="name"
-                        className="h-12 rounded-xl bg-secondary/20 border-0 focus-visible:ring-secondary"
+                        className={inputClass}
                         {...field}
                       />
                     </FormControl>
@@ -164,7 +248,7 @@ export function AuthRegister({ role }: { role: AuthRole }) {
                         placeholder={`Phone number (e.g. ${KENYA.phonePlaceholder})`}
                         type="tel"
                         autoComplete="tel"
-                        className="h-12 rounded-xl bg-secondary/20 border-0 focus-visible:ring-secondary"
+                        className={inputClass}
                         {...field}
                       />
                     </FormControl>
@@ -185,7 +269,7 @@ export function AuthRegister({ role }: { role: AuthRole }) {
                         placeholder="Email address"
                         type="email"
                         autoComplete="email"
-                        className="h-12 rounded-xl bg-secondary/20 border-0 focus-visible:ring-secondary"
+                        className={inputClass}
                         {...field}
                       />
                     </FormControl>
@@ -193,6 +277,68 @@ export function AuthRegister({ role }: { role: AuthRole }) {
                   </FormItem>
                 )}
               />
+
+              {isVendor && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <select
+                            value={field.value ?? ""}
+                            onChange={(e) => field.onChange(e.target.value || undefined)}
+                            className={`${inputClass} w-full px-3 text-sm ${category ? "text-foreground" : "text-muted-foreground"}`}
+                          >
+                            <option value="" disabled>Select store category</option>
+                            {VENDOR_CATEGORIES.map((c) => (
+                              <option key={c.value} value={c.value}>{c.label}</option>
+                            ))}
+                          </select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Input
+                            placeholder={`Store location (${KENYA.addressPlaceholder})`}
+                            autoComplete="street-address"
+                            className={inputClass}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={captureLocation}
+                    disabled={locating}
+                    className="w-full h-11 rounded-xl border-secondary/50 text-primary hover:bg-secondary/20 justify-center gap-2"
+                  >
+                    {locating ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : typeof lat === "number" && typeof lng === "number" ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    ) : (
+                      <MapPin className="h-4 w-4" />
+                    )}
+                    {typeof lat === "number" && typeof lng === "number"
+                      ? `Location pinned (${lat.toFixed(4)}, ${lng.toFixed(4)})`
+                      : "Pin my store location (GPS)"}
+                  </Button>
+                </>
+              )}
+
               <FormField
                 control={form.control}
                 name="password"
@@ -204,7 +350,7 @@ export function AuthRegister({ role }: { role: AuthRole }) {
                           placeholder="Password (min 6 characters)"
                           type={showPassword ? "text" : "password"}
                           autoComplete="new-password"
-                          className="h-12 rounded-xl bg-secondary/20 border-0 focus-visible:ring-secondary pr-11"
+                          className={`${inputClass} pr-11`}
                           {...field}
                         />
                         <button
@@ -233,7 +379,7 @@ export function AuthRegister({ role }: { role: AuthRole }) {
                           placeholder="Confirm password"
                           type={showConfirm ? "text" : "password"}
                           autoComplete="new-password"
-                          className="h-12 rounded-xl bg-secondary/20 border-0 focus-visible:ring-secondary pr-11"
+                          className={`${inputClass} pr-11`}
                           {...field}
                         />
                         <button
@@ -277,7 +423,6 @@ export function AuthRegister({ role }: { role: AuthRole }) {
             By creating an account you agree to our Terms of Service and Privacy Policy. One account per phone number is allowed.
           </p>
 
-          {/* Portal access */}
           {config.showCustomerExtras && (
             <div className="mt-6 p-4 rounded-xl bg-secondary/20 border border-secondary/40">
               <p className="text-xs font-medium text-muted-foreground mb-2">Want to join as a vendor or rider?</p>

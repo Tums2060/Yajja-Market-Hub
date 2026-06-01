@@ -1,19 +1,18 @@
-import { mysqlTable, int, text, timestamp, mysqlEnum } from "drizzle-orm/mysql-core";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
+import { pgTable, serial, text, timestamp, pgEnum } from "drizzle-orm/pg-core";
 
-export const usersTable = mysqlTable("users", {
-  id: int("id").primaryKey().autoincrement(),
+export const userRoleEnum = pgEnum("user_role", ["customer", "vendor", "rider", "admin"]);
+
+export const usersTable = pgTable("users", {
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
-  role: mysqlEnum("role", ["customer", "vendor", "rider", "admin"]).notNull().default("customer"),
+  role: userRoleEnum("role").notNull().default("customer"),
   phone: text("phone"),
   avatarUrl: text("avatar_url"),
   address: text("address"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(usersTable).omit({ id: true, createdAt: true });
-export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertUser = typeof usersTable.$inferInsert;
 export type User = typeof usersTable.$inferSelect;

@@ -177,6 +177,56 @@ paths:
               schema:
                 $ref: "#/components/schemas/Vendor"
 
+  /vendors/me:
+    get:
+      operationId: getMyVendor
+      tags: [vendors]
+      summary: Get the current user's vendor profile
+      responses:
+        "200":
+          description: Vendor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vendor"
+    put:
+      operationId: updateMyVendor
+      tags: [vendors]
+      summary: Update the current user's vendor profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateVendorBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vendor"
+
+  /vendors/popular:
+    get:
+      operationId: listPopularVendors
+      tags: [vendors]
+      summary: List vendors sorted by order count
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Popular vendors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Vendor"
+
   /vendors/{vendorId}:
     get:
       operationId: getVendor
@@ -1050,6 +1100,18 @@ components:
           $ref: "#/components/schemas/UserRole"
         phone:
           type: string
+        businessName:
+          type: string
+        category:
+          $ref: "#/components/schemas/Category"
+        address:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        imageUrl:
+          type: string
       required: [name, email, password, role]
 
     LoginBody:
@@ -1102,6 +1164,8 @@ components:
           type: integer
         name:
           type: string
+        ownerName:
+          type: string
         category:
           $ref: "#/components/schemas/Category"
         description:
@@ -1110,6 +1174,10 @@ components:
           type: string
         address:
           type: string
+        lat:
+          type: number
+        lng:
+          type: number
         rating:
           type: number
         deliveryTime:
@@ -1118,6 +1186,10 @@ components:
           type: number
         isOpen:
           type: boolean
+        status:
+          type: string
+        orderCount:
+          type: integer
         createdAt:
           type: string
       required: [id, userId, name, category, isOpen, createdAt]
@@ -1146,12 +1218,20 @@ components:
       properties:
         name:
           type: string
+        ownerName:
+          type: string
+        category:
+          $ref: "#/components/schemas/Category"
         description:
           type: string
         imageUrl:
           type: string
         address:
           type: string
+        lat:
+          type: number
+        lng:
+          type: number
         deliveryTime:
           type: string
         minOrder:
@@ -1208,6 +1288,8 @@ components:
           type: string
         category:
           $ref: "#/components/schemas/Category"
+        tags:
+          type: string
         isAvailable:
           type: boolean
         createdAt:
@@ -1227,6 +1309,8 @@ components:
           type: string
         category:
           $ref: "#/components/schemas/Category"
+        tags:
+          type: string
         isAvailable:
           type: boolean
       required: [name, price, category]
