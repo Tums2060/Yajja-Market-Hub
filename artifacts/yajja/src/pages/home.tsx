@@ -87,7 +87,9 @@ export default function Home() {
   );
   const { data: orders } = useListOrders({} as any);
 
-  const recentOrders = ((orders as any[]) || []).slice(0, 3);
+  const recentOrders = [...((orders as any[]) || [])]
+    .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime())
+    .slice(0, 3);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
