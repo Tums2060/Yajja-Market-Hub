@@ -34,6 +34,31 @@ export default function VendorDetail() {
   const addToCartMutation = useAddToCart();
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [activeTag, setActiveTag] = useState<string>("all");
+
+  const tagList = React.useMemo(() => {
+    const set = new Set<string>();
+    for (const p of (products as any[]) || []) {
+      String((p as any).tags || "")
+        .split(",")
+        .map((t) => t.trim().toLowerCase())
+        .filter(Boolean)
+        .forEach((t) => set.add(t));
+    }
+    return Array.from(set);
+  }, [products]);
+
+  const displayedProducts = React.useMemo(() => {
+    const list = (products as any[]) || [];
+    if (activeTag === "all") return list;
+    return list.filter((p) =>
+      String((p as any).tags || "")
+        .toLowerCase()
+        .split(",")
+        .map((t) => t.trim())
+        .includes(activeTag)
+    );
+  }, [products, activeTag]);
 
   const openProduct = (product: any) => {
     setSelectedProduct(product);
@@ -134,9 +159,39 @@ export default function VendorDetail() {
           </div>
         )}
 
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold">Products</h2>
         </div>
+
+        {tagList.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-4 sticky top-0 bg-muted/20 z-10">
+            <button
+              type="button"
+              onClick={() => setActiveTag("all")}
+              className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
+                activeTag === "all"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card border border-secondary/40 text-foreground hover:bg-secondary/20"
+              }`}
+            >
+              All
+            </button>
+            {tagList.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => setActiveTag(tag)}
+                className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold capitalize transition-colors ${
+                  activeTag === tag
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-card border border-secondary/40 text-foreground hover:bg-secondary/20"
+                }`}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        )}
 
         {productsLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -152,13 +207,15 @@ export default function VendorDetail() {
               </Card>
             ))}
           </div>
-        ) : products?.length === 0 ? (
+        ) : displayedProducts.length === 0 ? (
           <div className="text-center py-12 bg-card rounded-xl border border-dashed">
-            <p className="text-muted-foreground">No products available right now.</p>
+            <p className="text-muted-foreground">
+              {activeTag === "all" ? "No products available right now." : `No items tagged “${activeTag}”.`}
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {products?.map((product) => (
+            {displayedProducts.map((product) => (
               <button
                 key={product.id}
                 type="button"

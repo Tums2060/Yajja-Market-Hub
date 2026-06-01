@@ -23,6 +23,7 @@ import Orders from "@/pages/orders";
 import OrderDetail from "@/pages/order-detail";
 import Profile from "@/pages/profile";
 import VendorDetail from "@/pages/vendor-detail";
+import SearchResults from "@/pages/search";
 
 import VendorPortal from "@/pages/vendor-portal/dashboard";
 import VendorOrders from "@/pages/vendor-portal/orders";
@@ -85,6 +86,7 @@ function Router() {
         <Route path="/shop"><ProtectedRoute component={Shop} allowedRoles={["customer"]} /></Route>
         <Route path="/shop/:category"><ProtectedRoute component={Shop} allowedRoles={["customer"]} /></Route>
         <Route path="/category/:category"><ProtectedRoute component={CategoryPage} allowedRoles={["customer"]} /></Route>
+        <Route path="/search"><ProtectedRoute component={SearchResults} allowedRoles={["customer"]} /></Route>
         <Route path="/vendor/:vendorId"><ProtectedRoute component={VendorDetail} allowedRoles={["customer"]} /></Route>
         <Route path="/cart"><ProtectedRoute component={Cart} allowedRoles={["customer"]} /></Route>
         <Route path="/checkout"><ProtectedRoute component={Checkout} allowedRoles={["customer"]} /></Route>

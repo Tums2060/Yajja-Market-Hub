@@ -2,3 +2,4 @@
 - [drizzle-zod + zod 3.25 TS2344](drizzle-zod-zod-mismatch.md) — createInsertSchema return type breaks z.infer; derive insert types from $inferInsert instead.
 - [bash/rg output token mangling](bash-output-token-mangling.md) — bash stdout redacts some tokens (Route→ln, uploads→n); not real corruption, verify with read tool.
 - [yajja query-hook calling convention](yajja-orval-hooks.md) — orval GET hooks: useGetMyVendor/useListPopularVendors/useListVendors/useListOrders; mutations take {data}; pre-existing typecheck errors from queryKey/params shape.
+- [Seed data has no source file](seed-data-location.md) — product/vendor seed lives only in the DB; modify demo data via SQL, not a seed script.

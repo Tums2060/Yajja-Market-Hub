@@ -82,7 +82,9 @@ router.get("/products", async (req, res) => {
         r.product.name.toLowerCase().includes(term) ||
         (r.product.description || "")
           .toLowerCase()
-          .includes(term)
+          .includes(term) ||
+        (r.product.tags || "").toLowerCase().includes(term) ||
+        (r.product.category || "").toLowerCase().includes(term)
     );
   }
 

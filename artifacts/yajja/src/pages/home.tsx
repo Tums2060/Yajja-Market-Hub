@@ -93,7 +93,7 @@ export default function Home() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (search.trim()) setLocation(`/shop?search=${encodeURIComponent(search)}`);
+    if (search.trim()) setLocation(`/search?q=${encodeURIComponent(search)}`);
   };
 
   const popular = (popularVendors as any[]) || [];
