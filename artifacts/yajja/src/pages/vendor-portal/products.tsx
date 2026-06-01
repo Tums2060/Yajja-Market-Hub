@@ -6,8 +6,9 @@ import {
   useUpdateProduct,
   useDeleteProduct,
   getListProductsQueryKey,
+  useGetMyVendor,
 } from "@workspace/api-client-react";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -81,17 +82,7 @@ export default function VendorProducts() {
   const [imagePreview, setImagePreview] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  const { data: vendor } = useQuery({
-    queryKey: ["vendor", "me"],
-    queryFn: async () => {
-      const token = localStorage.getItem("yajja_token");
-      const res = await fetch("/api/vendors/me", {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
-      if (!res.ok) throw new Error("Failed to load vendor profile");
-      return res.json();
-    },
-  });
+  const { data: vendor } = useGetMyVendor();
 
   const vendorId = (vendor as any)?.id as number | undefined;
 
