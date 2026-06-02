@@ -4,7 +4,14 @@ import { useListVendors } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Store, Star, Clock } from "lucide-react";
+import { Search, Store, Star, Clock, ShoppingBag, Package, ShoppingCart } from "lucide-react";
+
+const CATEGORIES = [
+  { id: "food", label: "Yajja Food & Drinks", Icon: ShoppingBag, href: "/category/food" },
+  { id: "liquor", label: "Yajja Liquor", Icon: Store, href: "/category/liquor" },
+  { id: "pharmacy", label: "Yajja Health & Beauty", Icon: Package, href: "/category/pharmacy" },
+  { id: "household", label: "Yajja Convenience", Icon: ShoppingCart, href: "/category/household" },
+];
 
 export default function Shop() {
   const [search, setSearch] = useState("");
@@ -30,6 +37,24 @@ export default function Shop() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+        </div>
+      </div>
+
+      {/* NEW: Sliding Horizontal Navigation Menu */}
+      <div className="w-full overflow-x-auto scrollbar-hide -mx-4 px-4 py-3">
+        <div className="flex gap-3 whitespace-nowrap min-w-max pb-1">
+          {CATEGORIES.map((cat) => (
+            <Link key={cat.id} href={cat.href}>
+              <div className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white border border-secondary/40 shadow-sm hover:shadow-md hover:border-primary/30 transition-all active:scale-[0.97] cursor-pointer">
+                <div className="h-6 w-6 rounded-full bg-secondary/25 flex items-center justify-center text-primary shrink-0">
+                  <cat.Icon className="h-3.5 w-3.5" />
+                </div>
+                <span className="text-xs font-bold text-primary tracking-wide">
+                  {cat.label}
+                </span>
+              </div>
+            </Link>
+          ))}
         </div>
       </div>
 
