@@ -140,13 +140,13 @@ export default function Home() {
       </div>
 
       {/* Category tab bar */}
-      <div className="max-w-2xl mx-auto px-4 pt-2 pb-6">
+      <div className="max-w-2xl mx-auto px-8 pt-2 pb-6">
         <h2 className="text-base font-bold text-primary mb-4">What are you looking for?</h2>
-        <div className="flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4 py-2 sm:mx-0 sm:px-0 sm:py-0 sm:grid sm:grid-cols-4">
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4 py-4 sm:mx-0 sm:px-0 sm:py-2 sm:grid sm:grid-cols-4">
           {CATEGORIES.map((cat) => (
             <Link key={cat.id} href={cat.href}>
-              <div className="flex flex-col items-center gap-2 active:scale-95 transition-transform w-20 sm:w-auto shrink-0">
-                <div className="relative aspect-square w-16 sm:w-full rounded-full overflow-hidden bg-secondary/25 ring-4 ring-secondary/40 shadow-lg flex items-center justify-center">
+              <div className="flex flex-col items-center gap-4 active:scale-95 transition-transform w-20 sm:w-auto shrink-0 px-1">
+                <div className="relative aspect-square w-16 sm:w-full rounded-full bg-secondary/25 ring-4 ring-secondary/40 shadow-lg flex items-center justify-center">
                   <cat.Icon className="relative h-7 w-7 text-primary" />
                 </div>
                 <span className="text-[11px] sm:text-xs font-semibold text-primary text-center leading-tight">{cat.label}</span>
