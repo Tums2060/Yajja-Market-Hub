@@ -12,10 +12,10 @@ import { useListPopularVendors, useListOrders } from "@workspace/api-client-reac
 import { formatKES, KENYA } from "@/lib/format";
 
 const CATEGORIES = [
-  { id: "food", label: "Food & Drinks", Icon: ShoppingBag, href: "/category/food" },
-  { id: "liquor", label: "Liquor", Icon: Store, href: "/category/liquor" },
-  { id: "pharmacy", label: "Health & Beauty", Icon: Package, href: "/category/pharmacy" },
-  { id: "household", label: "Convenience", Icon: ShoppingCart, href: "/category/household" },
+  { id: "food", label: " Yajja Food & Drinks", Icon: ShoppingBag, href: "/category/food" },
+  { id: "liquor", label: "Yajja Liquor", Icon: Store, href: "/category/liquor" },
+  { id: "pharmacy", label: "Yajja Health & Beauty", Icon: Package, href: "/category/pharmacy" },
+  { id: "household", label: "Yajja Convenience", Icon: ShoppingCart, href: "/category/household" },
 ];
 
 const categoryLabel: Record<string, string> = {
@@ -142,7 +142,7 @@ export default function Home() {
       {/* Category tab bar */}
       <div className="max-w-2xl mx-auto px-4 pt-2 pb-6">
         <h2 className="text-base font-bold text-primary mb-4">What are you looking for?</h2>
-        <div className="flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-4">
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4 py-2 sm:mx-0 sm:px-0 sm:py-0 sm:grid sm:grid-cols-4">
           {CATEGORIES.map((cat) => (
             <Link key={cat.id} href={cat.href}>
               <div className="flex flex-col items-center gap-2 active:scale-95 transition-transform w-20 sm:w-auto shrink-0">

@@ -31,19 +31,27 @@ export default function BottomNav() {
       {tabs.map(({ href, label, icon: Icon }) => (
         <Link key={href} href={href} className="flex-1">
           <button
-            className={`w-full h-full flex flex-col items-center justify-center gap-0.5 transition-colors ${
-              isActive(href) ? "text-primary" : "text-muted-foreground"
-            }`}
+            className="w-full h-full flex flex-col items-center justify-center gap-0.5 transition-colors text-foreground"
           >
             <div className="relative">
-              <Icon className={`h-5 w-5 ${isActive(href) ? "stroke-[2.5]" : "stroke-[1.5]"}`} />
+              <Icon
+                className={`h-5 w-5 ${
+                  isActive(href) ? "text-primary stroke-[2.5]" : "text-foreground stroke-[1.5]"
+                }`}
+              />
               {label === "Cart" && cartCount > 0 && (
                 <Badge className="absolute -top-2 -right-2 h-4 w-4 p-0 text-[9px] flex items-center justify-center bg-primary text-primary-foreground border-0">
                   {cartCount}
                 </Badge>
               )}
             </div>
-            <span className={`text-[10px] font-medium ${isActive(href) ? "text-primary" : ""}`}>{label}</span>
+            <span
+              className={`text-[10px] font-medium px-2 py-0.5 rounded-md transition-colors ${
+                isActive(href) ? "bg-primary text-primary-foreground" : "text-foreground"
+              }`}
+            >
+              {label}
+            </span>
           </button>
         </Link>
       ))}

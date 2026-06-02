@@ -98,7 +98,9 @@ export default function Navbar() {
                 <Button
                   variant={isActive(href) ? "default" : "ghost"}
                   size="sm"
-                  className={`gap-2 relative ${isCustomer ? "text-primary" : ""}`}
+                  className={`gap-2 relative ${
+                    isCustomer ? (isActive(href) ? "text-primary-foreground" : "text-foreground") : ""
+                  }`}
                 >
                   <Icon className="h-4 w-4" />
                   {label}
