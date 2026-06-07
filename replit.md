@@ -46,7 +46,7 @@ Yajja is a Uganda-based multi-category delivery platform (Food, Liquor, Pharmacy
 - **Package manager**: pnpm
 - **TypeScript version**: 5.9
 - **API framework**: Express 5
-- **Database**: PostgreSQL (default) or MariaDB/MySQL, dual-dialect via Drizzle ORM
+- **Database**: PostgreSQL via Drizzle ORM (node-postgres)
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
@@ -66,14 +66,12 @@ Yajja is a Uganda-based multi-category delivery platform (Food, Liquor, Pharmacy
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 
-## Database Dialect (Postgres / MariaDB-MySQL)
-The backend is **dual-dialect**, selected at process start by `DB_DIALECT` (`postgres` default, or `mysql`/`mariadb`). Replit provisions Postgres, so the default keeps working unchanged; MariaDB/MySQL is for running locally.
-- **Schemas**: `lib/db/src/schema/` (Postgres, canonical — also the source of all exported TS types) and a parallel `lib/db/src/schema-mysql/` (mysql-core mirror: `int().autoincrement()` PKs, `double` for real, `varchar` for unique/defaulted/short strings, `text` for long, `mysqlEnum` inline). Keep the two sets in sync when changing the schema.
-- **Connection** (`lib/db/src/index.ts`): picks `node-postgres` or `mysql2` by `DB_DIALECT`. The active table objects are swapped behind the same `@workspace/db` named exports, typed against the Postgres schema, so route code is dialect-agnostic. Exports `IS_MYSQL`.
-- **RETURNING**: MySQL has no `RETURNING`. Never call `.returning()` in app code — use the helpers `dbInsertReturning(table, values)` and `dbUpdateReturning(table, values, where)` from `@workspace/db` (pg uses RETURNING; mysql inserts then re-selects).
-- **Connection env for MySQL**: a `mysql://` `DATABASE_URL`, or discrete `DB_HOST`/`DB_PORT`/`DB_NAME`/`DB_USER`/`DB_PASSWORD`. Optional `DB_LOG_QUERIES=1` logs SQL. See `artifacts/api-server/.env.example`.
-- **Migrations**: `drizzle.config.ts` switches dialect/schema-path/credentials by `DB_DIALECT` (out dir `drizzle/` for pg, `drizzle-mysql/` for mysql). Run `pnpm --filter @workspace/db run push` against whichever dialect `DB_DIALECT` points to.
-- **MySQL is dev-only**: Replit provisions only Postgres, so the MySQL path is typecheck-validated but not e2e-tested here. Known cross-dialect caveats: `double` (not exact decimal) for money/coordinates, `timestamp` without timezone, and `varchar(191)` for unique columns. Validate against a real MariaDB/MySQL before relying on it in production.
+## Database (PostgreSQL)
+The backend uses **PostgreSQL only** (node-postgres + Drizzle ORM). MariaDB/MySQL dual-dialect support was removed.
+- **Schema**: `lib/db/src/schema/` (pg-core), the single source of all exported TS types and enum objects.
+- **Connection** (`lib/db/src/index.ts`): a `pg` `Pool` from `DATABASE_URL` wired to `drizzle-orm/node-postgres`. On Replit `DATABASE_URL` is provisioned automatically; for local dev copy `.env.example` to `.env`. Optional `DB_LOG_QUERIES=1` logs every SQL query.
+- **RETURNING helpers**: app code uses `dbInsertReturning(table, values)` / `dbUpdateReturning(table, values, where)` from `@workspace/db` (thin wrappers over Postgres `RETURNING`).
+- **Migrations**: `drizzle.config.ts` is `dialect: "postgresql"`, schema `./src/schema/index.ts`, out `./drizzle`. Generate with `pnpm --filter @workspace/db run generate`, apply with `pnpm --filter @workspace/db run migrate`, or sync dev with `pnpm --filter @workspace/db run push`. See `SETUP.md` for local setup.
 
 ## DB Schema Notes
 - `users` table: `id`, `name`, `email`, `password_hash`, `role` (customer/vendor/rider/admin), `phone`, `createdAt`

@@ -3,6 +3,9 @@ CREATE TYPE "public"."category" AS ENUM('food', 'liquor', 'pharmacy', 'household
 CREATE TYPE "public"."vendor_status" AS ENUM('pending_review', 'approved', 'rejected');--> statement-breakpoint
 CREATE TYPE "public"."group_order_status" AS ENUM('pending_payment', 'payment_complete', 'placed', 'cancelled');--> statement-breakpoint
 CREATE TYPE "public"."order_status" AS ENUM('pending', 'accepted', 'confirmed', 'preparing', 'ready', 'picked_up', 'delivered', 'cancelled', 'rejected');--> statement-breakpoint
+CREATE TYPE "public"."ledger_entry_status" AS ENUM('held', 'released', 'reversed');--> statement-breakpoint
+CREATE TYPE "public"."ledger_entry_type" AS ENUM('escrow_in', 'payout_vendor', 'payout_rider', 'commission', 'refund');--> statement-breakpoint
+CREATE TYPE "public"."payment_status" AS ENUM('unpaid', 'pending', 'paid', 'failed');--> statement-breakpoint
 CREATE TABLE "users" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
@@ -147,6 +150,7 @@ CREATE TABLE "orders" (
 	"subtotal" real NOT NULL,
 	"delivery_fee" real DEFAULT 2.5 NOT NULL,
 	"total" real NOT NULL,
+	"payment_status" "payment_status" DEFAULT 'unpaid' NOT NULL,
 	"notes" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
@@ -174,6 +178,61 @@ CREATE TABLE "password_reset_tokens" (
 	"used_at" timestamp,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "password_reset_tokens_token_unique" UNIQUE("token")
+);
+--> statement-breakpoint
+CREATE TABLE "notifications" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"user_id" integer NOT NULL,
+	"type" text NOT NULL,
+	"title" text NOT NULL,
+	"body" text NOT NULL,
+	"order_id" integer,
+	"read" boolean DEFAULT false NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "ledger_entries" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"order_id" integer NOT NULL,
+	"payment_id" integer,
+	"beneficiary_user_id" integer,
+	"entry_type" "ledger_entry_type" NOT NULL,
+	"amount" real NOT NULL,
+	"status" "ledger_entry_status" DEFAULT 'held' NOT NULL,
+	"note" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "payments" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"order_id" integer NOT NULL,
+	"order_code" text,
+	"user_id" integer NOT NULL,
+	"phone" text NOT NULL,
+	"amount" real NOT NULL,
+	"method" text DEFAULT 'mpesa' NOT NULL,
+	"status" "payment_status" DEFAULT 'pending' NOT NULL,
+	"simulated" text DEFAULT 'false' NOT NULL,
+	"checkout_request_id" text,
+	"merchant_request_id" text,
+	"mpesa_receipt" text,
+	"result_code" text,
+	"result_desc" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "food_categories" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"vendor_id" integer NOT NULL,
+	"name" text NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "food_item_categories" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"food_item_id" integer NOT NULL,
+	"category_id" integer NOT NULL
 );
 --> statement-breakpoint
 ALTER TABLE "password_reset_tokens" ADD CONSTRAINT "password_reset_tokens_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;

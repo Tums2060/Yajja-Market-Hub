@@ -1,0 +1,126 @@
+YAJJA PLATFORM — DATABASE MIGRATION: MARIADB → POSTGRESQL + FULL ERROR RESOLUTION
+
+Context: The Yajja platform is a TypeScript/React/Express/DrizzleORM monorepo. The codebase was previously using MariaDB/MySQL. The developer has now installed PostgreSQL locally and is fully switching to it. All previous data can be discarded — this is a clean slate migration. The goal is: after this task is complete, the developer should only need to run the migration scripts and have a fully working system with zero errors.
+
+
+1. REMOVE ALL MYSQL/MARIADB DEPENDENCIES
+
+Uninstall and remove all MySQL/MariaDB related packages across the entire monorepo. This includes but is not limited to: mysql2, @planetscale/database, drizzle-orm/mysql-core, drizzle-orm/planetscale-serverless, @prisma/adapter-mysql or any MariaDB adapter, any mysql or mariadb npm packages. Run npm uninstall / update package.json in root and all workspaces (server, customer-app, vendor-app, rider-app, admin-app).
+Delete any .env variables referencing MySQL connection strings (e.g. DATABASE_URL with mysql:// prefix). These will be replaced.
+Remove any MySQL-specific Drizzle config files (drizzle.config.ts or drizzle.config.js if they reference mysql dialect).
+
+
+2. INSTALL POSTGRESQL DEPENDENCIES
+In the server/backend package (wherever the DB connection and Drizzle setup lives):
+bashnpm install pg drizzle-orm @types/pg
+npm install -D drizzle-kit
+
+Use drizzle-orm/pg-core for all schema definitions going forward.
+Use the pg driver (node-postgres) for the database connection.
+
+
+3. REWRITE DATABASE CONNECTION
+Replace the existing database connection file (e.g. server/db/index.ts or server/db.ts) with a PostgreSQL connection using drizzle-orm/node-postgres:
+typescriptimport { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+import * as schema from './schema';
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+export const db = drizzle(pool, { schema });
+Set DATABASE_URL in .env to: postgresql://localhost:5432/yajja_market (or with credentials if the local PostgreSQL instance requires them: postgresql://tumaini:tumaini@localhost:5432/yajja_market).
+Add a .env.example file documenting this variable.
+
+4. REWRITE ALL DRIZZLE SCHEMA FILES TO USE pg-core
+Go through every schema file in the codebase. Replace all mysqlTable, mysqlEnum, varchar, text, int, timestamp, etc. imports from drizzle-orm/mysql-core with their PostgreSQL equivalents from drizzle-orm/pg-core.
+Key type mappings to apply:
+MySQL/MariaDB (old)PostgreSQL (new)mysqlTablepgTablemysqlEnumpgEnumint()integer()bigint()bigint() (same, but check mode)varchar(255)varchar(255) or text()tinyint(1) for booleansboolean()datetime()timestamp()serial()serial() (same in pg-core).autoincrement().generatedAlwaysAsIdentity() or use serialON UPDATE CURRENT_TIMESTAMPUse Drizzle's defaultNow() and handle in app logicjsonjson() or jsonb() — prefer jsonb
+Ensure all primaryKey, foreignKey, references, unique, index, defaultNow(), notNull(), and $defaultFn usages are compatible with pg-core API. Check the Drizzle ORM PostgreSQL documentation for any API differences.
+
+5. REWRITE DRIZZLE CONFIG
+Replace drizzle.config.ts at the root (or server root) with:
+typescriptimport type { Config } from 'drizzle-kit';
+import * as dotenv from 'dotenv';
+dotenv.config();
+
+export default {
+  schema: './server/db/schema.ts', // adjust path to match actual schema file(s)
+  out: './drizzle',
+  dialect: 'postgresql',
+  dbCredentials: {
+    url: process.env.DATABASE_URL!,
+  },
+} satisfies Config;
+Ensure dialect: 'postgresql' is set. Remove any driver: 'mysql2' or dialect: 'mysql' references.
+
+6. UPDATE PACKAGE.JSON MIGRATION SCRIPTS
+Locate the migration scripts in package.json (root or server). Ensure they are correct for PostgreSQL + Drizzle Kit:
+json"scripts": {
+  "db:generate": "drizzle-kit generate",
+  "db:migrate": "drizzle-kit migrate",
+  "db:push": "drizzle-kit push",
+  "db:studio": "drizzle-kit studio"
+}
+
+Remove any --driver mysql2 or --dialect mysql flags from these scripts.
+Confirm drizzle-kit version is at least ^0.20.0 (supports dialect: 'postgresql'). If not, update it: npm install -D drizzle-kit@latest.
+
+
+7. FIX ALL ERRORS FROM THE ATTACHED MIGRATION LOG
+Read the attached error log carefully. For each error:
+
+Identify the root cause (wrong dialect, missing table, type mismatch, bad import, missing env variable, schema conflict, etc.).
+Fix it directly in the relevant file.
+Do not just comment out the error — resolve it properly.
+
+Common issues to specifically look for and fix:
+
+Any unknown dialect or dialect not supported errors → fix drizzle.config.ts dialect field.
+Any Cannot find module 'drizzle-orm/mysql-core' → update import to drizzle-orm/pg-core.
+Any column type not supported errors → remap to pg-core equivalent types.
+Any relation already exists or migration state conflicts → clear the drizzle migrations output folder and regenerate from scratch (db:generate then db:migrate).
+Any .autoincrement() is not a function → replace with serial() or .generatedAlwaysAsIdentity().
+Any TypeScript type errors in schema files caused by the migration → fix types to match pg-core signatures.
+
+
+8. FIX ALL OTHER ERRORS FLAGGED IN THE CODEBASE (OUT-OF-SCOPE ITEMS)
+Audit the entire codebase for any other errors that were previously identified but not fixed. This includes:
+
+TypeScript compilation errors (tsc --noEmit should pass with zero errors across all apps and the server).
+Missing imports or undefined variables.
+Broken API endpoint references (routes defined but not mounted, or called with wrong paths).
+Missing environment variable handling (any process.env.X used without a fallback or validation — add a startup check that throws a clear error if required env vars are missing).
+Any TODO: fix later comments that are blocking functionality — implement them.
+Unused imports that cause linter/build warnings.
+Any hardcoded localhost URLs in frontend apps that should use environment variables (VITE_API_URL or equivalent).
+
+
+9. VERIFY END-TO-END MIGRATION READINESS
+After all changes:
+
+Run npx tsc --noEmit across the monorepo. Zero errors expected.
+Run npm run db:generate — should produce migration SQL files in the drizzle/ folder with PostgreSQL-compatible DDL.
+Run npm run db:migrate — should apply all migrations to the local PostgreSQL yajja database with no errors.
+Confirm all tables are created correctly in PostgreSQL by checking schema output.
+Run the development server (npm run dev or equivalent). The server should start with no crash errors.
+
+
+10. DEVELOPER HANDOFF — WHAT SHOULD WORK AFTER THIS TASK
+When the developer pulls this code on their local machine with PostgreSQL installed, the only steps they should need to run are:
+bash# 1. Install dependencies
+npm install
+
+# 2. Set up .env (copy from .env.example and fill in local DB credentials)
+cp .env.example .env
+
+# 3. Create the database in PostgreSQL
+createdb yajja
+
+# 4. Run migrations
+npm run db:migrate
+
+# 5. Start the dev server
+npm run dev
+Everything else should work automatically. Document these steps in a README.md or SETUP.md at the root of the monorepo.

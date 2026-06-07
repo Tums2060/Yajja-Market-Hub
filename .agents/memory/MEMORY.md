@@ -1,4 +1,4 @@
 - [Order lifecycle write paths](order-lifecycle-paths.md) — status changes + escrow release happen via multiple routes; mirror guards/side-effects on all of them.
 - [Yajja frontend typecheck baseline](yajja-typecheck-baseline.md) — known pre-existing tsc errors (queryKey/params shape) across query hooks; don't chase, app runs fine on tsx/vite.
-- [Dual-dialect DB](dual-dialect-db.md) — @workspace/db serves pg (default) or mysql by DB_DIALECT; destructured exports shadow `export *`; no `.returning()` (use helpers); externalized mysql2 must be an api-server dep.
+- [DB is PostgreSQL-only](dual-dialect-db.md) — MySQL/MariaDB dual-dialect REMOVED at user request; pure pg now; keep dbInsert/UpdateReturning helpers; drizzle.config must use relative paths.
 - api-server also has a pre-existing tsc baseline: `req.params`/`req.query` typed `string | string[]` (Express 5) → many TS2345 at `parseInt(req.params.x)`; not regressions, runs on tsx.
