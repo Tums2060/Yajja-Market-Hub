@@ -55,7 +55,7 @@ const CATEGORY_META: Record<string, {
     ],
   },
   household: {
-    label: "Convenience",
+    label: "Go",
     Icon: ShoppingCart,
     subcategories: [
       { id: "all", label: "All", Icon: Home },

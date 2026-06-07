@@ -3,6 +3,7 @@ import { useParams } from "wouter";
 import {
   useGetVendor,
   useListProducts,
+  useListFoodCategories,
   useAddToCart,
   getGetCartQueryKey,
 } from "@workspace/api-client-react";
@@ -31,10 +32,18 @@ export default function VendorDetail() {
     { query: { enabled: !!id } }
   );
 
+  const { data: foodCategories } = useListFoodCategories(id, {
+    query: { enabled: !!id },
+  });
+
   const addToCartMutation = useAddToCart();
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [activeTag, setActiveTag] = useState<string>("all");
+  const [activeCategory, setActiveCategory] = useState<number | "all">("all");
+
+  const categoryList = (foodCategories as any[]) || [];
+  const hasCategories = categoryList.length > 0;
 
   const tagList = React.useMemo(() => {
     const set = new Set<string>();
@@ -50,6 +59,13 @@ export default function VendorDetail() {
 
   const displayedProducts = React.useMemo(() => {
     const list = (products as any[]) || [];
+    if (hasCategories) {
+      if (activeCategory === "all") return list;
+      return list.filter((p) =>
+        Array.isArray((p as any).foodCategoryIds) &&
+        (p as any).foodCategoryIds.includes(activeCategory)
+      );
+    }
     if (activeTag === "all") return list;
     return list.filter((p) =>
       String((p as any).tags || "")
@@ -58,7 +74,7 @@ export default function VendorDetail() {
         .map((t) => t.trim())
         .includes(activeTag)
     );
-  }, [products, activeTag]);
+  }, [products, activeTag, activeCategory, hasCategories]);
 
   const openProduct = (product: any) => {
     setSelectedProduct(product);
@@ -163,7 +179,35 @@ export default function VendorDetail() {
           <h2 className="text-2xl font-bold">Products</h2>
         </div>
 
-        {tagList.length > 0 && (
+        {hasCategories ? (
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-4 sticky top-0 bg-muted/20 z-10">
+            <button
+              type="button"
+              onClick={() => setActiveCategory("all")}
+              className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
+                activeCategory === "all"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card border border-secondary/40 text-foreground hover:bg-secondary/20"
+              }`}
+            >
+              All
+            </button>
+            {categoryList.map((cat: any) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setActiveCategory(cat.id)}
+                className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
+                  activeCategory === cat.id
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-card border border-secondary/40 text-foreground hover:bg-secondary/20"
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+        ) : tagList.length > 0 ? (
           <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-4 sticky top-0 bg-muted/20 z-10">
             <button
               type="button"
@@ -191,7 +235,7 @@ export default function VendorDetail() {
               </button>
             ))}
           </div>
-        )}
+        ) : null}
 
         {productsLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -210,7 +254,9 @@ export default function VendorDetail() {
         ) : displayedProducts.length === 0 ? (
           <div className="text-center py-12 bg-card rounded-xl border border-dashed">
             <p className="text-muted-foreground">
-              {activeTag === "all" ? "No products available right now." : `No items tagged “${activeTag}”.`}
+              {hasCategories
+                ? (activeCategory === "all" ? "No products available right now." : "No items in this category.")
+                : (activeTag === "all" ? "No products available right now." : `No items tagged “${activeTag}”.`)}
             </p>
           </div>
         ) : (

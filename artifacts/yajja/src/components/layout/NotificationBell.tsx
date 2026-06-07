@@ -1,6 +1,6 @@
 import React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, CheckCheck } from "lucide-react";
+import { BellRing, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -64,8 +64,8 @@ export default function NotificationBell() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
-          <Bell className="h-5 w-5" />
+        <Button variant="ghost" size="icon" className="relative text-white hover:bg-white/10 hover:text-white" aria-label="Notifications">
+          <BellRing className="h-5 w-5" />
           {unread > 0 && (
             <Badge className="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px] flex items-center justify-center">
               {unread > 9 ? "9+" : unread}

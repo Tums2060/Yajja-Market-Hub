@@ -229,13 +229,8 @@ router.post("/orders", requireAuth, async (req, res) => {
       );
 
       createdOrders.push(await enrichOrder(order));
-
-      const [v] = await db
-        .select({ userId: vendorsTable.userId })
-        .from(vendorsTable)
-        .where(eq(vendorsTable.id, vendorId))
-        .limit(1);
-      if (v) broadcastToUser(v.userId, { type: "order:new", orderId: order.id });
+      // Vendors are notified only once payment is confirmed (see
+      // /orders/:orderId/mock-payment-confirm) so they never see unpaid orders.
     }
 
     // Refresh the customer's own order views.
@@ -263,6 +258,57 @@ router.get("/orders/:orderId", requireAuth, async (req, res) => {
     return;
   }
   res.json(await enrichOrder(order));
+});
+
+// Customer confirms a (mock) payment for their own order. Marks the order paid
+// and surfaces it to the vendor as a new incoming order. Status stays "pending"
+// so the vendor can accept/reject it through the normal lifecycle.
+router.post("/orders/:orderId/mock-payment-confirm", requireAuth, async (req, res) => {
+  try {
+    const orderId = parseInt(String(req.params.orderId), 10);
+    const user = getUser(req);
+    const [existing] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
+    if (!existing) {
+      res.status(404).json({ message: "Order not found" });
+      return;
+    }
+    if (existing.userId !== user.id) {
+      res.status(403).json({ message: "Forbidden" });
+      return;
+    }
+    if (existing.status === "cancelled" || existing.status === "rejected") {
+      res.status(400).json({ message: "This order can no longer be paid" });
+      return;
+    }
+    if (existing.paymentStatus === "paid") {
+      res.json({ orderId, paymentStatus: existing.paymentStatus, status: existing.status as string });
+      return;
+    }
+
+    await db.update(ordersTable)
+      .set({ paymentStatus: "paid", updatedAt: new Date() })
+      .where(eq(ordersTable.id, orderId));
+    const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
+
+    const code = formatOrderCode(order.id);
+    const vendorOwnerId = await getVendorOwnerId(order.vendorId);
+    if (vendorOwnerId) {
+      await createNotification({
+        userId: vendorOwnerId,
+        type: "order:new",
+        title: "New paid order",
+        body: `Order ${code} has been paid and is awaiting your confirmation.`,
+        orderId: order.id,
+      });
+      broadcastToUser(vendorOwnerId, { type: "order:new", orderId: order.id });
+    }
+    broadcastToUser(order.userId, { type: "orders:changed" });
+
+    res.json({ orderId: order.id, paymentStatus: order.paymentStatus, status: order.status as string });
+  } catch (err) {
+    req.log.error({ err }, "failed to confirm mock payment");
+    res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 router.put("/orders/:orderId/status", requireAuth, async (req, res) => {
@@ -396,6 +442,8 @@ router.get("/vendor-orders", requireAuth, async (req, res) => {
     return;
   }
   let orders = await db.select().from(ordersTable).where(eq(ordersTable.vendorId, vendor.id));
+  // Vendors only see orders that have been paid for.
+  orders = orders.filter(o => o.paymentStatus === "paid");
   if (status) orders = orders.filter(o => o.status === status);
   const enriched = await Promise.all(orders.map(enrichOrder));
   res.json(enriched);

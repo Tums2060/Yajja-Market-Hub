@@ -8,3 +8,4 @@ export * from "./notifications";
 export * from "./payments";
 export * from "./orders";
 export * from "./password-reset-tokens";
+export * from "./food-categories";

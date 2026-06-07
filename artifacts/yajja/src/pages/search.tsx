@@ -19,7 +19,7 @@ const categoryLabel: Record<string, string> = {
   food: "Food & Drinks",
   liquor: "Liquor",
   pharmacy: "Health & Beauty",
-  household: "Convenience",
+  household: "Go",
 };
 
 type StoreGroup = {

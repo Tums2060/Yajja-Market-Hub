@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -74,18 +74,16 @@ export default function Navbar() {
     user?.role === "rider" ? "Rider Portal" :
     user?.role === "admin" ? "Admin Portal" : null;
 
-  const isCustomer = user?.role === "customer";
-
   return (
-    <nav className={`sticky top-0 z-50 w-full border-b ${isCustomer ? "bg-white border-secondary/40" : "bg-card/95"} backdrop-blur supports-[backdrop-filter]:bg-card/80`}>
-      <div className="container flex h-14 items-center px-4 max-w-7xl mx-auto">
+    <nav className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#1A2340] text-white">
+      <div className="container flex h-16 items-center px-4 max-w-7xl mx-auto">
         <Link
           href={user?.role === "vendor" ? "/vendor-portal" : user?.role === "rider" ? "/rider-portal" : user?.role === "admin" ? "/admin" : "/"}
           className="mr-6 flex items-center gap-2 shrink-0"
         >
-          <img src="/yajja-icon2.jpeg" alt="Yajja" className="h-9 w-9 rounded-xl object-cover" />
+          <img src="/yajja-icon2.jpeg" alt="Yajja" className="h-12 w-12 rounded-xl object-cover" />
           {portalLabel && (
-            <Badge variant="outline" className="text-xs hidden sm:inline-flex border-secondary/60 text-primary">
+            <Badge variant="outline" className="text-xs hidden sm:inline-flex border-white/30 text-white bg-white/5">
               {portalLabel}
             </Badge>
           )}
@@ -99,7 +97,7 @@ export default function Navbar() {
                   variant={isActive(href) ? "default" : "ghost"}
                   size="sm"
                   className={`gap-2 relative ${
-                    isCustomer ? (isActive(href) ? "text-primary-foreground" : "text-foreground") : ""
+                    isActive(href) ? "" : "text-white/85 hover:text-white hover:bg-white/10"
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -121,8 +119,8 @@ export default function Navbar() {
               <div className={user.role === "customer" ? "md:hidden" : ""}>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <Menu className="h-5 w-5" />
+                    <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 hover:text-white">
+                      <Menu className="h-6 w-6" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
@@ -165,16 +163,16 @@ export default function Navbar() {
               {/* Desktop avatar */}
               <div className="hidden md:flex items-center gap-2">
                 {user.role === "customer" && cartCount > 0 && (
-                  <Button variant="ghost" size="icon" className="relative" asChild>
+                  <Button variant="ghost" size="icon" className="relative text-white hover:bg-white/10 hover:text-white" asChild>
                     <Link href="/cart">
                       <ShoppingCart className="h-5 w-5" />
                       <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 text-[10px] flex items-center justify-center">{cartCount}</Badge>
                     </Link>
                   </Button>
                 )}
-                <Button variant="ghost" size="icon" asChild>
+                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 hover:text-white" asChild>
                   <Link href={user.role === "vendor" ? "/vendor-portal" : user.role === "rider" ? "/rider-portal/profile" : user.role === "admin" ? "/admin" : "/profile"}>
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold overflow-hidden">
+                    <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-white text-xs font-bold overflow-hidden">
                       {user.avatarUrl
                         ? <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
                         : user.name?.charAt(0)?.toUpperCase()
@@ -182,14 +180,14 @@ export default function Navbar() {
                     </div>
                   </Link>
                 </Button>
-                <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground gap-1.5">
+                <Button variant="ghost" size="sm" onClick={handleLogout} className="text-white/80 gap-1.5 hover:bg-white/10 hover:text-white">
                   <LogOut className="h-4 w-4" /> Sign Out
                 </Button>
               </div>
             </>
           ) : (
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" asChild>
+              <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 hover:text-white" asChild>
                 <Link href="/login">Login</Link>
               </Button>
               <Button size="sm" asChild>

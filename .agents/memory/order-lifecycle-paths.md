@@ -23,3 +23,21 @@ notification, inventory), audit *every* route that can reach that status and app
 guard + side-effect. Keep `releaseEscrowForOrder` and the settle functions idempotent
 (they check for existing ledger rows / non-pending payment) precisely because they can be
 invoked from multiple paths.
+
+# Payment gating: vendors only see PAID orders
+
+Checkout is create-then-pay: `POST /orders` creates orders as `pending`/`unpaid` and
+clears the cart, then the client calls `POST /orders/:id/mock-payment-confirm`.
+
+**Decision:** The vendor notification + realtime `order:new` fire only at
+**payment-confirm**, NOT at order creation, and the `/vendor-orders` feed filters
+`paymentStatus === "paid"`. So unpaid/abandoned orders never reach the vendor.
+
+**Why:** Order creation used to broadcast `order:new` immediately, so vendors saw unpaid
+orders (and abandoned ones when the user cancelled the payment modal after the cart was
+already cleared). `mock-payment-confirm` also guards against paying `cancelled`/`rejected`
+orders.
+
+**How to apply:** Any new vendor-facing order surface must filter to paid orders, and any
+new "notify vendor of new order" side-effect belongs on the payment-confirm path, not
+creation.

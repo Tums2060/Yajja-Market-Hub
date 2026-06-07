@@ -151,6 +151,7 @@ export interface Product {
   category: Category;
   tags?: string;
   isAvailable: boolean;
+  foodCategoryIds?: number[];
   createdAt: string;
 }
 
@@ -162,6 +163,48 @@ export interface CreateProductBody {
   category: Category;
   tags?: string;
   isAvailable?: boolean;
+  foodCategoryIds?: number[];
+}
+
+export interface FoodCategory {
+  id: number;
+  vendorId: number;
+  name: string;
+  createdAt: string;
+}
+
+export interface FoodCategoryInput {
+  /** @minLength 1 */
+  name: string;
+}
+
+export interface MockPaymentResult {
+  orderId: number;
+  paymentStatus: string;
+  status: OrderStatus;
+}
+
+export interface RevenueByVendor {
+  vendorId: number;
+  vendorName: string;
+  revenue: number;
+  orders: number;
+}
+
+export interface OrdersOverTimePoint {
+  date: string;
+  orders: number;
+  revenue: number;
+}
+
+export interface AdminCustomer {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string;
+  orders: number;
+  totalSpent: number;
+  createdAt: string;
 }
 
 export interface CartItem {

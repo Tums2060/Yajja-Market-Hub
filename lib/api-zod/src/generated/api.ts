@@ -345,6 +345,7 @@ export const ListProductsResponseItem = zod.object({
   category: zod.enum(["food", "liquor", "pharmacy", "household"]),
   tags: zod.string().optional(),
   isAvailable: zod.boolean(),
+  foodCategoryIds: zod.array(zod.number()).optional(),
   createdAt: zod.string(),
 });
 export const ListProductsResponse = zod.array(ListProductsResponseItem);
@@ -360,6 +361,7 @@ export const CreateProductBody = zod.object({
   category: zod.enum(["food", "liquor", "pharmacy", "household"]),
   tags: zod.string().optional(),
   isAvailable: zod.boolean().optional(),
+  foodCategoryIds: zod.array(zod.number()).optional(),
 });
 
 export const GetProductParams = zod.object({
@@ -377,6 +379,7 @@ export const GetProductResponse = zod.object({
   category: zod.enum(["food", "liquor", "pharmacy", "household"]),
   tags: zod.string().optional(),
   isAvailable: zod.boolean(),
+  foodCategoryIds: zod.array(zod.number()).optional(),
   createdAt: zod.string(),
 });
 
@@ -392,6 +395,7 @@ export const UpdateProductBody = zod.object({
   category: zod.enum(["food", "liquor", "pharmacy", "household"]),
   tags: zod.string().optional(),
   isAvailable: zod.boolean().optional(),
+  foodCategoryIds: zod.array(zod.number()).optional(),
 });
 
 export const UpdateProductResponse = zod.object({
@@ -405,6 +409,7 @@ export const UpdateProductResponse = zod.object({
   category: zod.enum(["food", "liquor", "pharmacy", "household"]),
   tags: zod.string().optional(),
   isAvailable: zod.boolean(),
+  foodCategoryIds: zod.array(zod.number()).optional(),
   createdAt: zod.string(),
 });
 
@@ -413,6 +418,42 @@ export const DeleteProductParams = zod.object({
 });
 
 export const DeleteProductResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List a vendor's food categories
+ */
+export const ListFoodCategoriesParams = zod.object({
+  vendorId: zod.coerce.number(),
+});
+
+export const ListFoodCategoriesResponseItem = zod.object({
+  id: zod.number(),
+  vendorId: zod.number(),
+  name: zod.string(),
+  createdAt: zod.string(),
+});
+export const ListFoodCategoriesResponse = zod.array(
+  ListFoodCategoriesResponseItem,
+);
+
+/**
+ * @summary Create a food category (vendor)
+ */
+
+export const CreateFoodCategoryBody = zod.object({
+  name: zod.string().min(1),
+});
+
+/**
+ * @summary Delete a food category (vendor)
+ */
+export const DeleteFoodCategoryParams = zod.object({
+  categoryId: zod.coerce.number(),
+});
+
+export const DeleteFoodCategoryResponse = zod.object({
   message: zod.string(),
 });
 
@@ -437,6 +478,7 @@ export const GetCartResponse = zod.object({
           category: zod.enum(["food", "liquor", "pharmacy", "household"]),
           tags: zod.string().optional(),
           isAvailable: zod.boolean(),
+          foodCategoryIds: zod.array(zod.number()).optional(),
           createdAt: zod.string(),
         })
         .optional(),
@@ -468,6 +510,7 @@ export const GetCartResponse = zod.object({
               category: zod.enum(["food", "liquor", "pharmacy", "household"]),
               tags: zod.string().optional(),
               isAvailable: zod.boolean(),
+              foodCategoryIds: zod.array(zod.number()).optional(),
               createdAt: zod.string(),
             })
             .optional(),
@@ -514,6 +557,7 @@ export const UpdateCartItemResponse = zod.object({
       category: zod.enum(["food", "liquor", "pharmacy", "household"]),
       tags: zod.string().optional(),
       isAvailable: zod.boolean(),
+      foodCategoryIds: zod.array(zod.number()).optional(),
       createdAt: zod.string(),
     })
     .optional(),
@@ -564,6 +608,7 @@ export const GetGroupCartResponse = zod.object({
           category: zod.enum(["food", "liquor", "pharmacy", "household"]),
           tags: zod.string().optional(),
           isAvailable: zod.boolean(),
+          foodCategoryIds: zod.array(zod.number()).optional(),
           createdAt: zod.string(),
         })
         .optional(),
@@ -627,6 +672,7 @@ export const UpdateGroupCartItemResponse = zod.object({
       category: zod.enum(["food", "liquor", "pharmacy", "household"]),
       tags: zod.string().optional(),
       isAvailable: zod.boolean(),
+      foodCategoryIds: zod.array(zod.number()).optional(),
       createdAt: zod.string(),
     })
     .optional(),
@@ -862,6 +908,29 @@ export const AssignRiderResponse = zod.object({
   notes: zod.string().optional(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
+});
+
+/**
+ * @summary Confirm a mock payment for an order (customer)
+ */
+export const MockPaymentConfirmParams = zod.object({
+  orderId: zod.coerce.number(),
+});
+
+export const MockPaymentConfirmResponse = zod.object({
+  orderId: zod.number(),
+  paymentStatus: zod.string(),
+  status: zod.enum([
+    "pending",
+    "accepted",
+    "confirmed",
+    "preparing",
+    "ready",
+    "picked_up",
+    "delivered",
+    "cancelled",
+    "rejected",
+  ]),
 });
 
 /**

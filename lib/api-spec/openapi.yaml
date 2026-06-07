@@ -364,6 +364,62 @@ paths:
               schema:
                 $ref: "#/components/schemas/MessageResponse"
 
+  # ── Food categories ───────────────────────────────────────────────────────────
+  /vendors/{vendorId}/food-categories:
+    get:
+      operationId: listFoodCategories
+      tags: [products]
+      summary: List a vendor's food categories
+      parameters:
+        - $ref: "#/components/parameters/vendorId"
+      responses:
+        "200":
+          description: Food categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FoodCategory"
+
+  /vendor/food-categories:
+    post:
+      operationId: createFoodCategory
+      tags: [products]
+      summary: Create a food category (vendor)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FoodCategoryInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FoodCategory"
+
+  /vendor/food-categories/{categoryId}:
+    delete:
+      operationId: deleteFoodCategory
+      tags: [products]
+      summary: Delete a food category (vendor)
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
   # ── Cart (individual) ─────────────────────────────────────────────────────────
   /cart:
     get:
@@ -607,6 +663,21 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Order"
+
+  /orders/{orderId}/mock-payment-confirm:
+    post:
+      operationId: mockPaymentConfirm
+      tags: [orders]
+      summary: Confirm a mock payment for an order (customer)
+      parameters:
+        - $ref: "#/components/parameters/orderId"
+      responses:
+        "200":
+          description: Payment confirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MockPaymentResult"
 
   /vendor-orders:
     get:
@@ -1292,6 +1363,10 @@ components:
           type: string
         isAvailable:
           type: boolean
+        foodCategoryIds:
+          type: array
+          items:
+            type: integer
         createdAt:
           type: string
       required: [id, vendorId, name, price, category, isAvailable, createdAt]
@@ -1313,7 +1388,86 @@ components:
           type: string
         isAvailable:
           type: boolean
+        foodCategoryIds:
+          type: array
+          items:
+            type: integer
       required: [name, price, category]
+
+    FoodCategory:
+      type: object
+      properties:
+        id:
+          type: integer
+        vendorId:
+          type: integer
+        name:
+          type: string
+        createdAt:
+          type: string
+      required: [id, vendorId, name, createdAt]
+
+    FoodCategoryInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+      required: [name]
+
+    MockPaymentResult:
+      type: object
+      properties:
+        orderId:
+          type: integer
+        paymentStatus:
+          type: string
+        status:
+          $ref: "#/components/schemas/OrderStatus"
+      required: [orderId, paymentStatus, status]
+
+    RevenueByVendor:
+      type: object
+      properties:
+        vendorId:
+          type: integer
+        vendorName:
+          type: string
+        revenue:
+          type: number
+        orders:
+          type: integer
+      required: [vendorId, vendorName, revenue, orders]
+
+    OrdersOverTimePoint:
+      type: object
+      properties:
+        date:
+          type: string
+        orders:
+          type: integer
+        revenue:
+          type: number
+      required: [date, orders, revenue]
+
+    AdminCustomer:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        orders:
+          type: integer
+        totalSpent:
+          type: number
+        createdAt:
+          type: string
+      required: [id, name, email, orders, totalSpent, createdAt]
 
     # ── Cart ─────────────────────────────────────────────────────────────────────
     CartItem:

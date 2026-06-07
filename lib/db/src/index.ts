@@ -97,6 +97,8 @@ export const {
   groupOrdersTable,
   billAssignmentsTable,
   passwordResetTokensTable,
+  foodCategoriesTable,
+  foodItemCategoriesTable,
 } = activeSchema;
 
 // Types (and the Postgres enum objects) come from the canonical schema.

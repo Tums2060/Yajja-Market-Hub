@@ -4,13 +4,13 @@ import { useListVendors } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Store, Star, Clock, ShoppingBag, Package, ShoppingCart } from "lucide-react";
+import { Search, Store, Star, Clock, ShoppingCart, Cross, Wine, UtensilsCrossed } from "lucide-react";
 
 const CATEGORIES = [
-  { id: "food", label: "Yajja Food & Drinks", Icon: ShoppingBag, href: "/category/food" },
-  { id: "liquor", label: "Yajja Liquor", Icon: Store, href: "/category/liquor" },
-  { id: "pharmacy", label: "Yajja Health & Beauty", Icon: Package, href: "/category/pharmacy" },
-  { id: "household", label: "Yajja Convenience", Icon: ShoppingCart, href: "/category/household" },
+  { id: "food", label: "Yajja Food & Drinks", Icon: UtensilsCrossed, href: "/category/food" },
+  { id: "liquor", label: "Yajja Liquor", Icon: Wine, href: "/category/liquor" },
+  { id: "pharmacy", label: "Yajja Health", Icon: Cross, href: "/category/pharmacy" },
+  { id: "household", label: "Yajja Go", Icon: ShoppingCart, href: "/category/household" },
 ];
 
 export default function Shop() {

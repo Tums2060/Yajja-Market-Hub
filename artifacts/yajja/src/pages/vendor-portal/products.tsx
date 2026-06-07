@@ -7,6 +7,10 @@ import {
   useDeleteProduct,
   getListProductsQueryKey,
   useGetMyVendor,
+  useListFoodCategories,
+  useCreateFoodCategory,
+  useDeleteFoodCategory,
+  getListFoodCategoriesQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -56,6 +60,7 @@ type ProductForm = {
   tags: string;
   imageUrl: string;
   isAvailable: boolean;
+  foodCategoryIds: number[];
 };
 
 const emptyForm: ProductForm = {
@@ -66,6 +71,7 @@ const emptyForm: ProductForm = {
   tags: "",
   imageUrl: "",
   isAvailable: true,
+  foodCategoryIds: [],
 };
 
 export default function VendorProducts() {
@@ -91,9 +97,63 @@ export default function VendorProducts() {
     { query: { enabled: !!vendorId } } as any
   );
 
+  const { data: foodCategories } = useListFoodCategories(vendorId as number, {
+    query: { enabled: !!vendorId },
+  });
+  const categoryList = (foodCategories as any[]) || [];
+
+  const [newCategory, setNewCategory] = useState("");
+  const createCategory = useCreateFoodCategory();
+  const deleteCategory = useDeleteFoodCategory();
+
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
+
+  const invalidateCategories = () =>
+    queryClient.invalidateQueries({
+      queryKey: getListFoodCategoriesQueryKey(vendorId as number),
+    });
+
+  const handleAddCategory = () => {
+    const name = newCategory.trim();
+    if (!name) return;
+    createCategory.mutate(
+      { data: { name } as any },
+      {
+        onSuccess: () => {
+          invalidateCategories();
+          setNewCategory("");
+          toast({ title: "Category added" });
+        },
+        onError: () => toast({ variant: "destructive", title: "Failed to add category" }),
+      }
+    );
+  };
+
+  const handleDeleteCategory = (id: number) => {
+    if (!window.confirm("Delete this category? Items will be untagged from it.")) return;
+    deleteCategory.mutate(
+      { categoryId: id },
+      {
+        onSuccess: () => {
+          invalidateCategories();
+          queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
+          toast({ title: "Category deleted" });
+        },
+        onError: () => toast({ variant: "destructive", title: "Failed to delete category" }),
+      }
+    );
+  };
+
+  const toggleFormCategory = (id: number) => {
+    setForm((f) => ({
+      ...f,
+      foodCategoryIds: f.foodCategoryIds.includes(id)
+        ? f.foodCategoryIds.filter((c) => c !== id)
+        : [...f.foodCategoryIds, id],
+    }));
+  };
 
   const openNew = () => {
     setEditingProduct(null);
@@ -112,6 +172,7 @@ export default function VendorProducts() {
       tags: p.tags || "",
       imageUrl: p.imageUrl || "",
       isAvailable: p.isAvailable ?? true,
+      foodCategoryIds: Array.isArray(p.foodCategoryIds) ? p.foodCategoryIds : [],
     });
     setImageFile(null);
     setDialogOpen(true);
@@ -165,6 +226,7 @@ export default function VendorProducts() {
           .join(", "),
         imageUrl,
         isAvailable: form.isAvailable,
+        foodCategoryIds: form.foodCategoryIds,
         vendorId,
       };
 
@@ -217,6 +279,59 @@ export default function VendorProducts() {
           Add Item
         </Button>
       </div>
+
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <div>
+            <p className="font-bold">Menu Categories</p>
+            <p className="text-xs text-muted-foreground">
+              Group your items so customers can filter your menu.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Input
+              placeholder="e.g. Burgers, Drinks, Sides"
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAddCategory();
+                }
+              }}
+            />
+            <Button onClick={handleAddCategory} disabled={createCategory.isPending}>
+              {createCategory.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          {categoryList.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {categoryList.map((c: any) => (
+                <span
+                  key={c.id}
+                  className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-sm font-medium"
+                >
+                  {c.name}
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteCategory(c.id)}
+                    className="text-muted-foreground hover:text-destructive"
+                    aria-label={`Delete ${c.name}`}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">No categories yet.</p>
+          )}
+        </CardContent>
+      </Card>
 
       {isLoading ? (
         <div className="flex justify-center py-12">
@@ -373,6 +488,34 @@ export default function VendorProducts() {
                 Comma-separated. Customers find your item by searching these tags.
               </p>
             </div>
+
+            {categoryList.length > 0 && (
+              <div className="space-y-2">
+                <Label>Menu categories</Label>
+                <div className="flex flex-wrap gap-2">
+                  {categoryList.map((c: any) => {
+                    const active = form.foodCategoryIds.includes(c.id);
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => toggleFormCategory(c.id)}
+                        className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+                          active
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground hover:bg-muted/80"
+                        }`}
+                      >
+                        {c.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Tap to assign this item to one or more categories.
+                </p>
+              </div>
+            )}
 
             <div className="flex items-center justify-between rounded-xl border border-border p-3">
               <div>

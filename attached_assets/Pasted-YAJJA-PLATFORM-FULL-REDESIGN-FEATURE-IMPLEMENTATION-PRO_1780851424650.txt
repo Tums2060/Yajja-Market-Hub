@@ -1,0 +1,187 @@
+YAJJA PLATFORM — FULL REDESIGN + FEATURE IMPLEMENTATION PROMPT
+
+Context: You are working on the Yajja platform — a Glovo-style multi-vendor food and goods delivery app. The codebase is a TypeScript/React/Express/DrizzleORM/MariaDB monorepo. There are four apps: customer-app, vendor-app, rider-app, and admin-app. The design system uses Amber Gold (#F5A623) as primary, Deep Navy (#1A2340) as background, and Epilogue/Work Sans typography. Do not break any existing working functionality. Continue in the current language, stack, and database schema. Only implement the changes described below.
+
+
+1. DESIGN SYSTEM — GLOBAL CHANGES (All Apps)
+Primary Color: Change primary color from current value to #DEF20A (bright yellow-green). Update all Tailwind config / CSS variable references from the old primary to #DEF20A. Ensure text on this color uses a dark color (#1A2340 or similar) for contrast.
+Font: Replace all font usage across all apps with "Biski" (or fallback serif if unavailable via Google Fonts CDN). Apply globally via index.css and Tailwind fontFamily config.
+Top Navbar — All Apps:
+
+Background: Deep Navy (#1A2340) blue.
+Replace the 3-dash hamburger (☰ or 3-line icon) with a proper hamburger icon (the standard ≡ three horizontal lines icon from lucide-react: <Menu />).
+Replace the bell notification icon with a hotel service bell icon — use a custom SVG of a classic dome-shaped service bell (the kind used at hotel reception desks) or use <BellRing /> from lucide-react if it resembles it. Apply this across all apps.
+
+Logo / Brand Icon: The Yajja icon/logo is currently too small. Increase its size significantly so it is easily readable on mobile. In navbars, set logo height to at minimum 48px. On landing pages, sign-up pages, and auth screens, display the logo at full/hero scale (minimum 120px tall or equivalent).
+Floating Bottom Navigation Bar (Customer App — Mobile):
+
+Remove the current bottom navigation bar implementation.
+Replace with a floating pill-shaped navbar that hovers above the bottom of the screen — similar in concept to the iPhone Dynamic Island but as a wide rounded rectangle floating at the bottom.
+Implementation: position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1A2340; border-radius: 32px; padding: 10px 24px; display: flex; gap: 24px; align-items: center; box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+Navigation items inside: icons only (no labels), white icons, active icon highlighted with #DEF20A.
+Ensure page content has padding-bottom: 100px so it doesn't hide behind the navbar.
+
+
+2. CUSTOMER APP — SPECIFIC CHANGES
+Home Page:
+
+Remove the bottom card/banner that says "Browse all stores" / "All vendors in your area". Delete it entirely.
+Vendors Page: Add adequate whitespace/spacing between vendor cards. Use gap-4 or gap-6 in the grid layout.
+
+Category Names:
+
+Rename "Yajja Convenience" → "Yajja Go" everywhere it appears (UI labels, category titles, any database seed/enum if safe to do so without breaking foreign keys).
+
+Category Icons — Update as follows:
+
+Yajja Health → Hospital/medical cross icon (<Cross /> or a hospital + SVG)
+Yajja Liquor → Wine bottle icon (use <Wine /> from lucide-react or a wine bottle SVG)
+Yajja Food → Hamburger + drink icon (use <UtensilsCrossed /> or a burger+cup combo SVG)
+All other categories: keep existing icons.
+
+Food Category / Tag System (Customer Side):
+
+When browsing food vendors, customers should be able to filter/browse food items by food categories (e.g. Shawarma, Chips, Pizza, Burgers, Grilled, etc.).
+These food category tags should appear as horizontally scrollable pill chips above the food item list on a vendor's menu page.
+Tapping a chip filters the displayed food items to only those tagged with that category.
+If no category is selected, show all items.
+
+
+3. VENDOR APP — FOOD CATEGORY MANAGEMENT
+Food Categories Feature:
+
+Vendors can tag each menu item with one or more food categories.
+On the "Add/Edit Food Item" form, add a multi-select or tag input field labeled "Food Categories" (e.g. Shawarma, Chips, Burgers, Pizza, Grilled, etc.).
+In Vendor Settings, add a new section: "Food Categories". Here the vendor can:
+
+View all their current food categories.
+Add new custom food category names (text input + Add button).
+Delete existing categories (with a confirmation prompt).
+
+
+When a vendor adds a new category in Settings, it becomes available as a tag option in the Add/Edit Food Item form.
+Schema: Create a food_categories table: id, vendor_id, name, created_at. Create a food_item_categories join table: food_item_id, category_id. Run migrations using DrizzleORM.
+API: Add CRUD endpoints for food categories under /api/vendor/food-categories. Add endpoint to tag/untag items.
+
+
+4. MOCK MPESA PAYMENT FLOW
+The real M-Pesa Daraja STK Push is not yet live. Replace the current payment flow with a fully working mock flow as follows:
+Customer places an order → Payment confirmation modal appears:
+
+Show a modal dialog: "Confirm Payment" with text: "A payment request of KES [amount] has been sent to your M-Pesa. Press 'Confirm Payment' to simulate completing the payment."
+Two buttons: "Confirm Payment" (primary, #DEF20A) and "Cancel" (secondary/ghost).
+On "Confirm Payment" click:
+
+Call POST /api/orders/:orderId/mock-payment-confirm endpoint.
+This endpoint sets order payment_status = 'paid' and status = 'pending_vendor' in the database.
+Return success. Show a success toast: "Payment confirmed! Your order has been placed."
+Redirect customer to Order Tracking page.
+
+
+On "Cancel": dismiss modal, return to cart/checkout.
+
+Vendor App — Order Reception:
+
+Vendor dashboard must show a real-time (polling every 5–10s or via WebSocket if already implemented) feed of incoming orders with status pending_vendor.
+Each incoming order card shows: customer name, items ordered, total amount, timestamp.
+Vendor actions: "Accept Order" (sets status → preparing) | "Reject Order" (sets status → rejected, notifies customer).
+When vendor clicks "Order Ready" (sets status → ready_for_pickup), it becomes visible to riders.
+
+Rider App — Order Pickup:
+
+Riders see a list of orders with status ready_for_pickup.
+Each order shows: pickup address (vendor), dropoff address (customer), order total, estimated distance if available.
+Rider clicks "Accept Delivery" → status changes to out_for_delivery, order is assigned to that rider.
+Rider clicks "Mark as Delivered" → status changes to delivered.
+
+Order Status Flow (implement all these statuses end-to-end):
+cart → payment_pending → paid (mock confirmed) → pending_vendor → preparing → ready_for_pickup → out_for_delivery → delivered
+                                                              ↘ rejected
+Order Tracking Page (Customer App):
+
+Show current order status with a visual stepper/timeline.
+Steps: Order Placed → Vendor Confirmed → Being Prepared → Ready for Pickup → Out for Delivery → Delivered.
+Current active step highlighted in #DEF20A.
+Poll status every 8 seconds and update UI automatically.
+Show vendor name, estimated time (static/mock value is fine), and rider name once assigned.
+
+Additional UX enhancements for order flow:
+
+Customer receives an in-app notification (toast or notification bell) when order status changes.
+Vendor receives an in-app notification when a new paid order arrives.
+Rider receives an in-app notification when a new ready_for_pickup order is available.
+Add an Order History page in the customer app showing all past orders with statuses and ability to re-order.
+Add a My Deliveries history page in the rider app.
+
+
+5. ADMIN APP (New App — admin-app)
+Create a new app in the monorepo at /admin-app using the same Vite + React + TypeScript setup as the other apps. It should connect to the same Express API backend. Use the same design system (Deep Navy background, #DEF20A primary, Biski font).
+Admin App Pages:
+Dashboard (Home):
+
+Summary metric cards: Total Revenue (KES), Total Orders, Active Riders, Registered Vendors, Registered Customers.
+Line chart: Orders Over Time (daily for last 30 days). Use Recharts.
+Bar chart: Revenue by Vendor (top 10 vendors). Use Recharts.
+Pie/donut chart: Orders by Status breakdown.
+Recent Orders table: last 20 orders with columns — Order ID, Customer, Vendor, Amount, Status, Date.
+
+Orders Page:
+
+Full paginated table of all orders.
+Filter by: status, vendor, date range.
+Clicking an order shows a detail modal: full item breakdown, customer info, vendor info, rider info, payment status, status history/timeline.
+
+Vendors Page:
+
+Table of all registered vendors: name, location, total orders, total revenue, status (active/inactive).
+Ability to toggle vendor active/inactive status.
+
+Customers Page:
+
+Table of all customers: name, email/phone, total orders, total spend, joined date.
+
+Riders Page:
+
+Table of all riders: name, phone, total deliveries, active status, current order if any.
+
+Reviews Page (if review data exists):
+
+Table of all reviews/ratings with customer, vendor, rating, comment, date.
+Average rating per vendor summary.
+
+Admin API Endpoints (add to backend):
+
+GET /api/admin/stats — returns summary counts and revenue totals.
+GET /api/admin/orders — paginated, filterable orders list.
+GET /api/admin/vendors — vendors list with stats.
+GET /api/admin/customers — customers list with stats.
+GET /api/admin/riders — riders list with stats.
+GET /api/admin/revenue-by-vendor — for bar chart.
+GET /api/admin/orders-over-time — for line chart.
+All admin endpoints should require a basic admin auth check (check req.user.role === 'admin' using the existing auth middleware pattern).
+
+Admin App Auth:
+
+Simple login page (email + password).
+On login, check that user has role: 'admin' in the users table.
+Store token in memory/localStorage and attach to API calls.
+If not admin, redirect to login.
+
+
+6. SIGN UP / AUTH PAGES — ALL APPS
+
+Display the Yajja logo prominently at the top (large, minimum 100px height).
+Background: Deep Navy (#1A2340).
+Form inputs: white/light background, dark text, #DEF20A focus ring/border.
+Primary CTA button: #DEF20A background, dark text, bold, full-width.
+Biski font for headings, Work Sans / current body font for input labels.
+
+
+7. IMPLEMENTATION NOTES
+
+Do not remove or modify any existing working routes, components, or database tables unless explicitly stated above.
+For all new database tables, write DrizzleORM schema definitions and generate+run migrations.
+For polling-based real-time updates, use setInterval with cleanup in useEffect.
+All new API endpoints follow the existing Express router pattern in the codebase.
+Keep all existing vendor, customer, rider auth flows intact.
+Test that the end-to-end mock payment flow works: customer orders → confirms mock payment → vendor sees order → accepts → marks ready → rider sees and accepts → marks delivered → customer sees "Delivered" status.

@@ -11,7 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { ShoppingCart, CreditCard, MapPin, Loader2, CheckCircle2, Phone, Navigation } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import { ShoppingCart, CreditCard, MapPin, Loader2, CheckCircle2, Phone, Navigation, Smartphone } from "lucide-react";
 import { formatKES, KENYA } from "@/lib/format";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -26,9 +29,10 @@ export default function Checkout() {
   const [phoneNumber, setPhoneNumber] = useState(user?.phone || "");
   const [deliveryLat, setDeliveryLat] = useState<number | null>(null);
   const [deliveryLng, setDeliveryLng] = useState<number | null>(null);
-  const [step, setStep] = useState<"form" | "processing" | "success">("form");
+  const [step, setStep] = useState<"form" | "confirm" | "processing" | "success">("form");
   const [orderCode, setOrderCode] = useState<string | null>(null);
   const [primaryOrderId, setPrimaryOrderId] = useState<number | null>(null);
+  const [pendingOrderIds, setPendingOrderIds] = useState<number[]>([]);
 
   const { data: cartData } = useGetCart({ query: { queryKey: getGetCartQueryKey(), enabled: true } });
 
@@ -38,104 +42,83 @@ export default function Checkout() {
   const deliveryFee = 200;
   const total = subtotal + deliveryFee;
 
+  const authHeaders = () => {
+    const token = localStorage.getItem("yajja_token");
+    const h: Record<string, string> = { "Content-Type": "application/json" };
+    if (token) h.Authorization = `Bearer ${token}`;
+    return h;
+  };
+
+  // Step 1 — create the order(s) from the cart, then open the payment modal.
   const handlePlaceOrder = async () => {
-  if (!address.trim()) {
-    toast({ variant: "destructive", title: "Please enter a delivery address" });
-    return;
-  }
-  if (!phoneNumber.trim()) {
-    toast({ variant: "destructive", title: "Please enter your phone number" });
-    return;
-  }
-
-  setStep("processing");
-
-  const token = localStorage.getItem("yajja_token");
-  const authHeaders: Record<string, string> = { "Content-Type": "application/json" };
-  if (token) authHeaders.Authorization = `Bearer ${token}`;
-
-  try {
-    // 1. Create the order(s) from the cart.
-    const res = await fetch("/api/orders", {
-      method: "POST",
-      headers: authHeaders,
-      body: JSON.stringify({
-        deliveryAddress: address,
-        notes,
-        phoneNumber,
-        customerName: user?.name,
-        deliveryLat: deliveryLat ?? undefined,
-        deliveryLng: deliveryLng ?? undefined,
-      }),
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || "Failed to place order");
+    if (!address.trim()) {
+      toast({ variant: "destructive", title: "Please enter a delivery address" });
+      return;
     }
-
-    const payload = await res.json();
-    queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() });
-    setOrderCode(payload?.orderCode || null);
-    setPrimaryOrderId(payload?.primaryOrderId || null);
-
-    const orderIds: number[] = (payload?.orders || [])
-      .map((o: any) => o?.id)
-      .filter((id: any) => typeof id === "number");
-
-    // 2. Initiate the M-Pesa STK push for the created order(s).
-    const stkRes = await fetch("/api/payments/stk-push", {
-      method: "POST",
-      headers: authHeaders,
-      body: JSON.stringify({ orderIds, phone: phoneNumber }),
-    });
-    if (!stkRes.ok) {
-      const err = await stkRes.json().catch(() => ({}));
-      throw new Error(err.message || "Payment request failed");
-    }
-    const stk = await stkRes.json();
-
-    // 3. Confirm payment. Simulation mode returns paid immediately; real mode
-    //    requires polling until Safaricom posts the callback.
-    if (stk?.status === "paid") {
-      queryClient.invalidateQueries({ predicate: (q) => JSON.stringify(q.queryKey).toLowerCase().includes("order") });
-      toast({ title: "Payment confirmed" });
-      setStep("success");
+    if (!phoneNumber.trim()) {
+      toast({ variant: "destructive", title: "Please enter your phone number" });
       return;
     }
 
-    const checkoutRequestId = stk?.checkoutRequestId;
-    const deadline = Date.now() + 90_000;
-    let settled = false;
-    while (Date.now() < deadline) {
-      await new Promise((r) => setTimeout(r, 3000));
-      const sres = await fetch(
-        `/api/payments/status?checkoutRequestId=${encodeURIComponent(checkoutRequestId)}`,
-        { headers: authHeaders },
-      );
-      if (!sres.ok) continue;
-      const sdata = await sres.json();
-      if (sdata?.status === "paid") {
-        settled = true;
-        break;
+    setStep("processing");
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          deliveryAddress: address,
+          notes,
+          phoneNumber,
+          customerName: user?.name,
+          deliveryLat: deliveryLat ?? undefined,
+          deliveryLng: deliveryLng ?? undefined,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to place order");
       }
-      if (sdata?.status === "failed") {
-        throw new Error(sdata?.resultDesc || "Payment was not completed");
-      }
-    }
-    if (!settled) {
-      throw new Error("Payment timed out. Please try again.");
-    }
 
-    queryClient.invalidateQueries({ predicate: (q) => JSON.stringify(q.queryKey).toLowerCase().includes("order") });
-    toast({ title: "Payment confirmed" });
-    setStep("success");
-  } catch (err: any) {
-    console.error(err);
-    toast({ variant: "destructive", title: err?.message || "Failed to place order" });
-    setStep("form");
-  }
-};
+      const payload = await res.json();
+      queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() });
+      setOrderCode(payload?.orderCode || null);
+      setPrimaryOrderId(payload?.primaryOrderId || null);
+
+      const orderIds: number[] = (payload?.orders || [])
+        .map((o: any) => o?.id)
+        .filter((id: any) => typeof id === "number");
+      setPendingOrderIds(orderIds);
+
+      // Open the mock "Confirm Payment" modal.
+      setStep("confirm");
+    } catch (err: any) {
+      toast({ variant: "destructive", title: err?.message || "Failed to place order" });
+      setStep("form");
+    }
+  };
+
+  // Step 2 — mock-confirm payment for the created order(s).
+  const handleConfirmPayment = async () => {
+    setStep("processing");
+    try {
+      for (const id of pendingOrderIds) {
+        const r = await fetch(`/api/orders/${id}/mock-payment-confirm`, {
+          method: "POST",
+          headers: authHeaders(),
+        });
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({}));
+          throw new Error(err.message || "Payment failed");
+        }
+      }
+      queryClient.invalidateQueries({ predicate: (q) => JSON.stringify(q.queryKey).toLowerCase().includes("order") });
+      toast({ title: "Payment confirmed", description: "Your order has been sent to the vendor." });
+      setStep("success");
+    } catch (err: any) {
+      toast({ variant: "destructive", title: err?.message || "Payment failed" });
+      setStep("confirm");
+    }
+  };
 
   const isPlacing = step === "processing";
 
@@ -166,16 +149,6 @@ export default function Checkout() {
         </div>
       </div>
 
-      {step === "processing" && (
-        <Card className="bg-white border-secondary/40 mb-6">
-          <CardContent className="p-6 text-center space-y-2">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-            <p className="font-semibold">Awaiting M-Pesa confirmation...</p>
-            <p className="text-sm text-muted-foreground">Please complete the prompt on your phone.</p>
-          </CardContent>
-        </Card>
-      )}
-
       {step === "success" && (
         <Card className="bg-white border-secondary/40 mb-6">
           <CardContent className="p-6 text-center space-y-3">
@@ -192,6 +165,40 @@ export default function Checkout() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={step === "confirm" || step === "processing"} onOpenChange={(o) => { if (!o && step === "confirm") setStep("form"); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Smartphone className="h-5 w-5 text-primary" /> Confirm Payment
+            </DialogTitle>
+            <DialogDescription>
+              {step === "processing"
+                ? "Processing your payment..."
+                : `Pay ${formatKES(total)} to confirm your order${orderCode ? ` (${orderCode})` : ""}.`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-xl bg-secondary/20 p-4 space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Phone</span>
+              <span className="font-medium">{phoneNumber}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Amount</span>
+              <span className="font-bold">{formatKES(total)}</span>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" disabled={isPlacing} onClick={() => setStep("form")}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmPayment} disabled={isPlacing}>
+              {isPlacing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Pay {formatKES(total)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">

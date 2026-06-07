@@ -10,21 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Loader2, MapPin, Package } from "lucide-react";
-
-const statusColor: Record<string, string> = {
-  pending: "bg-secondary/30 text-amber-800 border-secondary/50",
-  accepted: "bg-primary/15 text-primary border-primary/30",
-  confirmed: "bg-primary/15 text-primary border-primary/30",
-  preparing: "bg-orange-500/15 text-orange-700 border-orange-500/30",
-  ready: "bg-primary/10 text-primary border-primary/20",
-  picked_up: "bg-slate-500/10 text-slate-700 border-slate-500/20",
-  delivered: "bg-green-500/15 text-green-700 border-green-500/30",
-  cancelled: "bg-red-500/15 text-red-700 border-red-500/30",
-  rejected: "bg-red-500/15 text-red-700 border-red-500/30",
-};
-
-const statusSteps = ["pending", "accepted", "preparing", "ready", "picked_up", "delivered"];
+import { ArrowLeft, Loader2, MapPin, Package, Check } from "lucide-react";
+import {
+  ORDER_STATUS_COLORS,
+  orderStatusLabel,
+  ORDER_STEPS,
+  orderStepIndex,
+} from "@/lib/order-status";
 
 export default function OrderDetail() {
   const { orderId } = useParams();
@@ -34,7 +26,7 @@ export default function OrderDetail() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [cancelling, setCancelling] = useState(false);
-  const { data: order, isLoading } = useGetOrder(id, { query: { enabled: !!id, refetchInterval: 10000 } });
+  const { data: order, isLoading } = useGetOrder(id, { query: { enabled: !!id, refetchInterval: 8000 } });
 
   const handleCancel = async () => {
     setCancelling(true);
@@ -69,7 +61,7 @@ export default function OrderDetail() {
       return res.json();
     },
     enabled: !!orderCode,
-    refetchInterval: 10000,
+    refetchInterval: 8000,
   });
 
   const orders = ((bundleOrders as any[])?.length ? bundleOrders : order ? [order] : []) as any[];
@@ -112,7 +104,9 @@ export default function OrderDetail() {
     </div>
   );
 
-  const currentStep = statusSteps.indexOf((order as any).status);
+  const status = (order as any).status as string;
+  const currentStep = orderStepIndex(status);
+  const isTerminal = ["cancelled", "rejected"].includes(status);
 
   return (
     <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6 animate-in fade-in duration-500">
@@ -132,18 +126,45 @@ export default function OrderDetail() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">Status</CardTitle>
-            <Badge className={`border ${statusColor[(order as any).status] || ""}`} variant="outline">
-              {(order as any).status?.replace(/_/g, " ") || "pending"}
+            <Badge className={`border ${ORDER_STATUS_COLORS[status] || ""}`} variant="outline">
+              {orderStatusLabel(status)}
             </Badge>
           </div>
         </CardHeader>
         <CardContent>
-          {!(order as any).status || !["cancelled", "rejected"].includes((order as any).status) && (
-            <div className="flex items-center gap-1 mb-4">
-              {statusSteps.map((step, i) => (
-                <div key={step} className={`flex-1 h-2 rounded-full transition-all ${i <= currentStep ? "bg-primary" : "bg-muted"}`} />
-              ))}
+          {isTerminal ? (
+            <div className="mb-4 rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm font-medium text-red-700">
+              This order was {orderStatusLabel(status).toLowerCase()}.
             </div>
+          ) : (
+            <ol className="mb-4 space-y-3">
+              {ORDER_STEPS.map((step, i) => {
+                const done = i < currentStep;
+                const active = i === currentStep;
+                return (
+                  <li key={step.key} className="flex items-center gap-3">
+                    <div
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all ${
+                        done
+                          ? "bg-primary text-primary-foreground"
+                          : active
+                          ? "bg-primary/20 text-primary ring-2 ring-primary"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {done ? <Check className="h-4 w-4" /> : i + 1}
+                    </div>
+                    <span
+                      className={`text-sm ${
+                        done || active ? "font-semibold text-foreground" : "text-muted-foreground"
+                      }`}
+                    >
+                      {step.label}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
           )}
           {(order as any).deliveryAddress && (
             <div className="flex items-start gap-2 text-sm text-muted-foreground">

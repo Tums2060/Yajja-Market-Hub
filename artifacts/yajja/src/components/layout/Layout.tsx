@@ -39,7 +39,7 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className={`min-h-[100dvh] w-full flex flex-col bg-background text-foreground`}>
       {!isAuthPage && <Navbar />}
-      <main className={`flex-1 flex flex-col ${showBottomNav ? "pb-16 md:pb-0" : ""}`}>
+      <main className={`flex-1 flex flex-col ${showBottomNav ? "pb-[100px] md:pb-0" : ""}`}>
         {children}
       </main>
       {showBottomNav && <BottomNav />}

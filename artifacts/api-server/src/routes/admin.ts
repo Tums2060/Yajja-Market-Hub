@@ -121,4 +121,76 @@ router.put("/admin/riders/:riderId/toggle", requireAdmin, async (req, res) => {
   res.json({ ...updated, createdAt: updated.createdAt.toISOString() });
 });
 
+// Revenue grouped by vendor (for bar/pie charts)
+router.get("/admin/analytics/revenue-by-vendor", requireAdmin, async (req, res) => {
+  const orders = await db.select().from(ordersTable);
+  const vendors = await db.select().from(vendorsTable);
+  const nameById = new Map(vendors.map(v => [v.id, v.name]));
+  const agg = new Map<number, { revenue: number; orders: number }>();
+  for (const o of orders) {
+    const cur = agg.get(o.vendorId) ?? { revenue: 0, orders: 0 };
+    cur.revenue += o.total;
+    cur.orders += 1;
+    agg.set(o.vendorId, cur);
+  }
+  const result = Array.from(agg.entries())
+    .map(([vendorId, v]) => ({
+      vendorId,
+      vendorName: nameById.get(vendorId) ?? `Vendor #${vendorId}`,
+      revenue: v.revenue,
+      orders: v.orders,
+    }))
+    .sort((a, b) => b.revenue - a.revenue);
+  res.json(result);
+});
+
+// Orders + revenue per day over the last N days (for line charts)
+router.get("/admin/analytics/orders-over-time", requireAdmin, async (req, res) => {
+  const orders = await db.select().from(ordersTable);
+  const now = new Date();
+  const days: { date: string; orders: number; revenue: number }[] = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(now.getDate() - i);
+    const dStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const dEnd = new Date(dStart.getTime() + 86400000);
+    const dayOrders = orders.filter(o => {
+      const t = new Date(o.createdAt);
+      return t >= dStart && t < dEnd;
+    });
+    days.push({
+      date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      orders: dayOrders.length,
+      revenue: dayOrders.reduce((s, o) => s + o.total, 0),
+    });
+  }
+  res.json(days);
+});
+
+// Customers with order counts and lifetime spend
+router.get("/admin/analytics/customers", requireAdmin, async (req, res) => {
+  const customers = await db
+    .select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, phone: usersTable.phone, createdAt: usersTable.createdAt })
+    .from(usersTable)
+    .where(eq(usersTable.role, "customer"))
+    .orderBy(desc(usersTable.createdAt));
+  const orders = await db.select().from(ordersTable);
+  const agg = new Map<number, { orders: number; totalSpent: number }>();
+  for (const o of orders) {
+    const cur = agg.get(o.userId) ?? { orders: 0, totalSpent: 0 };
+    cur.orders += 1;
+    cur.totalSpent += o.total;
+    agg.set(o.userId, cur);
+  }
+  res.json(customers.map(c => ({
+    id: c.id,
+    name: c.name,
+    email: c.email,
+    phone: c.phone ?? "",
+    orders: agg.get(c.id)?.orders ?? 0,
+    totalSpent: agg.get(c.id)?.totalSpent ?? 0,
+    createdAt: c.createdAt.toISOString(),
+  })));
+});
+
 export default router;

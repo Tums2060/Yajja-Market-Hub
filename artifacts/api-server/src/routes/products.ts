@@ -3,12 +3,45 @@ import fs from "fs";
 import path from "path";
 import multer from "multer";
 
-import { db, dbInsertReturning, productsTable, vendorsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, dbInsertReturning, productsTable, vendorsTable, foodItemCategoriesTable, foodCategoriesTable } from "@workspace/db";
+import { eq, and, inArray } from "drizzle-orm";
 import { CreateProductBody } from "@workspace/api-zod";
 import { requireAuth, getUser } from "../lib/auth";
 
 const router = Router();
+
+async function getCategoryIdsForProducts(productIds: number[]): Promise<Map<number, number[]>> {
+  const map = new Map<number, number[]>();
+  if (productIds.length === 0) return map;
+  const rows = await db
+    .select()
+    .from(foodItemCategoriesTable)
+    .where(inArray(foodItemCategoriesTable.foodItemId, productIds));
+  for (const r of rows) {
+    const arr = map.get(r.foodItemId) ?? [];
+    arr.push(r.categoryId);
+    map.set(r.foodItemId, arr);
+  }
+  return map;
+}
+
+async function setProductCategories(productId: number, categoryIds: number[], vendorId: number) {
+  await db.delete(foodItemCategoriesTable).where(eq(foodItemCategoriesTable.foodItemId, productId));
+  if (categoryIds.length > 0) {
+    // Only persist categories that actually belong to this vendor — prevents a
+    // vendor from attaching another vendor's category IDs to their product.
+    const owned = await db
+      .select({ id: foodCategoriesTable.id })
+      .from(foodCategoriesTable)
+      .where(and(eq(foodCategoriesTable.vendorId, vendorId), inArray(foodCategoriesTable.id, categoryIds)));
+    const ownedIds = owned.map((o) => o.id);
+    if (ownedIds.length > 0) {
+      await db.insert(foodItemCategoriesTable).values(
+        ownedIds.map((categoryId) => ({ foodItemId: productId, categoryId })),
+      );
+    }
+  }
+}
 
 const uploadDir = path.resolve(process.cwd(), "uploads");
 
@@ -32,11 +65,13 @@ const upload = multer({
 
 function serializeProduct(
   p: typeof productsTable.$inferSelect,
-  vendorName?: string
+  vendorName?: string,
+  foodCategoryIds: number[] = []
 ) {
   return {
     ...p,
     vendorName: vendorName || "",
+    foodCategoryIds,
     createdAt: p.createdAt.toISOString(),
   };
 }
@@ -88,9 +123,11 @@ router.get("/products", async (req, res) => {
     );
   }
 
+  const catMap = await getCategoryIdsForProducts(filtered.map((r) => r.product.id));
+
   res.json(
     filtered.map((r) =>
-      serializeProduct(r.product, r.vendorName ?? undefined)
+      serializeProduct(r.product, r.vendorName ?? undefined, catMap.get(r.product.id) ?? [])
     )
   );
 });
@@ -139,12 +176,17 @@ router.post("/products", requireAuth, async (req, res) => {
       return;
     }
 
+    const { foodCategoryIds, ...productData } = parsed.data;
+
     const product = await dbInsertReturning(productsTable, {
-      ...parsed.data,
+      ...productData,
       vendorId: vendor.id,
     });
 
-    res.status(201).json(serializeProduct(product));
+    const catIds = foodCategoryIds ?? [];
+    if (catIds.length > 0) await setProductCategories(product.id, catIds, vendor.id);
+
+    res.status(201).json(serializeProduct(product, vendor.name, catIds));
   } catch (err) {
     req.log.error({ err }, "failed to create product");
     res.status(500).json({ message: "Internal server error" });
@@ -180,10 +222,13 @@ router.get(
       return;
     }
 
+    const catMap = await getCategoryIdsForProducts([row.product.id]);
+
     res.json(
       serializeProduct(
         row.product,
-        row.vendorName ?? undefined
+        row.vendorName ?? undefined,
+        catMap.get(row.product.id) ?? []
       )
     );
   }
@@ -238,10 +283,12 @@ router.put(
       return;
     }
 
+    const { foodCategoryIds, ...productData } = parsed.data;
+
     await db
   .update(productsTable)
   .set({
-    ...parsed.data,
+    ...productData,
     vendorId: vendor.id,
   })
   .where(eq(productsTable.id, productId));
@@ -260,8 +307,14 @@ if (!updatedProduct) {
   return;
 }
 
+if (foodCategoryIds !== undefined) {
+  await setProductCategories(productId, foodCategoryIds, vendor.id);
+}
+
+const catMap = await getCategoryIdsForProducts([productId]);
+
 res.json(
-  serializeProduct(updatedProduct)
+  serializeProduct(updatedProduct, vendor.name, catMap.get(productId) ?? [])
 );
   }
 );

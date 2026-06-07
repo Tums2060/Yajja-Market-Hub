@@ -93,16 +93,17 @@ export function AuthLogin({ role }: { role: AuthRole }) {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-background flex items-center justify-center px-4 py-10">
+    <div className="min-h-[100dvh] bg-primary-foreground flex flex-col items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-3xl shadow-2xl px-6 pt-12 pb-10">
-          <div className="flex justify-center pb-4">
-            <img
-              src="/yajja-icon2.jpeg"
-              alt="Yajja"
-              className="h-16 w-16 rounded-2xl object-cover"
-            />
-          </div>
+        <div className="flex flex-col items-center gap-3 pb-6">
+          <img
+            src="/yajja-icon2.jpeg"
+            alt="Yajja"
+            className="h-24 w-24 rounded-3xl object-cover shadow-xl ring-2 ring-white/10"
+          />
+          <span className="text-3xl font-extrabold tracking-tight text-white">Yajja</span>
+        </div>
+        <div className="bg-white rounded-3xl shadow-2xl px-6 pt-8 pb-10">
           <div className="flex justify-center pb-3">
             <span className="rounded-full border border-secondary/40 px-3 py-1 text-xs font-semibold text-primary bg-secondary/20">
               {config.label} Account

@@ -33,12 +33,14 @@ import VendorProfile from "@/pages/vendor-portal/profile";
 import RiderPortal from "@/pages/rider-portal/dashboard";
 import RiderMap from "@/pages/rider-portal/map";
 import RiderProfile from "@/pages/rider-portal/profile";
+import RiderDeliveries from "@/pages/rider-portal/deliveries";
 
 import AdminDashboard from "@/pages/admin-portal/dashboard";
 import AdminVendors from "@/pages/admin-portal/vendors";
 import AdminOrders from "@/pages/admin-portal/orders";
 import AdminRiders from "@/pages/admin-portal/riders";
 import AdminUsers from "@/pages/admin-portal/users";
+import AdminCustomers from "@/pages/admin-portal/customers";
 
 import { useEffect } from "react";
 
@@ -103,6 +105,7 @@ function Router() {
         {/* Rider Routes */}
         <Route path="/rider-portal"><ProtectedRoute component={RiderPortal} allowedRoles={["rider"]} /></Route>
         <Route path="/rider-portal/map"><ProtectedRoute component={RiderMap} allowedRoles={["rider"]} /></Route>
+        <Route path="/rider-portal/deliveries"><ProtectedRoute component={RiderDeliveries} allowedRoles={["rider"]} /></Route>
         <Route path="/rider-portal/profile"><ProtectedRoute component={RiderProfile} allowedRoles={["rider"]} /></Route>
 
         {/* Admin Routes */}
@@ -111,6 +114,7 @@ function Router() {
         <Route path="/admin/orders"><ProtectedRoute component={AdminOrders} allowedRoles={["admin"]} /></Route>
         <Route path="/admin/riders"><ProtectedRoute component={AdminRiders} allowedRoles={["admin"]} /></Route>
         <Route path="/admin/users"><ProtectedRoute component={AdminUsers} allowedRoles={["admin"]} /></Route>
+        <Route path="/admin/customers"><ProtectedRoute component={AdminCustomers} allowedRoles={["admin"]} /></Route>
 
         <Route component={NotFound} />
       </Switch>

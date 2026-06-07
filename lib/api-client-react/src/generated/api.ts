@@ -29,6 +29,8 @@ import type {
   CreateOrderBody,
   CreateProductBody,
   CreateVendorBody,
+  FoodCategory,
+  FoodCategoryInput,
   GetLeaderboardParams,
   Group,
   GroupCartItem,
@@ -49,6 +51,7 @@ import type {
   ListVendorsParams,
   LoginBody,
   MessageResponse,
+  MockPaymentResult,
   Order,
   Product,
   RegisterBody,
@@ -1732,6 +1735,265 @@ export const useDeleteProduct = <
 };
 
 /**
+ * @summary List a vendor's food categories
+ */
+export const getListFoodCategoriesUrl = (vendorId: number) => {
+  return `/api/vendors/${vendorId}/food-categories`;
+};
+
+export const listFoodCategories = async (
+  vendorId: number,
+  options?: RequestInit,
+): Promise<FoodCategory[]> => {
+  return customFetch<FoodCategory[]>(getListFoodCategoriesUrl(vendorId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListFoodCategoriesQueryKey = (vendorId: number) => {
+  return [`/api/vendors/${vendorId}/food-categories`] as const;
+};
+
+export const getListFoodCategoriesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listFoodCategories>>,
+  TError = ErrorType<unknown>,
+>(
+  vendorId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listFoodCategories>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListFoodCategoriesQueryKey(vendorId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listFoodCategories>>
+  > = ({ signal }) =>
+    listFoodCategories(vendorId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!vendorId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listFoodCategories>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListFoodCategoriesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listFoodCategories>>
+>;
+export type ListFoodCategoriesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List a vendor's food categories
+ */
+
+export function useListFoodCategories<
+  TData = Awaited<ReturnType<typeof listFoodCategories>>,
+  TError = ErrorType<unknown>,
+>(
+  vendorId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listFoodCategories>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListFoodCategoriesQueryOptions(vendorId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a food category (vendor)
+ */
+export const getCreateFoodCategoryUrl = () => {
+  return `/api/vendor/food-categories`;
+};
+
+export const createFoodCategory = async (
+  foodCategoryInput: FoodCategoryInput,
+  options?: RequestInit,
+): Promise<FoodCategory> => {
+  return customFetch<FoodCategory>(getCreateFoodCategoryUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(foodCategoryInput),
+  });
+};
+
+export const getCreateFoodCategoryMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createFoodCategory>>,
+    TError,
+    { data: BodyType<FoodCategoryInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createFoodCategory>>,
+  TError,
+  { data: BodyType<FoodCategoryInput> },
+  TContext
+> => {
+  const mutationKey = ["createFoodCategory"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createFoodCategory>>,
+    { data: BodyType<FoodCategoryInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createFoodCategory(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateFoodCategoryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createFoodCategory>>
+>;
+export type CreateFoodCategoryMutationBody = BodyType<FoodCategoryInput>;
+export type CreateFoodCategoryMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a food category (vendor)
+ */
+export const useCreateFoodCategory = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createFoodCategory>>,
+    TError,
+    { data: BodyType<FoodCategoryInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createFoodCategory>>,
+  TError,
+  { data: BodyType<FoodCategoryInput> },
+  TContext
+> => {
+  return useMutation(getCreateFoodCategoryMutationOptions(options));
+};
+
+/**
+ * @summary Delete a food category (vendor)
+ */
+export const getDeleteFoodCategoryUrl = (categoryId: number) => {
+  return `/api/vendor/food-categories/${categoryId}`;
+};
+
+export const deleteFoodCategory = async (
+  categoryId: number,
+  options?: RequestInit,
+): Promise<MessageResponse> => {
+  return customFetch<MessageResponse>(getDeleteFoodCategoryUrl(categoryId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteFoodCategoryMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteFoodCategory>>,
+    TError,
+    { categoryId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteFoodCategory>>,
+  TError,
+  { categoryId: number },
+  TContext
+> => {
+  const mutationKey = ["deleteFoodCategory"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteFoodCategory>>,
+    { categoryId: number }
+  > = (props) => {
+    const { categoryId } = props ?? {};
+
+    return deleteFoodCategory(categoryId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteFoodCategoryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteFoodCategory>>
+>;
+
+export type DeleteFoodCategoryMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a food category (vendor)
+ */
+export const useDeleteFoodCategory = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteFoodCategory>>,
+    TError,
+    { categoryId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteFoodCategory>>,
+  TError,
+  { categoryId: number },
+  TContext
+> => {
+  return useMutation(getDeleteFoodCategoryMutationOptions(options));
+};
+
+/**
  * @summary Get individual cart
  */
 export const getGetCartUrl = () => {
@@ -2905,6 +3167,90 @@ export const useAssignRider = <
   TContext
 > => {
   return useMutation(getAssignRiderMutationOptions(options));
+};
+
+/**
+ * @summary Confirm a mock payment for an order (customer)
+ */
+export const getMockPaymentConfirmUrl = (orderId: number) => {
+  return `/api/orders/${orderId}/mock-payment-confirm`;
+};
+
+export const mockPaymentConfirm = async (
+  orderId: number,
+  options?: RequestInit,
+): Promise<MockPaymentResult> => {
+  return customFetch<MockPaymentResult>(getMockPaymentConfirmUrl(orderId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getMockPaymentConfirmMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof mockPaymentConfirm>>,
+    TError,
+    { orderId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof mockPaymentConfirm>>,
+  TError,
+  { orderId: number },
+  TContext
+> => {
+  const mutationKey = ["mockPaymentConfirm"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof mockPaymentConfirm>>,
+    { orderId: number }
+  > = (props) => {
+    const { orderId } = props ?? {};
+
+    return mockPaymentConfirm(orderId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MockPaymentConfirmMutationResult = NonNullable<
+  Awaited<ReturnType<typeof mockPaymentConfirm>>
+>;
+
+export type MockPaymentConfirmMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Confirm a mock payment for an order (customer)
+ */
+export const useMockPaymentConfirm = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof mockPaymentConfirm>>,
+    TError,
+    { orderId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof mockPaymentConfirm>>,
+  TError,
+  { orderId: number },
+  TContext
+> => {
+  return useMutation(getMockPaymentConfirmMutationOptions(options));
 };
 
 /**

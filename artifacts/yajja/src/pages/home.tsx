@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import {
   ChevronRight, Search, MapPin, Bell, ShoppingBag, ShoppingCart,
   Store, Package, Star, Clock, RotateCcw, User, ReceiptText,
+  Cross, Wine, UtensilsCrossed,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,17 +13,17 @@ import { useListPopularVendors, useListOrders } from "@workspace/api-client-reac
 import { formatKES, KENYA } from "@/lib/format";
 
 const CATEGORIES = [
-  { id: "food", label: " Yajja Food & Drinks", Icon: ShoppingBag, href: "/category/food" },
-  { id: "liquor", label: "Yajja Liquor", Icon: Store, href: "/category/liquor" },
-  { id: "pharmacy", label: "Yajja Health & Beauty", Icon: Package, href: "/category/pharmacy" },
-  { id: "household", label: "Yajja Convenience", Icon: ShoppingCart, href: "/category/household" },
+  { id: "food", label: "Yajja Food & Drinks", Icon: UtensilsCrossed, href: "/category/food" },
+  { id: "liquor", label: "Yajja Liquor", Icon: Wine, href: "/category/liquor" },
+  { id: "pharmacy", label: "Yajja Health", Icon: Cross, href: "/category/pharmacy" },
+  { id: "household", label: "Yajja Go", Icon: ShoppingCart, href: "/category/household" },
 ];
 
 const categoryLabel: Record<string, string> = {
   food: "Food & Drinks",
   liquor: "Liquor",
   pharmacy: "Health & Beauty",
-  household: "Convenience",
+  household: "Go",
 };
 
 function StoreCard({ vendor }: { vendor: any }) {
@@ -220,21 +221,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* Browse all */}
-      <div className="max-w-2xl mx-auto px-4 pb-10">
-        <Link href="/shop">
-          <div className="rounded-2xl bg-white border border-secondary/40 p-4 flex items-center gap-3 hover:bg-secondary/20 transition-colors cursor-pointer shadow-sm">
-            <div className="h-10 w-10 rounded-xl bg-secondary/25 flex items-center justify-center">
-              <ShoppingBag className="h-5 w-5 text-primary" />
-            </div>
-            <div className="flex-1">
-              <p className="font-bold text-sm text-primary">Browse All Stores</p>
-              <p className="text-xs text-primary/60">All vendors in your area</p>
-            </div>
-            <ChevronRight className="h-5 w-5 text-primary/40" />
-          </div>
-        </Link>
-      </div>
+      <div className="pb-10" />
     </div>
   );
 }

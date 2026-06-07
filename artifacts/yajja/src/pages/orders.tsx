@@ -1,25 +1,57 @@
-import React from "react";
-import { Link } from "wouter";
-import { useListOrders } from "@workspace/api-client-react";
+import React, { useState } from "react";
+import { Link, useLocation } from "wouter";
+import {
+  useListOrders,
+  useAddToCart,
+  getGetCartQueryKey,
+} from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, Loader2, ChevronRight, Clock } from "lucide-react";
-
-const statusColor: Record<string, string> = {
-  pending: "bg-secondary/30 text-amber-800 border-secondary/50",
-  accepted: "bg-primary/15 text-primary border-primary/30",
-  confirmed: "bg-primary/15 text-primary border-primary/30",
-  preparing: "bg-orange-500/15 text-orange-700 border-orange-500/30",
-  ready: "bg-primary/10 text-primary border-primary/20",
-  picked_up: "bg-slate-500/10 text-slate-700 border-slate-500/20",
-  delivered: "bg-green-500/15 text-green-700 border-green-500/30",
-  cancelled: "bg-red-500/15 text-red-700 border-red-500/30",
-  rejected: "bg-red-500/15 text-red-700 border-red-500/30",
-};
+import { ShoppingBag, Loader2, ChevronRight, Clock, RotateCcw } from "lucide-react";
+import { orderStatusLabel, ORDER_STATUS_COLORS } from "@/lib/order-status";
 
 export default function Orders() {
-  const { data: orders, isLoading } = useListOrders({ query: { enabled: true, refetchInterval: 5000 } });
+  const { data: orders, isLoading } = useListOrders({ query: { enabled: true, refetchInterval: 8000 } });
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const addToCart = useAddToCart();
+  const [reorderingId, setReorderingId] = useState<number | null>(null);
+
+  const handleReorder = async (e: React.MouseEvent, orderId: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setReorderingId(orderId);
+    try {
+      const token = localStorage.getItem("yajja_token");
+      const res = await fetch(`/api/orders/${orderId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      if (!res.ok) throw new Error("Failed to load order");
+      const detail = await res.json();
+      const items = (detail.items || []) as any[];
+      if (!items.length) throw new Error("No items to reorder");
+      for (const item of items) {
+        await addToCart.mutateAsync({
+          data: {
+            productId: item.productId,
+            quantity: item.quantity || 1,
+            notes: item.notes || undefined,
+          },
+        } as any);
+      }
+      queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() });
+      toast({ title: "Added to cart", description: "Items from your order are back in the cart." });
+      setLocation("/cart");
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Could not reorder", description: err.message });
+    } finally {
+      setReorderingId(null);
+    }
+  };
 
   return (
     <div className="container max-w-3xl mx-auto py-8 px-4 space-y-6 animate-in fade-in duration-500">
@@ -59,9 +91,25 @@ export default function Orders() {
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0">
                     <p className="font-bold">KES {Math.round(order.total || 0).toLocaleString()}</p>
-                    <Badge className={`text-xs border ${statusColor[order.status] || ""}`} variant="outline">
-                      {order.status?.replace(/_/g, " ") || "pending"}
+                    <Badge className={`text-xs border ${ORDER_STATUS_COLORS[order.status] || ""}`} variant="outline">
+                      {orderStatusLabel(order.status)}
                     </Badge>
+                    {["delivered", "cancelled", "rejected"].includes(order.status) && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={(e) => handleReorder(e, order.id)}
+                        disabled={reorderingId === order.id}
+                      >
+                        {reorderingId === order.id ? (
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        ) : (
+                          <RotateCcw className="h-3 w-3 mr-1" />
+                        )}
+                        Reorder
+                      </Button>
+                    )}
                   </div>
                   <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
                 </CardContent>

@@ -4,7 +4,22 @@ import { useQuery } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react/src/custom-fetch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Store, Package, TrendingUp, Clock, Truck, AlertCircle, Loader2, ChevronRight } from "lucide-react";
+import { Users, Store, Package, TrendingUp, Truck, AlertCircle, Loader2, ChevronRight } from "lucide-react";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Legend,
+} from "recharts";
 
 function useAdminStats() {
   return useQuery({
@@ -13,6 +28,24 @@ function useAdminStats() {
     refetchInterval: 30000,
   });
 }
+
+function useOrdersOverTime() {
+  return useQuery({
+    queryKey: ["admin-orders-over-time"],
+    queryFn: () => customFetch("/api/admin/analytics/orders-over-time").then(r => r.json()),
+    refetchInterval: 60000,
+  });
+}
+
+function useRevenueByVendor() {
+  return useQuery({
+    queryKey: ["admin-revenue-by-vendor"],
+    queryFn: () => customFetch("/api/admin/analytics/revenue-by-vendor").then(r => r.json()),
+    refetchInterval: 60000,
+  });
+}
+
+const PIE_COLORS = ["#7c3aed", "#f59e0b", "#10b981", "#3b82f6", "#ef4444", "#6366f1"];
 
 const StatCard = ({ title, value, sub, icon: Icon, color }: any) => (
   <Card>
@@ -31,6 +64,13 @@ const StatCard = ({ title, value, sub, icon: Icon, color }: any) => (
 
 export default function AdminDashboard() {
   const { data: stats, isLoading } = useAdminStats();
+  const { data: ordersOverTime } = useOrdersOverTime();
+  const { data: revenueByVendor } = useRevenueByVendor();
+
+  const timeData = (ordersOverTime as any[]) || [];
+  const vendorData = ((revenueByVendor as any[]) || [])
+    .slice(0, 6)
+    .map((v) => ({ ...v, name: v.vendorName ?? v.name ?? `Vendor #${v.vendorId}` }));
 
   if (isLoading) return (
     <div className="flex-1 flex items-center justify-center min-h-[50vh]">
@@ -88,40 +128,91 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* 7-day chart (bar) */}
+        {/* Revenue by vendor (pie) */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Last 7 Days Orders</CardTitle>
+            <CardTitle className="text-base">Revenue Share by Vendor</CardTitle>
           </CardHeader>
           <CardContent>
-            {s?.revenueChart && (
-              <div className="flex items-end gap-1.5 h-28">
-                {s.revenueChart.map((d: any, i: number) => {
-                  const maxOrders = Math.max(...s.revenueChart.map((x: any) => x.orders), 1);
-                  const pct = (d.orders / maxOrders) * 100;
-                  return (
-                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                      <span className="text-[9px] text-muted-foreground font-medium">{d.orders}</span>
-                      <div
-                        className="w-full rounded-t-sm bg-primary/80 min-h-[4px] transition-all"
-                        style={{ height: `${Math.max(pct, 5)}%` }}
-                      />
-                      <span className="text-[9px] text-muted-foreground">{d.date}</span>
-                    </div>
-                  );
-                })}
-              </div>
+            {vendorData.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-12 text-center">No revenue data yet.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <PieChart>
+                  <Pie
+                    data={vendorData}
+                    dataKey="revenue"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    label={(e: any) => e.name}
+                  >
+                    {vendorData.map((_, i) => (
+                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(v: any) => `KES ${Number(v).toLocaleString()}`} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Trend charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Orders (Last 14 Days)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {timeData.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-12 text-center">No order data yet.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <LineChart data={timeData} margin={{ left: -20, right: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="orders" stroke="#7c3aed" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Revenue by Vendor</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {vendorData.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-12 text-center">No revenue data yet.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={vendorData} margin={{ left: -20, right: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-15} textAnchor="end" height={50} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={(v: any) => `KES ${Number(v).toLocaleString()}`} />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Bar dataKey="revenue" fill="#7c3aed" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             )}
           </CardContent>
         </Card>
       </div>
 
       {/* Quick links */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           { href: "/admin/vendors", label: "Manage Vendors", sub: `${s?.pendingVendors || 0} need review`, icon: Store, badge: s?.pendingVendors },
           { href: "/admin/orders", label: "Monitor Orders", sub: `${s?.pendingOrders || 0} active orders`, icon: Package, badge: s?.pendingOrders },
           { href: "/admin/riders", label: "Manage Riders", sub: `${s?.activeRiders || 0} active now`, icon: Truck, badge: null },
+          { href: "/admin/customers", label: "Customers", sub: "Browse & search", icon: Users, badge: null },
         ].map(({ href, label, sub, icon: Icon, badge }) => (
           <Link key={href} href={href}>
             <Card className="hover:shadow-md transition-all cursor-pointer group">
