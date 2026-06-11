@@ -8,6 +8,13 @@
       "when": 1780857371766,
       "tag": "0000_worthless_bromley",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1781202424301,
+      "tag": "0001_groovy_vulture",
+      "breakpoints": true
     }
   ]
 }
