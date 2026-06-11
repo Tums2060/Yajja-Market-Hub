@@ -157,7 +157,7 @@ export default function RiderMap() {
                     <p className="font-semibold">Order #{order.id}</p>
                     <p className="text-sm text-muted-foreground">{order.customerName}</p>
                     {order.deliveryAddress && (
-                      <p className="text-xs text-muted-foreground mt-1">📍 {order.deliveryAddress}</p>
+                      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><MapPin className="h-3 w-3 shrink-0" /> {order.deliveryAddress}</p>
                     )}
                   </div>
                   <Badge className="bg-primary/10 text-primary border-primary/30 text-xs" variant="outline">

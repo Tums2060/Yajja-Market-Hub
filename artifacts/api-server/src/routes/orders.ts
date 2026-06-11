@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, dbUpdateReturning, ordersTable, orderItemsTable, groupOrdersTable, billAssignmentsTable, cartItemsTable, groupCartItemsTable, productsTable, vendorsTable, usersTable, riderProfilesTable } from "@workspace/db";
+import { db, dbUpdateReturning, ordersTable, orderItemsTable, groupOrdersTable, billAssignmentsTable, cartItemsTable, groupCartItemsTable, productsTable, vendorsTable, usersTable, riderProfilesTable, groupMembersTable } from "@workspace/db";
 import { eq, and, inArray, desc, or, isNull } from "drizzle-orm";
 import { UpdateOrderStatusBody, AssignRiderBody, CreateGroupOrderBody, SubmitBillAssignmentBody } from "@workspace/api-zod";
 import { requireAuth, getUser } from "../lib/auth";
@@ -106,7 +106,10 @@ const createOrderBodySchema = z.object({
   deliveryLng: z.number().optional(),
 });
 
-async function enrichOrder(order: typeof ordersTable.$inferSelect) {
+async function enrichOrder(
+  order: typeof ordersTable.$inferSelect,
+  opts: { hideCoords?: boolean } = {},
+) {
   const items = await db.select({
     item: orderItemsTable,
     product: productsTable,
@@ -129,6 +132,11 @@ async function enrichOrder(order: typeof ordersTable.$inferSelect) {
 
   return {
     ...order,
+    // Precise delivery coordinates are sensitive: only the customer (owner) and
+    // the assigned rider may ever receive them. Vendors and unassigned riders
+    // get the human-readable address but never raw lat/lng.
+    deliveryLat: opts.hideCoords ? null : order.deliveryLat,
+    deliveryLng: opts.hideCoords ? null : order.deliveryLng,
     orderCode: formatOrderCode(order.id),
     vendorName: vendor?.name || "",
     customerName: customer?.name || "",
@@ -145,6 +153,27 @@ async function enrichOrder(order: typeof ordersTable.$inferSelect) {
   };
 }
 
+// Centralized coordinate-visibility policy: precise delivery lat/lng may only
+// ever be seen by the customer who owns the order, the rider assigned to it, or
+// an admin. Vendors (and everyone else) NEVER receive coordinates. Apply this to
+// every endpoint that returns an enriched order so the rule can't drift.
+async function canSeeCoords(
+  user: { id: number; role: string },
+  order: typeof ordersTable.$inferSelect,
+): Promise<boolean> {
+  if (user.role === "admin") return true;
+  if (order.userId === user.id) return true; // customer owner
+  if (order.riderId) {
+    const [rider] = await db
+      .select({ id: riderProfilesTable.id })
+      .from(riderProfilesTable)
+      .where(eq(riderProfilesTable.userId, user.id))
+      .limit(1);
+    if (rider && rider.id === order.riderId) return true; // assigned rider
+  }
+  return false;
+}
+
 // Individual orders
 router.get("/orders", requireAuth, async (req, res) => {
   const user = getUser(req);
@@ -152,7 +181,7 @@ router.get("/orders", requireAuth, async (req, res) => {
   const conditions = [eq(ordersTable.userId, user.id)];
   if (status) conditions.push(eq(ordersTable.status, status as any));
   const orders = await db.select().from(ordersTable).where(and(...conditions));
-  const enriched = await Promise.all(orders.map(enrichOrder));
+  const enriched = await Promise.all(orders.map((o) => enrichOrder(o)));
   const filtered = orderCode ? enriched.filter((order) => order.orderCode === orderCode) : enriched;
   res.json(filtered);
 });
@@ -185,59 +214,64 @@ router.post("/orders", requireAuth, async (req, res) => {
       vendorMap.get(product.vendorId)!.push(ci);
     }
 
-    const createdOrders = [] as Array<Awaited<ReturnType<typeof enrichOrder>>>;
-    for (const [vendorId, items] of vendorMap) {
-      const subtotal = items.reduce((sum, item) => {
-        const product = productMap.get(item.productId);
-        return sum + (product?.price || 0) * item.quantity;
-      }, 0);
-      const deliveryFee = 200;
-      const total = subtotal + deliveryFee;
-
-      await db.insert(ordersTable).values({
-        userId: user.id,
-        vendorId,
-        deliveryAddress: parsed.data.deliveryAddress,
-        deliveryLat: parsed.data.deliveryLat ?? null,
-        deliveryLng: parsed.data.deliveryLng ?? null,
-        subtotal,
-        deliveryFee,
-        total,
-        notes: parsed.data.notes,
-        status: "pending",
-      });
-
-      const [order] = await db.select().from(ordersTable)
-        .where(and(eq(ordersTable.userId, user.id), eq(ordersTable.vendorId, vendorId)))
-        .orderBy(desc(ordersTable.id))
-        .limit(1);
-
-      await db.insert(orderItemsTable).values(
-        items.map((item) => {
+    // Create all orders + their items and clear the cart atomically: a failure
+    // partway through must not leave dangling orders or a half-cleared cart.
+    const createdOrderRows = await db.transaction(async (tx) => {
+      const rows: Array<typeof ordersTable.$inferSelect> = [];
+      for (const [vendorId, items] of vendorMap) {
+        const subtotal = items.reduce((sum, item) => {
           const product = productMap.get(item.productId);
-          const unitPrice = product?.price || 0;
-          return {
-            orderId: order.id,
-            productId: item.productId,
-            productName: product?.name || "",
-            quantity: item.quantity,
-            unitPrice,
-            totalPrice: unitPrice * item.quantity,
-            notes: item.notes || null,
-          };
-        })
-      );
+          return sum + (product?.price || 0) * item.quantity;
+        }, 0);
+        const deliveryFee = 200;
+        const total = subtotal + deliveryFee;
 
+        const [order] = await tx.insert(ordersTable).values({
+          userId: user.id,
+          vendorId,
+          deliveryAddress: parsed.data.deliveryAddress,
+          deliveryLat: parsed.data.deliveryLat ?? null,
+          deliveryLng: parsed.data.deliveryLng ?? null,
+          subtotal,
+          deliveryFee,
+          total,
+          notes: parsed.data.notes,
+          status: "pending",
+        }).returning();
+
+        await tx.insert(orderItemsTable).values(
+          items.map((item) => {
+            const product = productMap.get(item.productId);
+            const unitPrice = product?.price || 0;
+            return {
+              orderId: order.id,
+              productId: item.productId,
+              productName: product?.name || "",
+              quantity: item.quantity,
+              unitPrice,
+              totalPrice: unitPrice * item.quantity,
+              notes: item.notes || null,
+            };
+          })
+        );
+
+        rows.push(order);
+        // Vendors are notified only once payment is confirmed (see
+        // /orders/:orderId/mock-payment-confirm) so they never see unpaid orders.
+      }
+
+      // Clear cart as part of the same transaction.
+      await tx.delete(cartItemsTable).where(eq(cartItemsTable.userId, user.id));
+      return rows;
+    });
+
+    const createdOrders = [] as Array<Awaited<ReturnType<typeof enrichOrder>>>;
+    for (const order of createdOrderRows) {
       createdOrders.push(await enrichOrder(order));
-      // Vendors are notified only once payment is confirmed (see
-      // /orders/:orderId/mock-payment-confirm) so they never see unpaid orders.
     }
 
     // Refresh the customer's own order views.
     broadcastToUser(user.id, { type: "orders:changed" });
-
-    // Clear cart
-    await db.delete(cartItemsTable).where(eq(cartItemsTable.userId, user.id));
 
     res.status(201).json({
       orderCode: createdOrders[0] ? formatOrderCode(createdOrders[0].id) : null,
@@ -252,12 +286,48 @@ router.post("/orders", requireAuth, async (req, res) => {
 
 router.get("/orders/:orderId", requireAuth, async (req, res) => {
   const orderId = parseInt(String(req.params.orderId), 10);
+  const user = getUser(req);
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
   if (!order) {
     res.status(404).json({ message: "Order not found" });
     return;
   }
-  res.json(await enrichOrder(order));
+
+  // Authorization: only the customer who owns the order, the rider assigned to
+  // it, the vendor who fulfils it, or an admin may view it. Anyone else is
+  // refused — this prevents IDOR enumeration of other customers' orders.
+  const isOwner = order.userId === user.id;
+  const isAdmin = user.role === "admin";
+
+  let isAssignedRider = false;
+  if (order.riderId) {
+    const [rider] = await db
+      .select({ id: riderProfilesTable.id })
+      .from(riderProfilesTable)
+      .where(eq(riderProfilesTable.userId, user.id))
+      .limit(1);
+    isAssignedRider = !!rider && rider.id === order.riderId;
+  }
+
+  let isVendorOwner = false;
+  {
+    const [vendor] = await db
+      .select({ id: vendorsTable.id })
+      .from(vendorsTable)
+      .where(eq(vendorsTable.userId, user.id))
+      .limit(1);
+    isVendorOwner = !!vendor && vendor.id === order.vendorId;
+  }
+
+  if (!isOwner && !isAdmin && !isAssignedRider && !isVendorOwner) {
+    res.status(403).json({ message: "Forbidden" });
+    return;
+  }
+
+  // Coordinate policy: only owner, assigned rider, or admin get raw lat/lng.
+  // The vendor sees the order but never the customer's precise coordinates.
+  const hideCoords = !(isOwner || isAdmin || isAssignedRider);
+  res.json(await enrichOrder(order, { hideCoords }));
 });
 
 // Customer confirms a (mock) payment for their own order. Marks the order paid
@@ -354,7 +424,7 @@ router.put("/orders/:orderId/status", requireAuth, async (req, res) => {
     await releaseEscrowForOrder(order);
   }
   await notifyOrderParties(order, "order:status");
-  res.json(await enrichOrder(order));
+  res.json(await enrichOrder(order, { hideCoords: !(await canSeeCoords(user, order)) }));
 });
 
 // Customer cancels their own order while it is still pending.
@@ -378,7 +448,7 @@ router.post("/orders/:orderId/cancel", requireAuth, async (req, res) => {
     .where(eq(ordersTable.id, orderId));
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
   await notifyOrderParties(order, "order:status");
-  res.json(await enrichOrder(order));
+  res.json(await enrichOrder(order, { hideCoords: !(await canSeeCoords(user, order)) }));
 });
 
 router.post("/orders/:orderId/assign-rider", requireAuth, async (req, res) => {
@@ -429,7 +499,7 @@ router.post("/orders/:orderId/assign-rider", requireAuth, async (req, res) => {
   }
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
   await notifyOrderParties(order, "order:assigned");
-  res.json(await enrichOrder(order));
+  res.json(await enrichOrder(order, { hideCoords: !(await canSeeCoords(user, order)) }));
 });
 
 // Vendor orders
@@ -445,7 +515,8 @@ router.get("/vendor-orders", requireAuth, async (req, res) => {
   // Vendors only see orders that have been paid for.
   orders = orders.filter(o => o.paymentStatus === "paid");
   if (status) orders = orders.filter(o => o.status === status);
-  const enriched = await Promise.all(orders.map(enrichOrder));
+  // Vendors never receive raw delivery coordinates — address only.
+  const enriched = await Promise.all(orders.map((o) => enrichOrder(o, { hideCoords: true })));
   res.json(enriched);
 });
 
@@ -453,6 +524,11 @@ router.get("/vendor-orders", requireAuth, async (req, res) => {
 router.get("/rider-orders", requireAuth, async (req, res) => {
   const { status } = req.query as { status?: string };
   const user = getUser(req);
+  // Only riders (and admins) may browse the active/claimable order pool.
+  if (user.role !== "rider" && user.role !== "admin") {
+    res.status(403).json({ message: "Forbidden" });
+    return;
+  }
   const [rider] = await db.select().from(riderProfilesTable).where(eq(riderProfilesTable.userId, user.id)).limit(1);
 
   let orders = await db.select().from(ordersTable);
@@ -470,17 +546,39 @@ router.get("/rider-orders", requireAuth, async (req, res) => {
     );
   }
 
-  const enriched = await Promise.all(orders.map(enrichOrder));
+  // A rider only gets precise coordinates for orders assigned to them; for
+  // still-claimable (unassigned) orders they see the address but not lat/lng.
+  const enriched = await Promise.all(
+    orders.map((o) => enrichOrder(o, { hideCoords: !rider || o.riderId !== rider.id })),
+  );
   res.json(enriched);
 });
 
 // Group orders
 router.get("/groups/:groupId/orders", requireAuth, async (req, res) => {
   const groupId = parseInt(String(req.params.groupId), 10);
+  const user = getUser(req);
+  // Only members of the group (or an admin) may view its orders — prevents
+  // enumerating other groups' orders and the coordinates within them.
+  if (user.role !== "admin") {
+    const [member] = await db
+      .select({ id: groupMembersTable.id })
+      .from(groupMembersTable)
+      .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, user.id)))
+      .limit(1);
+    if (!member) {
+      res.status(403).json({ message: "Forbidden" });
+      return;
+    }
+  }
   const groupOrders = await db.select().from(groupOrdersTable).where(eq(groupOrdersTable.groupId, groupId));
   const result = await Promise.all(groupOrders.map(async (go) => {
     const orders = await db.select().from(ordersTable).where(eq(ordersTable.groupOrderId, go.id));
-    const enrichedOrders = await Promise.all(orders.map(enrichOrder));
+    // A group member is not necessarily the owner of every order in the group,
+    // so apply the per-order coordinate policy to each one.
+    const enrichedOrders = await Promise.all(
+      orders.map(async (o) => enrichOrder(o, { hideCoords: !(await canSeeCoords(user, o)) })),
+    );
     const assignments = await db.select().from(billAssignmentsTable).where(eq(billAssignmentsTable.groupOrderId, go.id));
     const enrichedAssignments = await Promise.all(assignments.map(async (a) => {
       const [u] = await db.select().from(usersTable).where(eq(usersTable.id, a.userId)).limit(1);
@@ -620,7 +718,7 @@ router.post("/riders/pickup/:orderId", requireAuth, async (req, res) => {
     .where(eq(ordersTable.id, orderId));
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
   await notifyOrderParties(order, "order:status");
-  res.json(await enrichOrder(order));
+  res.json(await enrichOrder(order, { hideCoords: !(await canSeeCoords(user, order)) }));
 });
 
 router.post("/riders/deliver/:orderId", requireAuth, async (req, res) => {
@@ -648,7 +746,7 @@ router.post("/riders/deliver/:orderId", requireAuth, async (req, res) => {
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
   await releaseEscrowForOrder(order);
   await notifyOrderParties(order, "order:status");
-  res.json(await enrichOrder(order));
+  res.json(await enrichOrder(order, { hideCoords: !(await canSeeCoords(user, order)) }));
 });
 
 export default router;

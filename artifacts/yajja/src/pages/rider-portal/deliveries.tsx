@@ -4,7 +4,7 @@ import { useListRiderOrders } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Package, Loader2, MapPin } from "lucide-react";
+import { ArrowLeft, Package, Loader2, MapPin, ArrowRight } from "lucide-react";
 import { orderStatusLabel, ORDER_STATUS_COLORS } from "@/lib/order-status";
 import { formatKES } from "@/lib/format";
 
@@ -45,8 +45,8 @@ export default function RiderDeliveries() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold">Order {order.orderCode || `#${order.id}`}</p>
-                  <p className="text-sm text-muted-foreground truncate">
-                    {order.vendorName || "Vendor"} → {order.customerName || "Customer"}
+                  <p className="text-sm text-muted-foreground truncate flex items-center gap-1">
+                    {order.vendorName || "Vendor"} <ArrowRight className="h-3 w-3 shrink-0" /> {order.customerName || "Customer"}
                   </p>
                   {order.deliveryAddress && (
                     <div className="flex items-start gap-1 mt-1 text-xs text-muted-foreground">

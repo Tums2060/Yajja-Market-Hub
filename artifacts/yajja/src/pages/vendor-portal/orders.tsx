@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, ShoppingBag, Loader2, ChevronRight } from "lucide-react";
+import { ArrowLeft, ShoppingBag, Loader2, ChevronRight, MapPin } from "lucide-react";
 
 const statusColor: Record<string, string> = {
   pending: "bg-secondary/30 text-amber-800 border-secondary/50",
@@ -110,7 +110,7 @@ export default function VendorOrders() {
                       {order.customerName || "Customer"} • {order.customerPhone || "No phone"}
                     </p>
                     {order.deliveryAddress && (
-                      <p className="text-xs text-muted-foreground mt-1">📍 {order.deliveryAddress}</p>
+                      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><MapPin className="h-3 w-3 shrink-0" /> {order.deliveryAddress}</p>
                     )}
                   </div>
                   <Badge className={`text-xs border ${statusColor[order.status] || ""}`} variant="outline">

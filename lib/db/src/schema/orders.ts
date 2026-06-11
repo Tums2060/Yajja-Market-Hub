@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, timestamp, real, boolean, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, timestamp, real, boolean, pgEnum, index } from "drizzle-orm/pg-core";
 import { paymentStatusEnum } from "./payments";
 
 export const orderStatusEnum = pgEnum("order_status", [
@@ -37,7 +37,13 @@ export const ordersTable = pgTable("orders", {
   notes: text("notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (t) => ({
+  userIdx: index("orders_user_idx").on(t.userId),
+  riderIdx: index("orders_rider_idx").on(t.riderId),
+  vendorIdx: index("orders_vendor_idx").on(t.vendorId),
+  statusIdx: index("orders_status_idx").on(t.status),
+  createdAtIdx: index("orders_created_at_idx").on(t.createdAt),
+}));
 
 export const orderItemsTable = pgTable("order_items", {
   id: serial("id").primaryKey(),

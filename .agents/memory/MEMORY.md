@@ -1,4 +1,5 @@
 - [Order lifecycle write paths](order-lifecycle-paths.md) — status changes + escrow release happen via multiple routes; mirror guards/side-effects on all of them.
+- [Order coordinates privacy](order-coords-privacy.md) — raw deliveryLat/Lng only for owner + assigned rider; strip via enrichOrder(o,{hideCoords}); never .map(enrichOrder) bare.
 - [Yajja frontend typecheck baseline](yajja-typecheck-baseline.md) — known pre-existing tsc errors (queryKey/params shape) across query hooks; don't chase, app runs fine on tsx/vite.
 - [DB is PostgreSQL-only](dual-dialect-db.md) — MySQL/MariaDB dual-dialect REMOVED at user request; pure pg now; keep dbInsert/UpdateReturning helpers; drizzle.config must use relative paths.
-- api-server also has a pre-existing tsc baseline: `req.params`/`req.query` typed `string | string[]` (Express 5) → many TS2345 at `parseInt(req.params.x)`; not regressions, runs on tsx.
+- [api-server typecheck baseline](yajja-typecheck-baseline.md) — Express 5 types `req.params`/`req.query` as `string | string[]` → many TS2345 at `parseInt(req.params.x)`; not regressions, runs on tsx.

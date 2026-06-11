@@ -4,45 +4,48 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import Layout from "@/components/layout/Layout";
-import NotFound from "@/pages/not-found";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import { Loader2 } from "lucide-react";
+import { lazy, Suspense, useEffect } from "react";
 
-import Login from "@/pages/login";
-import Register from "@/pages/register";
-import ForgotPassword from "@/pages/forgot-password";
-import ResetPassword from "@/pages/reset-password";
-import VendorLogin from "@/pages/vendor-login";
-import VendorRegister from "@/pages/vendor-register";
-import RiderLogin from "@/pages/rider-login";
-import RiderRegister from "@/pages/rider-register";
-import Home from "@/pages/home";
-import Shop from "@/pages/shop";
-import CategoryPage from "@/pages/category";
-import Cart from "@/pages/cart";
-import Checkout from "@/pages/checkout";
-import Orders from "@/pages/orders";
-import OrderDetail from "@/pages/order-detail";
-import Profile from "@/pages/profile";
-import VendorDetail from "@/pages/vendor-detail";
-import SearchResults from "@/pages/search";
+const NotFound = lazy(() => import("@/pages/not-found"));
 
-import VendorPortal from "@/pages/vendor-portal/dashboard";
-import VendorOrders from "@/pages/vendor-portal/orders";
-import VendorProducts from "@/pages/vendor-portal/products";
-import VendorProfile from "@/pages/vendor-portal/profile";
+const Login = lazy(() => import("@/pages/login"));
+const Register = lazy(() => import("@/pages/register"));
+const ForgotPassword = lazy(() => import("@/pages/forgot-password"));
+const ResetPassword = lazy(() => import("@/pages/reset-password"));
+const VendorLogin = lazy(() => import("@/pages/vendor-login"));
+const VendorRegister = lazy(() => import("@/pages/vendor-register"));
+const RiderLogin = lazy(() => import("@/pages/rider-login"));
+const RiderRegister = lazy(() => import("@/pages/rider-register"));
+const Home = lazy(() => import("@/pages/home"));
+const Shop = lazy(() => import("@/pages/shop"));
+const CategoryPage = lazy(() => import("@/pages/category"));
+const Cart = lazy(() => import("@/pages/cart"));
+const Checkout = lazy(() => import("@/pages/checkout"));
+const Orders = lazy(() => import("@/pages/orders"));
+const OrderDetail = lazy(() => import("@/pages/order-detail"));
+const Profile = lazy(() => import("@/pages/profile"));
+const VendorDetail = lazy(() => import("@/pages/vendor-detail"));
+const SearchResults = lazy(() => import("@/pages/search"));
 
-import RiderPortal from "@/pages/rider-portal/dashboard";
-import RiderMap from "@/pages/rider-portal/map";
-import RiderProfile from "@/pages/rider-portal/profile";
-import RiderDeliveries from "@/pages/rider-portal/deliveries";
+const VendorPortal = lazy(() => import("@/pages/vendor-portal/dashboard"));
+const VendorOrders = lazy(() => import("@/pages/vendor-portal/orders"));
+const VendorProducts = lazy(() => import("@/pages/vendor-portal/products"));
+const VendorProfile = lazy(() => import("@/pages/vendor-portal/profile"));
 
-import AdminDashboard from "@/pages/admin-portal/dashboard";
-import AdminVendors from "@/pages/admin-portal/vendors";
-import AdminOrders from "@/pages/admin-portal/orders";
-import AdminRiders from "@/pages/admin-portal/riders";
-import AdminUsers from "@/pages/admin-portal/users";
-import AdminCustomers from "@/pages/admin-portal/customers";
+const RiderPortal = lazy(() => import("@/pages/rider-portal/dashboard"));
+const RiderMap = lazy(() => import("@/pages/rider-portal/map"));
+const RiderProfile = lazy(() => import("@/pages/rider-portal/profile"));
+const RiderDeliveries = lazy(() => import("@/pages/rider-portal/deliveries"));
+const RiderHistory = lazy(() => import("@/pages/rider-portal/history"));
 
-import { useEffect } from "react";
+const AdminDashboard = lazy(() => import("@/pages/admin-portal/dashboard"));
+const AdminVendors = lazy(() => import("@/pages/admin-portal/vendors"));
+const AdminOrders = lazy(() => import("@/pages/admin-portal/orders"));
+const AdminRiders = lazy(() => import("@/pages/admin-portal/riders"));
+const AdminUsers = lazy(() => import("@/pages/admin-portal/users"));
+const AdminCustomers = lazy(() => import("@/pages/admin-portal/customers"));
 
 const queryClient = new QueryClient();
 
@@ -70,54 +73,67 @@ const ProtectedRoute = ({ component: Component, allowedRoles, ...rest }: any) =>
   return <Component {...rest} />;
 };
 
+function PageLoader() {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  );
+}
+
 function Router() {
   return (
     <Layout>
-      <Switch>
-        <Route path="/login" component={Login} />
-        <Route path="/register" component={Register} />
-        <Route path="/vendor/login" component={VendorLogin} />
-        <Route path="/vendor/register" component={VendorRegister} />
-        <Route path="/rider/login" component={RiderLogin} />
-        <Route path="/rider/register" component={RiderRegister} />
-        <Route path="/forgot-password" component={ForgotPassword} />
-        <Route path="/reset-password" component={ResetPassword} />
+      <ErrorBoundary>
+        <Suspense fallback={<PageLoader />}>
+          <Switch>
+            <Route path="/login" component={Login} />
+            <Route path="/register" component={Register} />
+            <Route path="/vendor/login" component={VendorLogin} />
+            <Route path="/vendor/register" component={VendorRegister} />
+            <Route path="/rider/login" component={RiderLogin} />
+            <Route path="/rider/register" component={RiderRegister} />
+            <Route path="/forgot-password" component={ForgotPassword} />
+            <Route path="/reset-password" component={ResetPassword} />
 
-        {/* Customer Routes */}
-        <Route path="/"><ProtectedRoute component={Home} allowedRoles={["customer"]} /></Route>
-        <Route path="/shop"><ProtectedRoute component={Shop} allowedRoles={["customer"]} /></Route>
-        <Route path="/shop/:category"><ProtectedRoute component={Shop} allowedRoles={["customer"]} /></Route>
-        <Route path="/category/:category"><ProtectedRoute component={CategoryPage} allowedRoles={["customer"]} /></Route>
-        <Route path="/search"><ProtectedRoute component={SearchResults} allowedRoles={["customer"]} /></Route>
-        <Route path="/vendor/:vendorId"><ProtectedRoute component={VendorDetail} allowedRoles={["customer"]} /></Route>
-        <Route path="/cart"><ProtectedRoute component={Cart} allowedRoles={["customer"]} /></Route>
-        <Route path="/checkout"><ProtectedRoute component={Checkout} allowedRoles={["customer"]} /></Route>
-        <Route path="/orders"><ProtectedRoute component={Orders} allowedRoles={["customer"]} /></Route>
-        <Route path="/orders/:orderId"><ProtectedRoute component={OrderDetail} allowedRoles={["customer"]} /></Route>
-        <Route path="/profile"><ProtectedRoute component={Profile} allowedRoles={["customer"]} /></Route>
+            {/* Customer Routes */}
+            <Route path="/"><ProtectedRoute component={Home} allowedRoles={["customer"]} /></Route>
+            <Route path="/shop"><ProtectedRoute component={Shop} allowedRoles={["customer"]} /></Route>
+            <Route path="/shop/:category"><ProtectedRoute component={Shop} allowedRoles={["customer"]} /></Route>
+            <Route path="/category/:category"><ProtectedRoute component={CategoryPage} allowedRoles={["customer"]} /></Route>
+            <Route path="/search"><ProtectedRoute component={SearchResults} allowedRoles={["customer"]} /></Route>
+            <Route path="/vendor/:vendorId"><ProtectedRoute component={VendorDetail} allowedRoles={["customer"]} /></Route>
+            <Route path="/cart"><ProtectedRoute component={Cart} allowedRoles={["customer"]} /></Route>
+            <Route path="/checkout"><ProtectedRoute component={Checkout} allowedRoles={["customer"]} /></Route>
+            <Route path="/orders"><ProtectedRoute component={Orders} allowedRoles={["customer"]} /></Route>
+            <Route path="/orders/:orderId"><ProtectedRoute component={OrderDetail} allowedRoles={["customer"]} /></Route>
+            <Route path="/profile"><ProtectedRoute component={Profile} allowedRoles={["customer"]} /></Route>
 
-        {/* Vendor Routes */}
-        <Route path="/vendor-portal"><ProtectedRoute component={VendorPortal} allowedRoles={["vendor"]} /></Route>
-        <Route path="/vendor-portal/orders"><ProtectedRoute component={VendorOrders} allowedRoles={["vendor"]} /></Route>
-        <Route path="/vendor-portal/products"><ProtectedRoute component={VendorProducts} allowedRoles={["vendor"]} /></Route>
-        <Route path="/vendor-portal/profile"><ProtectedRoute component={VendorProfile} allowedRoles={["vendor"]} /></Route>
+            {/* Vendor Routes */}
+            <Route path="/vendor-portal"><ProtectedRoute component={VendorPortal} allowedRoles={["vendor"]} /></Route>
+            <Route path="/vendor-portal/orders"><ProtectedRoute component={VendorOrders} allowedRoles={["vendor"]} /></Route>
+            <Route path="/vendor-portal/products"><ProtectedRoute component={VendorProducts} allowedRoles={["vendor"]} /></Route>
+            <Route path="/vendor-portal/profile"><ProtectedRoute component={VendorProfile} allowedRoles={["vendor"]} /></Route>
 
-        {/* Rider Routes */}
-        <Route path="/rider-portal"><ProtectedRoute component={RiderPortal} allowedRoles={["rider"]} /></Route>
-        <Route path="/rider-portal/map"><ProtectedRoute component={RiderMap} allowedRoles={["rider"]} /></Route>
-        <Route path="/rider-portal/deliveries"><ProtectedRoute component={RiderDeliveries} allowedRoles={["rider"]} /></Route>
-        <Route path="/rider-portal/profile"><ProtectedRoute component={RiderProfile} allowedRoles={["rider"]} /></Route>
+            {/* Rider Routes */}
+            <Route path="/rider-portal"><ProtectedRoute component={RiderPortal} allowedRoles={["rider"]} /></Route>
+            <Route path="/rider-portal/map"><ProtectedRoute component={RiderMap} allowedRoles={["rider"]} /></Route>
+            <Route path="/rider-portal/deliveries"><ProtectedRoute component={RiderDeliveries} allowedRoles={["rider"]} /></Route>
+            <Route path="/rider-portal/history"><ProtectedRoute component={RiderHistory} allowedRoles={["rider"]} /></Route>
+            <Route path="/rider-portal/profile"><ProtectedRoute component={RiderProfile} allowedRoles={["rider"]} /></Route>
 
-        {/* Admin Routes */}
-        <Route path="/admin"><ProtectedRoute component={AdminDashboard} allowedRoles={["admin"]} /></Route>
-        <Route path="/admin/vendors"><ProtectedRoute component={AdminVendors} allowedRoles={["admin"]} /></Route>
-        <Route path="/admin/orders"><ProtectedRoute component={AdminOrders} allowedRoles={["admin"]} /></Route>
-        <Route path="/admin/riders"><ProtectedRoute component={AdminRiders} allowedRoles={["admin"]} /></Route>
-        <Route path="/admin/users"><ProtectedRoute component={AdminUsers} allowedRoles={["admin"]} /></Route>
-        <Route path="/admin/customers"><ProtectedRoute component={AdminCustomers} allowedRoles={["admin"]} /></Route>
+            {/* Admin Routes */}
+            <Route path="/admin"><ProtectedRoute component={AdminDashboard} allowedRoles={["admin"]} /></Route>
+            <Route path="/admin/vendors"><ProtectedRoute component={AdminVendors} allowedRoles={["admin"]} /></Route>
+            <Route path="/admin/orders"><ProtectedRoute component={AdminOrders} allowedRoles={["admin"]} /></Route>
+            <Route path="/admin/riders"><ProtectedRoute component={AdminRiders} allowedRoles={["admin"]} /></Route>
+            <Route path="/admin/users"><ProtectedRoute component={AdminUsers} allowedRoles={["admin"]} /></Route>
+            <Route path="/admin/customers"><ProtectedRoute component={AdminCustomers} allowedRoles={["admin"]} /></Route>
 
-        <Route component={NotFound} />
-      </Switch>
+            <Route component={NotFound} />
+          </Switch>
+        </Suspense>
+      </ErrorBoundary>
     </Layout>
   );
 }

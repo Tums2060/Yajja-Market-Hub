@@ -32,7 +32,11 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-const pgPool = new PgPool({ connectionString: process.env.DATABASE_URL });
+const pgPoolMax = Number(process.env.DB_POOL_MAX) || 10;
+const pgPool = new PgPool({
+  connectionString: process.env.DATABASE_URL,
+  max: pgPoolMax,
+});
 export const db: DB = pgDrizzle(pgPool, { schema, logger });
 export const pool = pgPool;
 
@@ -57,6 +61,7 @@ export const {
   passwordResetTokensTable,
   foodCategoriesTable,
   foodItemCategoriesTable,
+  savedLocationsTable,
 } = schema;
 
 export * from "./schema";

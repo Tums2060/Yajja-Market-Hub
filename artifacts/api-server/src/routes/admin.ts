@@ -91,8 +91,31 @@ router.put("/admin/vendors/:vendorId/reject", requireAdmin, async (req, res) => 
 
 // List all users
 router.get("/admin/users", requireAdmin, async (req, res) => {
-  const users = await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, role: usersTable.role, phone: usersTable.phone, createdAt: usersTable.createdAt }).from(usersTable).orderBy(desc(usersTable.createdAt));
+  const users = await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, role: usersTable.role, phone: usersTable.phone, isActive: usersTable.isActive, createdAt: usersTable.createdAt }).from(usersTable).orderBy(desc(usersTable.createdAt));
   res.json(users.map(u => ({ ...u, createdAt: u.createdAt.toISOString() })));
+});
+
+// Deactivate a user account (blocks future authenticated requests)
+router.put("/admin/users/:userId/deactivate", requireAdmin, async (req, res) => {
+  const userId = parseInt(String(req.params.userId), 10);
+  const admin = getUser(req);
+  if (userId === admin.id) {
+    res.status(400).json({ success: false, error: "You cannot deactivate your own account", code: "INVALID_OPERATION" });
+    return;
+  }
+  const updated = await dbUpdateReturning(usersTable, { isActive: false }, eq(usersTable.id, userId));
+  if (!updated) { res.status(404).json({ success: false, error: "User not found", code: "NOT_FOUND" }); return; }
+  const { passwordHash: _p, ...out } = updated;
+  res.json({ ...out, createdAt: out.createdAt.toISOString() });
+});
+
+// Reactivate a user account
+router.put("/admin/users/:userId/activate", requireAdmin, async (req, res) => {
+  const userId = parseInt(String(req.params.userId), 10);
+  const updated = await dbUpdateReturning(usersTable, { isActive: true }, eq(usersTable.id, userId));
+  if (!updated) { res.status(404).json({ success: false, error: "User not found", code: "NOT_FOUND" }); return; }
+  const { passwordHash: _p, ...out } = updated;
+  res.json({ ...out, createdAt: out.createdAt.toISOString() });
 });
 
 // List all orders (platform-wide)
@@ -119,6 +142,43 @@ router.put("/admin/riders/:riderId/toggle", requireAdmin, async (req, res) => {
   const updated = await dbUpdateReturning(riderProfilesTable, { isAvailable: !rider.isAvailable }, eq(riderProfilesTable.id, riderId));
   if (!updated) { res.status(404).json({ message: "Rider not found" }); return; }
   res.json({ ...updated, createdAt: updated.createdAt.toISOString() });
+});
+
+// Suspend a rider (set unavailable)
+router.put("/admin/riders/:riderId/suspend", requireAdmin, async (req, res) => {
+  const riderId = parseInt(String(req.params.riderId), 10);
+  const updated = await dbUpdateReturning(riderProfilesTable, { isAvailable: false }, eq(riderProfilesTable.id, riderId));
+  if (!updated) { res.status(404).json({ success: false, error: "Rider not found", code: "NOT_FOUND" }); return; }
+  res.json({ ...updated, createdAt: updated.createdAt.toISOString() });
+});
+
+// Reinstate a rider (set available)
+router.put("/admin/riders/:riderId/reinstate", requireAdmin, async (req, res) => {
+  const riderId = parseInt(String(req.params.riderId), 10);
+  const updated = await dbUpdateReturning(riderProfilesTable, { isAvailable: true }, eq(riderProfilesTable.id, riderId));
+  if (!updated) { res.status(404).json({ success: false, error: "Rider not found", code: "NOT_FOUND" }); return; }
+  res.json({ ...updated, createdAt: updated.createdAt.toISOString() });
+});
+
+// Platform revenue breakdown (gross, commission, payouts)
+router.get("/admin/revenue", requireAdmin, async (req, res) => {
+  const orders = await db.select().from(ordersTable);
+  const delivered = orders.filter(o => o.status === "delivered");
+  const commissionRate = Number(process.env.MPESA_COMMISSION_RATE) || 0.15;
+  const grossRevenue = orders.reduce((s, o) => s + o.total, 0);
+  const deliveredSubtotal = delivered.reduce((s, o) => s + o.subtotal, 0);
+  const deliveryFees = delivered.reduce((s, o) => s + o.deliveryFee, 0);
+  const commission = deliveredSubtotal * commissionRate;
+  const vendorPayouts = deliveredSubtotal - commission;
+  res.json({
+    grossRevenue,
+    deliveredOrders: delivered.length,
+    totalOrders: orders.length,
+    commission,
+    commissionRate,
+    vendorPayouts,
+    riderPayouts: deliveryFees,
+  });
 });
 
 // Revenue grouped by vendor (for bar/pie charts)

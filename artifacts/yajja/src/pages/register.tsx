@@ -3,7 +3,7 @@ import { useLocation, Link } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { Loader2, ArrowLeft, Eye, EyeOff, MapPin, CheckCircle2 } from "lucide-react";
+import { Loader2, ArrowLeft, Eye, EyeOff, MapPin, CheckCircle2, Check, ArrowRight } from "lucide-react";
 import { KENYA } from "@/lib/format";
 import { useRegister } from "@workspace/api-client-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -412,7 +412,7 @@ export function AuthRegister({ role }: { role: AuthRole }) {
                       </div>
                     </FormControl>
                     {cpw.length > 0 && passwordsMatch && (
-                      <p className="text-xs text-emerald-600 font-medium">Passwords match ✓</p>
+                      <p className="text-xs text-emerald-600 font-medium flex items-center gap-1"><Check className="h-3 w-3" /> Passwords match</p>
                     )}
                     <FormMessage />
                   </FormItem>
@@ -446,10 +446,10 @@ export function AuthRegister({ role }: { role: AuthRole }) {
               <p className="text-xs font-medium text-muted-foreground mb-2">Want to join as a vendor or rider?</p>
               <div className="flex gap-2">
                 <Link href="/vendor/login" className="flex-1">
-                  <Button variant="outline" size="sm" className="w-full text-xs h-8 border-secondary/40 text-primary hover:bg-secondary/30">Vendor Portal →</Button>
+                  <Button variant="outline" size="sm" className="w-full text-xs h-8 border-secondary/40 text-primary hover:bg-secondary/30 gap-1">Vendor Portal <ArrowRight className="h-3 w-3" /></Button>
                 </Link>
                 <Link href="/rider/login" className="flex-1">
-                  <Button variant="outline" size="sm" className="w-full text-xs h-8 border-secondary/40 text-primary hover:bg-secondary/30">Rider Portal →</Button>
+                  <Button variant="outline" size="sm" className="w-full text-xs h-8 border-secondary/40 text-primary hover:bg-secondary/30 gap-1">Rider Portal <ArrowRight className="h-3 w-3" /></Button>
                 </Link>
               </div>
             </div>

@@ -6,14 +6,14 @@ type LatLng = { lat: number; lng: number };
 
 const destIcon = L.divIcon({
   className: "",
-  html: `<div style="font-size:30px;line-height:1;filter:drop-shadow(0 2px 2px rgba(0,0,0,.3))">📍</div>`,
+  html: `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="#1800AC" stroke="#fff" stroke-width="1.5" style="filter:drop-shadow(0 2px 2px rgba(0,0,0,.3))"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3" fill="#fff"/></svg>`,
   iconSize: [30, 30],
   iconAnchor: [15, 30],
 });
 
 const riderIcon = L.divIcon({
   className: "",
-  html: `<div style="font-size:28px;line-height:1;filter:drop-shadow(0 2px 2px rgba(0,0,0,.3))">🛵</div>`,
+  html: `<div style="background:#1800AC;border-radius:9999px;padding:5px;display:flex;box-shadow:0 2px 4px rgba(0,0,0,.3)"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFDE59" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg></div>`,
   iconSize: [28, 28],
   iconAnchor: [14, 28],
 });
@@ -78,7 +78,7 @@ export function LiveTrackingMap({
       ];
       if (!lineRef.current) {
         lineRef.current = L.polyline(pts, {
-          color: "#7c3aed",
+          color: "#1800AC",
           weight: 3,
           dashArray: "6 8",
         }).addTo(map);

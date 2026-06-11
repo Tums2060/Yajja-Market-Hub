@@ -9,7 +9,7 @@ import { Users, Search, Loader2 } from "lucide-react";
 function useAdminUsers() {
   return useQuery({
     queryKey: ["admin-users"],
-    queryFn: () => customFetch("/api/admin/users").then(r => r.json()),
+    queryFn: () => customFetch("/api/admin/users"),
   });
 }
 

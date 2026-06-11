@@ -5,12 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Truck, Star, Package, ToggleLeft, ToggleRight, Loader2, User } from "lucide-react";
+import { Truck, Star, Package, ToggleLeft, ToggleRight, Loader2, User, Car } from "lucide-react";
 
 function useAdminRiders() {
   return useQuery({
     queryKey: ["admin-riders"],
-    queryFn: () => customFetch("/api/admin/riders").then(r => r.json()),
+    queryFn: () => customFetch("/api/admin/riders"),
   });
 }
 
@@ -18,7 +18,7 @@ function useToggleRider() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (riderId: number) =>
-      customFetch(`/api/admin/riders/${riderId}/toggle`, { method: "PUT" }).then(r => r.json()),
+      customFetch(`/api/admin/riders/${riderId}/toggle`, { method: "PUT" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-riders"] }),
   });
 }
@@ -109,7 +109,7 @@ export default function AdminRiders() {
                 </div>
 
                 {rider.licensePlate && (
-                  <p className="text-xs text-muted-foreground text-center">🚗 {rider.licensePlate}</p>
+                  <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1"><Car className="h-3 w-3" /> {rider.licensePlate}</p>
                 )}
 
                 <Button

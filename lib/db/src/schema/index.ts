@@ -5,6 +5,7 @@ export * from "./groups";
 export * from "./cart";
 export * from "./orders";
 export * from "./riders";
+export * from "./saved-locations";
 export * from "./password-reset-tokens";
 export * from "./notifications";
 export * from "./payments";

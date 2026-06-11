@@ -14,9 +14,12 @@ import { Separator } from "@/components/ui/separator";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
-import { ShoppingCart, CreditCard, MapPin, Loader2, CheckCircle2, Phone, Navigation, Smartphone } from "lucide-react";
+import { ShoppingCart, CreditCard, MapPin, Loader2, CheckCircle2, Phone, Navigation, Smartphone, Star } from "lucide-react";
 import { formatKES, KENYA } from "@/lib/format";
 import { useAuth } from "@/hooks/use-auth";
+import { useSavedLocations } from "@/hooks/use-locations";
+import { getCurrentPosition, reverseGeocode } from "@/lib/geocode";
+import MapPicker from "@/components/MapPicker";
 
 export default function Checkout() {
   const [, setLocation] = useLocation();
@@ -29,6 +32,33 @@ export default function Checkout() {
   const [phoneNumber, setPhoneNumber] = useState(user?.phone || "");
   const [deliveryLat, setDeliveryLat] = useState<number | null>(null);
   const [deliveryLng, setDeliveryLng] = useState<number | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
+  const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
+
+  const { data: savedLocations = [] } = useSavedLocations(!!user);
+
+  // Pre-fill with the customer's default saved location once.
+  React.useEffect(() => {
+    if (selectedLocationId === null && savedLocations.length > 0 && !address) {
+      const def = savedLocations.find((l) => l.isDefault) ?? savedLocations[0];
+      if (def) {
+        setSelectedLocationId(def.id);
+        setAddress(def.address);
+        setDeliveryLat(def.latitude);
+        setDeliveryLng(def.longitude);
+      }
+    }
+  }, [savedLocations]);
+
+  const pickSaved = (id: number) => {
+    const loc = savedLocations.find((l) => l.id === id);
+    if (!loc) return;
+    setSelectedLocationId(id);
+    setAddress(loc.address);
+    setDeliveryLat(loc.latitude);
+    setDeliveryLng(loc.longitude);
+  };
   const [step, setStep] = useState<"form" | "confirm" | "processing" | "success">("form");
   const [orderCode, setOrderCode] = useState<string | null>(null);
   const [primaryOrderId, setPrimaryOrderId] = useState<number | null>(null);
@@ -122,19 +152,21 @@ export default function Checkout() {
 
   const isPlacing = step === "processing";
 
-  const handleUseLocation = () => {
-    if (!navigator.geolocation) {
-      toast({ variant: "destructive", title: "Geolocation not supported" });
-      return;
+  const handleUseLocation = async () => {
+    setLocating(true);
+    try {
+      const { lat, lng } = await getCurrentPosition();
+      setDeliveryLat(lat);
+      setDeliveryLng(lng);
+      setSelectedLocationId(null);
+      const resolved = await reverseGeocode(lat, lng);
+      setAddress(resolved);
+      toast({ title: "Location captured", description: resolved });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: e?.message || "Could not get your location" });
+    } finally {
+      setLocating(false);
     }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setDeliveryLat(pos.coords.latitude);
-        setDeliveryLng(pos.coords.longitude);
-        toast({ title: "Location captured" });
-      },
-      () => toast({ variant: "destructive", title: "Could not get your location" })
-    );
   };
 
   return (
@@ -209,15 +241,43 @@ export default function Checkout() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {savedLocations.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Saved locations</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {savedLocations.map((loc) => (
+                      <button
+                        key={loc.id}
+                        type="button"
+                        onClick={() => pickSaved(loc.id)}
+                        className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                          selectedLocationId === loc.id
+                            ? "border-primary bg-primary/10 text-foreground font-medium"
+                            : "border-input hover:bg-secondary/30"
+                        }`}
+                      >
+                        {loc.isDefault && <Star className="h-3 w-3 fill-current text-primary" />}
+                        <MapPin className="h-3 w-3" />
+                        {loc.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="address">Street address</Label>
                 <Input
                   id="address"
                   placeholder={KENYA.addressPlaceholder}
                   value={address}
-                  onChange={e => setAddress(e.target.value)}
+                  onChange={e => { setAddress(e.target.value); setSelectedLocationId(null); }}
                   className="bg-secondary/20 border-0 shadow-sm text-foreground placeholder:text-foreground/50"
                 />
+                {deliveryLat != null && deliveryLng != null && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <MapPin className="h-3 w-3 text-primary" /> GPS pinned ({deliveryLat.toFixed(4)}, {deliveryLng.toFixed(4)})
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="notes">Order notes (optional)</Label>
@@ -242,11 +302,36 @@ export default function Checkout() {
                   />
                 </div>
               </div>
-              <Button variant="outline" className="gap-2" onClick={handleUseLocation}>
-                <Navigation className="h-4 w-4" /> Use Current Location
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" className="gap-2" onClick={handleUseLocation} disabled={locating}>
+                  {locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Navigation className="h-4 w-4" />}
+                  Use Current Location
+                </Button>
+                <Button variant="outline" className="gap-2" onClick={() => setMapOpen(true)}>
+                  <MapPin className="h-4 w-4" />
+                  Pick on Map
+                </Button>
+              </div>
+              {deliveryLat != null && deliveryLng != null && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <MapPin className="h-3 w-3" /> Pinned at {deliveryLat.toFixed(5)}, {deliveryLng.toFixed(5)}
+                </p>
+              )}
             </CardContent>
           </Card>
+
+          <MapPicker
+            open={mapOpen}
+            onOpenChange={setMapOpen}
+            lat={deliveryLat}
+            lng={deliveryLng}
+            onConfirm={(la, ln, addr) => {
+              setDeliveryLat(la);
+              setDeliveryLng(ln);
+              setAddress(addr);
+              setSelectedLocationId(null);
+            }}
+          />
 
           <Card className="bg-white border-secondary/40">
             <CardHeader>

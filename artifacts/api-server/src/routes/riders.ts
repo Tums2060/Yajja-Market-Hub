@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, riderProfilesTable, ordersTable } from "@workspace/db";
-import { and, eq } from "drizzle-orm";
+import { db, riderProfilesTable, ordersTable, usersTable, orderItemsTable } from "@workspace/db";
+import { and, eq, desc, count, inArray } from "drizzle-orm";
 import {
   RegisterRiderBody,
   UpdateRiderLocationBody,
@@ -185,5 +185,91 @@ router.put(
     );
   }
 );
+
+// Rider delivery history — delivered orders for the authenticated rider, paginated.
+router.get("/rider/orders/history", requireAuth, async (req, res) => {
+  const user = getUser(req);
+  if (user.role !== "rider") {
+    res.status(403).json({ success: false, error: "Rider access required", code: "FORBIDDEN" });
+    return;
+  }
+
+  const [rider] = await db
+    .select()
+    .from(riderProfilesTable)
+    .where(eq(riderProfilesTable.userId, user.id))
+    .limit(1);
+  if (!rider) {
+    res.status(404).json({ success: false, error: "Rider profile not found", code: "NOT_FOUND" });
+    return;
+  }
+
+  const page = Math.max(1, parseInt(String(req.query.page ?? "1"), 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit ?? "20"), 10) || 20));
+  const offset = (page - 1) * limit;
+
+  const where = and(eq(ordersTable.riderId, rider.id), eq(ordersTable.status, "delivered"));
+
+  const [{ total }] = await db.select({ total: count() }).from(ordersTable).where(where);
+
+  const rows = await db
+    .select({
+      id: ordersTable.id,
+      total: ordersTable.total,
+      deliveryFee: ordersTable.deliveryFee,
+      deliveryAddress: ordersTable.deliveryAddress,
+      deliveryLat: ordersTable.deliveryLat,
+      deliveryLng: ordersTable.deliveryLng,
+      completedAt: ordersTable.updatedAt,
+      createdAt: ordersTable.createdAt,
+      customerName: usersTable.name,
+    })
+    .from(ordersTable)
+    .leftJoin(usersTable, eq(ordersTable.userId, usersTable.id))
+    .where(where)
+    .orderBy(desc(ordersTable.updatedAt))
+    .limit(limit)
+    .offset(offset);
+
+  const orderIds = rows.map((r) => r.id);
+  const itemsByOrder = new Map<number, { name: string; quantity: number }[]>();
+  if (orderIds.length) {
+    const items = await db
+      .select({ orderId: orderItemsTable.orderId, productName: orderItemsTable.productName, quantity: orderItemsTable.quantity })
+      .from(orderItemsTable)
+      .where(inArray(orderItemsTable.orderId, orderIds));
+    for (const it of items) {
+      const list = itemsByOrder.get(it.orderId) ?? [];
+      list.push({ name: it.productName, quantity: it.quantity });
+      itemsByOrder.set(it.orderId, list);
+    }
+  }
+
+  const data = rows.map((r) => {
+    const its = itemsByOrder.get(r.id) ?? [];
+    const itemsSummary = its.map((i) => `${i.quantity}x ${i.name}`).join(", ");
+    return {
+      id: r.id,
+      customerName: (r.customerName ?? "Customer").split(" ")[0],
+      itemsSummary,
+      itemsCount: its.reduce((s, i) => s + i.quantity, 0),
+      total: r.total,
+      earnings: r.deliveryFee,
+      deliveryAddress: r.deliveryAddress,
+      deliveryLat: r.deliveryLat,
+      deliveryLng: r.deliveryLng,
+      completedAt: r.completedAt.toISOString(),
+      createdAt: r.createdAt.toISOString(),
+    };
+  });
+
+  res.json({
+    data,
+    page,
+    limit,
+    total: total ?? 0,
+    totalPages: Math.max(1, Math.ceil((total ?? 0) / limit)),
+  });
+});
 
 export default router;

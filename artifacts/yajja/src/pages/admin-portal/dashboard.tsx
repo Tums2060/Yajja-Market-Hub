@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react/src/custom-fetch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Store, Package, TrendingUp, Truck, AlertCircle, Loader2, ChevronRight } from "lucide-react";
+import { Users, Store, Package, TrendingUp, Truck, AlertCircle, Loader2, ChevronRight, ShieldCheck } from "lucide-react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -24,7 +24,7 @@ import {
 function useAdminStats() {
   return useQuery({
     queryKey: ["admin-stats"],
-    queryFn: () => customFetch("/api/admin/stats").then(r => r.json()),
+    queryFn: () => customFetch("/api/admin/stats"),
     refetchInterval: 30000,
   });
 }
@@ -32,7 +32,7 @@ function useAdminStats() {
 function useOrdersOverTime() {
   return useQuery({
     queryKey: ["admin-orders-over-time"],
-    queryFn: () => customFetch("/api/admin/analytics/orders-over-time").then(r => r.json()),
+    queryFn: () => customFetch("/api/admin/analytics/orders-over-time"),
     refetchInterval: 60000,
   });
 }
@@ -40,12 +40,12 @@ function useOrdersOverTime() {
 function useRevenueByVendor() {
   return useQuery({
     queryKey: ["admin-revenue-by-vendor"],
-    queryFn: () => customFetch("/api/admin/analytics/revenue-by-vendor").then(r => r.json()),
+    queryFn: () => customFetch("/api/admin/analytics/revenue-by-vendor"),
     refetchInterval: 60000,
   });
 }
 
-const PIE_COLORS = ["#7c3aed", "#f59e0b", "#10b981", "#3b82f6", "#ef4444", "#6366f1"];
+const PIE_COLORS = ["#1800AC", "#FFDE59", "#10b981", "#3b82f6", "#ef4444", "#6366f1"];
 
 const StatCard = ({ title, value, sub, icon: Icon, color }: any) => (
   <Card>
@@ -85,7 +85,7 @@ export default function AdminDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-extrabold flex items-center gap-2">
-            <span className="text-2xl">🛡️</span> Admin Dashboard
+            <ShieldCheck className="h-6 w-6 text-primary" /> Admin Dashboard
           </h1>
           <p className="text-muted-foreground text-sm mt-0.5">Platform overview & management</p>
         </div>
@@ -98,9 +98,9 @@ export default function AdminDashboard() {
 
       {/* Key metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard title="Total Users" value={s?.totalUsers || 0} sub="Registered accounts" icon={Users} color="bg-blue-500" />
+        <StatCard title="Total Users" value={s?.totalUsers || 0} sub="Registered accounts" icon={Users} color="bg-secondary" />
         <StatCard title="Vendors" value={s?.totalVendors || 0} sub={`${s?.pendingVendors || 0} pending review`} icon={Store} color="bg-primary" />
-        <StatCard title="Orders Today" value={s?.todayOrders || 0} sub={`${s?.pendingOrders || 0} in progress`} icon={Package} color="bg-amber-500" />
+        <StatCard title="Orders Today" value={s?.todayOrders || 0} sub={`${s?.pendingOrders || 0} in progress`} icon={Package} color="bg-primary" />
         <StatCard title="Active Riders" value={s?.activeRiders || 0} sub="Available now" icon={Truck} color="bg-emerald-500" />
       </div>
 
@@ -176,7 +176,7 @@ export default function AdminDashboard() {
                   <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
                   <Tooltip />
-                  <Line type="monotone" dataKey="orders" stroke="#7c3aed" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="orders" stroke="#1800AC" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -198,7 +198,7 @@ export default function AdminDashboard() {
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip formatter={(v: any) => `KES ${Number(v).toLocaleString()}`} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="revenue" fill="#7c3aed" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="revenue" fill="#1800AC" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}

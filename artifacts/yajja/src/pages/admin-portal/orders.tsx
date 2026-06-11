@@ -10,7 +10,7 @@ import { Package, Search, Loader2 } from "lucide-react";
 function useAdminOrders() {
   return useQuery({
     queryKey: ["admin-orders"],
-    queryFn: () => customFetch("/api/admin/orders").then(r => r.json()),
+    queryFn: () => customFetch("/api/admin/orders"),
     refetchInterval: 15000,
   });
 }

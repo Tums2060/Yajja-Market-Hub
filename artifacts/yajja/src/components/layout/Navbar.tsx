@@ -13,7 +13,7 @@ import {
 import {
   ShoppingBag, ShoppingCart, Users, User,
   LayoutDashboard, Package, Map, Menu, LogOut, Home,
-  Store, Truck, Receipt
+  Store, Truck, Receipt, History
 } from "lucide-react";
 import { useGetCart } from "@workspace/api-client-react";
 import NotificationBell from "./NotificationBell";
@@ -34,6 +34,7 @@ const vendorLinks = [
 const riderLinks = [
   { href: "/rider-portal", label: "Dashboard", icon: LayoutDashboard },
   { href: "/rider-portal/map", label: "Live Tracking", icon: Map },
+  { href: "/rider-portal/history", label: "History", icon: History },
   { href: "/rider-portal/profile", label: "Profile", icon: User },
 ];
 
@@ -75,7 +76,7 @@ export default function Navbar() {
     user?.role === "admin" ? "Admin Portal" : null;
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#1A2340] text-white">
+    <nav className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#1800AC] text-white">
       <div className="container flex h-20 items-center px-4 max-w-7xl mx-auto">
         <Link
           href={user?.role === "vendor" ? "/vendor-portal" : user?.role === "rider" ? "/rider-portal" : user?.role === "admin" ? "/admin" : "/"}

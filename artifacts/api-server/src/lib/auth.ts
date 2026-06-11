@@ -32,10 +32,15 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       phone: usersTable.phone,
       avatarUrl: usersTable.avatarUrl,
       address: usersTable.address,
+      isActive: usersTable.isActive,
       createdAt: usersTable.createdAt,
     }).from(usersTable).where(eq(usersTable.id, payload.userId)).limit(1);
     if (!user) {
       res.status(401).json({ message: "User not found" });
+      return;
+    }
+    if (user.isActive === false) {
+      res.status(403).json({ success: false, error: "Account deactivated", code: "ACCOUNT_DEACTIVATED" });
       return;
     }
     (req as any).user = user;

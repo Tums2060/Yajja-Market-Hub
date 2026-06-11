@@ -84,7 +84,7 @@ export function AuthLogin({ role }: { role: AuthRole }) {
     loginMutation.mutate({ data: values }, {
       onSuccess: (data) => {
         setToken(data.token);
-        toast({ title: "Welcome back! 👋" });
+        toast({ title: "Welcome back!" });
       },
       onError: () => {
         toast({ variant: "destructive", title: "Invalid email or password" });

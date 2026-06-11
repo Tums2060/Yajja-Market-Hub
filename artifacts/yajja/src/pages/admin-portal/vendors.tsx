@@ -6,12 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Store, Search, CheckCircle, XCircle, Clock, Loader2, Filter } from "lucide-react";
+import { Store, Search, CheckCircle, XCircle, Clock, Loader2, Filter, Utensils, Wine, Pill, ShoppingCart } from "lucide-react";
 
 function useAdminVendors() {
   return useQuery({
     queryKey: ["admin-vendors"],
-    queryFn: () => customFetch("/api/admin/vendors").then(r => r.json()),
+    queryFn: () => customFetch("/api/admin/vendors"),
   });
 }
 
@@ -19,7 +19,7 @@ function useVendorAction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, action }: { id: number; action: "approve" | "reject" }) =>
-      customFetch(`/api/admin/vendors/${id}/${action}`, { method: "PUT" }).then(r => r.json()),
+      customFetch(`/api/admin/vendors/${id}/${action}`, { method: "PUT" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-vendors"] }),
   });
 }
@@ -30,8 +30,8 @@ const STATUS_CONFIG: Record<string, { label: string; variant: any; icon: any }> 
   rejected: { label: "Rejected", variant: "destructive", icon: XCircle },
 };
 
-const CATEGORY_EMOJI: Record<string, string> = {
-  food: "🍔", liquor: "🍷", pharmacy: "💊", household: "🛒",
+const CATEGORY_ICON: Record<string, any> = {
+  food: Utensils, liquor: Wine, pharmacy: Pill, household: ShoppingCart,
 };
 
 export default function AdminVendors() {
@@ -51,7 +51,7 @@ export default function AdminVendors() {
 
   const handleAction = (id: number, action: "approve" | "reject") => {
     actionMutation.mutate({ id, action }, {
-      onSuccess: () => toast({ title: action === "approve" ? "Vendor approved ✅" : "Vendor rejected ❌" }),
+      onSuccess: () => toast({ title: action === "approve" ? "Vendor approved" : "Vendor rejected" }),
       onError: () => toast({ variant: "destructive", title: "Action failed" }),
     });
   };
@@ -110,8 +110,10 @@ export default function AdminVendors() {
             return (
               <Card key={vendor.id} className={vendor.status === "pending_review" ? "border-amber-300 bg-amber-50/50" : ""}>
                 <CardContent className="p-4 flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center text-2xl shrink-0 overflow-hidden">
-                    {vendor.imageUrl ? <img src={vendor.imageUrl} className="w-full h-full object-cover" alt="" /> : CATEGORY_EMOJI[vendor.category] || "🏪"}
+                  <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center text-primary shrink-0 overflow-hidden">
+                    {vendor.imageUrl
+                      ? <img src={vendor.imageUrl} className="w-full h-full object-cover" alt="" />
+                      : React.createElement(CATEGORY_ICON[vendor.category] || Store, { className: "h-6 w-6" })}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">

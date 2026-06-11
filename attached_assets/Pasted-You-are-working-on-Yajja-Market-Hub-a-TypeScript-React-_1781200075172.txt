@@ -1,0 +1,307 @@
+You are working on Yajja Market Hub, a TypeScript/React/Express/DrizzleORM monorepo 
+delivery platform (similar to Glovo/UberEats) with four portals: customer, vendor, 
+rider, and admin. Implement ALL of the following changes in one pass, ensuring every 
+change is complete, consistent, and production-ready.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. GLOBAL COLOR SYSTEM OVERHAUL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Replace ALL color usage across the ENTIRE codebase — every portal, every page, 
+every component, every inline style, Tailwind class, CSS variable, and theme config:
+
+- PRIMARY YELLOW: #FFDE59 (RGB: 255, 222, 89)
+  - Replaces every existing yellow/amber accent regardless of shade or portal
+  - Use for: primary buttons, CTAs, highlights, active states, brand elements
+  - Text on yellow backgrounds: use #1A1A1A (near-black) for contrast
+  - Never use old yellow values like #DEF20A or any other variant
+
+- PRIMARY BLUE: #1800AC (RGB: 24, 0, 172)
+  - Replaces every existing blue across the system (navbar, links, info states, etc.)
+  - Use for: navbar background, secondary buttons, informational elements, 
+    card accents, icon colors
+  - Text on blue backgrounds: use #FFFFFF (white) for contrast
+
+- CARD CONTRAST: On product/food cards, apply a color scheme that improves 
+  readability: use white (#FFFFFF) card backgrounds with #1800AC for card 
+  header/category labels and #FFDE59 for price badges and CTA buttons. 
+  Add a subtle border: 1px solid #1800AC at 20% opacity.
+
+- CONSISTENCY CHECK: Audit these specific areas to ensure they use the correct 
+  colors — they are known to be inconsistent:
+  * Sign-up and login pages (both customer and vendor)
+  * Post-login customer dashboard
+  * Navbar across all four portals
+  * Checkout flow
+  * Order confirmation/status pages
+  * Vendor dashboard
+  * Rider app screens
+  * Admin portal
+
+Update:
+- All CSS custom properties / design tokens (e.g., --color-primary, --color-accent)
+- tailwind.config.ts or tailwind.config.js brand color definitions
+- Any hardcoded hex values in .tsx, .ts, .css, .scss files
+- Theme provider or global style files
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. SAVED LOCATIONS FEATURE (Customer Portal)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Build a full saved-locations system for customers. This is similar to how 
+Uber/Google Maps let you save "Home", "Work", etc.
+
+DATABASE CHANGES (add these to your DrizzleORM schema):
+```sql
+-- New table: saved_locations
+id: uuid primary key
+customer_id: uuid (foreign key → users.id)
+label: varchar(100)  -- e.g., "Home", "Office", "Mum's Place"
+address: text        -- human-readable address string
+latitude: decimal(10, 8)
+longitude: decimal(11, 8)
+is_default: boolean default false
+created_at: timestamp
+updated_at: timestamp
+```
+
+Generate a DrizzleORM migration for this table. Also add delivery_latitude, 
+delivery_longitude, and delivery_address columns to the orders table if they 
+don't already exist.
+
+BACKEND (Express API):
+- POST   /api/customer/locations        — create a saved location
+- GET    /api/customer/locations        — list all saved locations for auth'd customer
+- PUT    /api/customer/locations/:id    — update a location (label, address, coords)
+- DELETE /api/customer/locations/:id    — delete a saved location
+- PUT    /api/customer/locations/:id/default — set as default location
+
+Security: location data is ONLY accessible to the owning customer and the assigned 
+rider after order assignment. Vendors NEVER receive saved location data.
+
+FRONTEND (Customer Portal):
+- Add a "Saved Locations" section in the customer profile/settings page
+- Each saved location shows: label, address, a map pin icon, edit and delete buttons
+- "Add Location" button opens a modal with:
+  * A text input for the label (Home, Office, custom)
+  * Google Maps Places Autocomplete for address search
+  * A small embedded Google Map showing the pinned location
+  * Ability to drag the pin to fine-tune exact coordinates
+  * Save button
+- During CHECKOUT, under delivery address, show:
+  * A "Use Saved Location" section listing all their saved locations as selectable 
+    pill buttons (label + address preview)
+  * Clicking a saved location pre-fills the delivery address and coordinates
+  * Also show a "Current Location" option (see Section 3)
+  * Also allow manual address entry as fallback
+
+RIDER SIDE:
+- When an order is assigned to a rider, include in the order details:
+  * delivery_address (string)
+  * delivery_latitude + delivery_longitude (coordinates)
+  * A "Navigate" button that opens Google Maps / Waze with those coordinates as 
+    the destination
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. ACCURATE LOCATION SHARING (GPS + Maps Fallback)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Implement robust location capture at checkout with a graceful fallback:
+
+PRIMARY: Use browser Geolocation API (navigator.geolocation.getCurrentPosition)
+- Request with high accuracy: { enableHighAccuracy: true, timeout: 10000 }
+- On success: reverse-geocode coordinates using Google Maps Geocoding API to get 
+  a human-readable address, then pre-fill the delivery address field
+
+FALLBACK (if GPS fails or user denies permission):
+- Show a Google Maps embed with a draggable pin centered on Nairobi (default)
+- User drags the pin to their exact location
+- Show address lookup bar (Places Autocomplete) as an alternative
+- Coordinates from the selected map location are captured and stored
+
+STORAGE: Captured coordinates (latitude, longitude) are saved with the order and 
+transmitted to the assigned rider. Vendors do NOT receive raw GPS coordinates — 
+they only see the human-readable address string.
+
+Show a loading state while location is being captured, and clear error messaging 
+if it fails, prompting the user to use the map picker.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. RIDER ORDER HISTORY PAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add a "Delivery History" page to the rider portal:
+
+ROUTE: /rider/history
+
+BACKEND:
+- GET /api/rider/orders/history — returns all orders with status "delivered" 
+  assigned to the authenticated rider, ordered by completed_at DESC
+- Include: order ID, customer name (first name only for privacy), items summary, 
+  total value, delivery address, distance (if tracked), completed_at timestamp
+- Support pagination: ?page=1&limit=20
+
+FRONTEND:
+- Page shows a list/table of completed deliveries
+- Summary stats at the top: Total Deliveries, This Month, Earnings This Month 
+  (if earnings data is available)
+- Each row shows: Order #, Date, Delivery Address, Order Total, Status badge 
+  ("Delivered" in green)
+- Searchable by date range
+- Mobile-responsive (card view on small screens, table on desktop)
+- Empty state: friendly message if no deliveries yet
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. ADMIN PORTAL — REAL DATA + FULL FUNCTIONALITY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The admin portal must display REAL data from the database for every metric and 
+table. Remove ALL mock/hardcoded data, placeholder arrays, and fake stats.
+
+SUMMARY CARDS (fix all to use real queries):
+- Total Users: COUNT of all users with role = 'customer'
+- Registered Accounts: COUNT of all users regardless of role
+- Vendors Pending Review: COUNT of vendors with status = 'pending'
+- Orders Today: COUNT of orders where DATE(created_at) = TODAY
+- Orders In Progress: COUNT of orders with status IN ('confirmed', 'preparing', 
+  'picked_up', 'on_the_way')
+- Active Riders: COUNT of riders with is_available = true AND 
+  last_active > NOW() - INTERVAL '30 minutes'
+
+BACKEND ENDPOINTS (create or fix these):
+- GET /api/admin/stats/summary — returns all the above counts in one response
+- GET /api/admin/users — paginated list of all users (search, filter by role)
+- GET /api/admin/vendors — paginated list with status filter, pending first
+- GET /api/admin/riders — list with delivery count, rating, availability status
+- GET /api/admin/orders — paginated order list with filters (status, date range, 
+  vendor, rider); include order total, items count, rider name, vendor name
+- GET /api/admin/revenue — total revenue (sum of order totals), grouped by: 
+  today / this week / this month / custom date range
+- PUT /api/admin/vendors/:id/approve — approve a pending vendor
+- PUT /api/admin/vendors/:id/reject  — reject with reason
+- PUT /api/admin/riders/:id/suspend  — suspend a rider
+- PUT /api/admin/users/:id/deactivate — deactivate a user account
+
+ADMIN TABLES (apply to all):
+- Real data fetched from backend on mount and on filter change
+- Loading skeletons while fetching
+- Error state with retry button
+- Pagination controls (previous/next, page number display)
+- Search input where relevant
+- Sorting by clicking column headers
+- Group vendors by: status (pending/approved/rejected)
+- Group riders by: availability (available/unavailable)
+- Group orders by: status category (active, completed, cancelled)
+- Group users by: role (customer, vendor, rider, admin)
+
+ICONS: Remove ALL emoji from the admin portal. Replace every emoji with an 
+appropriate Lucide React icon. Examples:
+- 🏪 → <Store /> (vendor)
+- 🚴 → <Bike /> (rider)
+- 📦 → <Package /> (order)
+- 👤 → <User /> (user/customer)
+- 💰 → <DollarSign /> or <BadgeDollarSign /> (revenue)
+- ✅ → <CheckCircle /> (approved/completed)
+- ⏳ → <Clock /> (pending)
+- ❌ → <XCircle /> (rejected/cancelled)
+- 📊 → <BarChart2 /> (stats)
+Search lucide-react for any emoji not listed above.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. PRODUCTION READINESS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Audit and fix the entire codebase for production quality:
+
+DATABASE:
+- Add indexes on all foreign keys and frequently queried columns:
+  * orders: customer_id, rider_id, vendor_id, status, created_at
+  * saved_locations: customer_id
+  * users: email (unique), role, created_at
+  * riders: is_available
+- Use connection pooling — ensure DrizzleORM/postgres connection uses a pool 
+  (max: 10 connections minimum, configure from environment variable)
+- Wrap multi-step order operations in transactions (e.g., place order → deduct 
+  stock → assign rider should be atomic)
+
+API:
+- Add rate limiting middleware (express-rate-limit) on all auth endpoints:
+  * /api/auth/login: 10 requests per 15 minutes per IP
+  * /api/auth/signup: 5 requests per hour per IP
+- Add input validation (zod or express-validator) on all POST/PUT endpoints — 
+  validate types, required fields, string lengths, email format, coordinate ranges
+- Sanitize all user input before database insertion
+- Ensure all endpoints return consistent error shapes: 
+  { success: false, error: string, code?: string }
+- Add request logging middleware (morgan or custom) for production debugging
+- Implement proper HTTP status codes everywhere (201 for created, 400 for 
+  validation errors, 401 for unauthenticated, 403 for unauthorized, 404 for 
+  not found, 500 for server errors)
+
+FRONTEND:
+- Add React.lazy + Suspense for code splitting on all portal routes
+- Memoize expensive components with React.memo where appropriate
+- Add loading states on all data-fetching operations (skeleton loaders, not just 
+  spinners)
+- Implement error boundaries at the portal level to catch and display errors 
+  without crashing the whole app
+- Ensure all API calls use a centralized axios instance (or fetch wrapper) with:
+  * Auth token automatically attached from localStorage/sessionStorage
+  * Automatic 401 handling (redirect to login, clear tokens)
+  * Request timeout of 15 seconds
+- Add debouncing (300ms) to all search inputs
+- Ensure images have explicit width/height to prevent layout shift
+
+SECURITY:
+- Ensure all admin routes check for role = 'admin' server-side (not just frontend)
+- Ensure rider routes check for role = 'rider' server-side
+- Ensure customer data (saved locations, order history) is scoped to the 
+  authenticated user's ID — never trust client-supplied user IDs
+- Set secure HTTP headers (use helmet.js if not already)
+- Ensure JWT tokens have expiry (max 7 days) and refresh token logic exists
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7. DATABASE MIGRATIONS & SCHEMA COMPLETENESS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After implementing all the above, generate a single clean migration file (or 
+series of sequential migration files) that covers:
+
+1. CREATE TABLE saved_locations (from Section 2)
+2. ALTER TABLE orders ADD COLUMN delivery_latitude decimal(10,8)
+3. ALTER TABLE orders ADD COLUMN delivery_longitude decimal(11,8)  
+4. ALTER TABLE orders ADD COLUMN delivery_address text (if not present)
+5. ALTER TABLE orders ADD COLUMN completed_at timestamp (if not present)
+6. ALTER TABLE riders ADD COLUMN is_available boolean default true (if not present)
+7. ALTER TABLE riders ADD COLUMN last_active timestamp (if not present)
+8. All indexes listed in Section 6
+
+IMPORTANT: Write all migrations to be idempotent — use IF NOT EXISTS and 
+IF EXISTS guards so re-running them does not cause errors.
+
+Also update the DrizzleORM schema file to reflect ALL new columns and tables, 
+so `drizzle-kit generate` produces correct migration diffs going forward.
+
+After all changes, the developer should be able to:
+  1. git pull
+  2. npm install (or equivalent)
+  3. npm run db:migrate (or drizzle-kit push / migrate command)
+  4. Start the dev server — everything works immediately
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPLEMENTATION ORDER (follow this sequence):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Schema + migrations first (Section 7) — all other changes depend on this
+2. Backend API changes (Sections 2, 3, 4, 5, 6 — server-side)
+3. Color system overhaul (Section 1) — global find-and-replace across all files
+4. New features frontend (Section 2 & 3 — saved locations + location sharing)
+5. Rider history page (Section 4)
+6. Admin portal real data (Section 5)
+7. Production hardening (Section 6 — frontend + security)
+8. Final consistency pass: check that yellow (#FFDE59) and blue (#1800AC) are 
+   correctly applied in every new component added during this session
+
+Do not skip any section. Do not leave any feature partially implemented. 
+If a required environment variable (e.g., GOOGLE_MAPS_API_KEY) is needed, 
+add it to .env.example with a clear comment explaining what it's for.

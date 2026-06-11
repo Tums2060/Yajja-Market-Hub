@@ -1,19 +1,68 @@
-import React from "react";
+import React, { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { User, Mail, Phone, MapPin, LogOut, ShoppingBag, Shield } from "lucide-react";
+import {
+  User, Mail, Phone, MapPin, LogOut, ShoppingBag, Shield,
+  Plus, Pencil, Trash2, Star, Loader2,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import LocationModal from "@/components/LocationModal";
+import {
+  useSavedLocations, useLocationMutations, type SavedLocation, type LocationInput,
+} from "@/hooks/use-locations";
 
 export default function Profile() {
   const { user, logout } = useAuth();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+
+  const { data: locations = [], isLoading: locationsLoading } = useSavedLocations(!!user);
+  const { create, update, setDefault, remove } = useLocationMutations();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<SavedLocation | null>(null);
 
   const handleLogout = () => {
     logout();
     setLocation("/login");
+  };
+
+  const openAdd = () => { setEditing(null); setModalOpen(true); };
+  const openEdit = (loc: SavedLocation) => { setEditing(loc); setModalOpen(true); };
+
+  const handleSubmit = async (data: LocationInput) => {
+    try {
+      if (editing) {
+        await update.mutateAsync({ id: editing.id, body: data });
+        toast({ title: "Location updated" });
+      } else {
+        await create.mutateAsync(data);
+        toast({ title: "Location added" });
+      }
+      setModalOpen(false);
+    } catch {
+      toast({ variant: "destructive", title: "Could not save location" });
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      await remove.mutateAsync(id);
+      toast({ title: "Location removed" });
+    } catch {
+      toast({ variant: "destructive", title: "Could not remove location" });
+    }
+  };
+
+  const handleSetDefault = async (id: number) => {
+    try {
+      await setDefault.mutateAsync(id);
+    } catch {
+      toast({ variant: "destructive", title: "Could not set default" });
+    }
   };
 
   if (!user) return null;
@@ -81,6 +130,69 @@ export default function Profile() {
           )}
         </CardContent>
       </Card>
+
+      <Card className="bg-white border-secondary/40">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-base flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-primary" />
+            Saved Locations
+          </CardTitle>
+          <Button size="sm" variant="outline" className="gap-1" onClick={openAdd}>
+            <Plus className="h-4 w-4" /> Add
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {locationsLoading ? (
+            <div className="flex justify-center py-6">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : locations.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-2">
+              No saved locations yet. Add one for faster checkout.
+            </p>
+          ) : (
+            locations.map((loc) => (
+              <div key={loc.id} className="flex items-start gap-3 rounded-lg border p-3">
+                <div className="h-9 w-9 rounded-lg bg-secondary/30 flex items-center justify-center shrink-0">
+                  <MapPin className="h-4 w-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold truncate">{loc.label}</p>
+                    {loc.isDefault && (
+                      <Badge variant="secondary" className="gap-1 text-xs">
+                        <Star className="h-3 w-3 fill-current" /> Default
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground truncate">{loc.address}</p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  {!loc.isDefault && (
+                    <Button size="icon" variant="ghost" className="h-8 w-8" title="Set as default" onClick={() => handleSetDefault(loc.id)}>
+                      <Star className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button size="icon" variant="ghost" className="h-8 w-8" title="Edit" onClick={() => openEdit(loc)}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" title="Delete" onClick={() => handleDelete(loc.id)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      <LocationModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        initial={editing}
+        onSubmit={handleSubmit}
+        saving={create.isPending || update.isPending}
+      />
 
       <Card className="bg-white border-secondary/40">
         <CardHeader>

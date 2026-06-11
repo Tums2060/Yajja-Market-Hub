@@ -9,7 +9,7 @@ import { formatKES } from "@/lib/format";
 function useAdminCustomers() {
   return useQuery({
     queryKey: ["admin-customers"],
-    queryFn: () => customFetch("/api/admin/analytics/customers").then((r) => r.json()),
+    queryFn: () => customFetch("/api/admin/analytics/customers"),
   });
 }
 

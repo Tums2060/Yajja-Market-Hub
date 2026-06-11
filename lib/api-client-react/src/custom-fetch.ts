@@ -17,6 +17,26 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
+let _onUnauthorized: (() => void) | null = null;
+let _requestTimeoutMs = 15000;
+
+/**
+ * Register a handler invoked whenever a request resolves with HTTP 401.
+ * Used by web apps to clear the session and redirect to login.
+ * Pass `null` to clear the handler.
+ */
+export function setUnauthorizedHandler(handler: (() => void) | null): void {
+  _onUnauthorized = handler;
+}
+
+/**
+ * Configure the default per-request timeout in milliseconds. Requests that do
+ * not provide their own `signal` are aborted after this many ms. Set to 0 to
+ * disable the default timeout.
+ */
+export function setRequestTimeout(ms: number): void {
+  _requestTimeoutMs = ms;
+}
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -360,9 +380,27 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, { ...init, method, headers });
+  // Apply a default request timeout via AbortController when the caller did not
+  // supply its own signal. Prevents requests from hanging indefinitely.
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  let signal = init.signal ?? undefined;
+  if (!signal && _requestTimeoutMs > 0 && typeof AbortController !== "undefined") {
+    const controller = new AbortController();
+    timeoutId = setTimeout(() => controller.abort(), _requestTimeoutMs);
+    signal = controller.signal;
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(input, { ...init, method, headers, signal });
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
+    if (response.status === 401 && _onUnauthorized) {
+      _onUnauthorized();
+    }
     const errorData = await parseErrorBody(response, method);
     throw new ApiError(response, errorData, requestInfo);
   }

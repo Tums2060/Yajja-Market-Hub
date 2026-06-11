@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Loader2, MapPin, Package, Check } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, Package, Check, Bike } from "lucide-react";
 import {
   ORDER_STATUS_COLORS,
   orderStatusLabel,
@@ -251,12 +251,17 @@ export default function OrderDetail() {
                 : null}
               etaLabel={eta ? `ETA ${eta.label}` : null}
             />
-            <p className="text-xs text-muted-foreground mt-2">
+            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
               {riderLocation?.lat != null
-                ? eta
-                  ? `🛵 Your rider is about ${eta.label} — arriving soon.`
-                  : "🛵 Your rider is on the move — the map updates in real time."
-                : "📍 Delivery location pinned. The rider will appear here once they pick up your order."}
+                ? <Bike className="h-3.5 w-3.5 shrink-0 text-primary" />
+                : <MapPin className="h-3.5 w-3.5 shrink-0 text-primary" />}
+              <span>
+                {riderLocation?.lat != null
+                  ? eta
+                    ? `Your rider is about ${eta.label} — arriving soon.`
+                    : "Your rider is on the move — the map updates in real time."
+                  : "Delivery location pinned. The rider will appear here once they pick up your order."}
+              </span>
             </p>
           </CardContent>
         </Card>

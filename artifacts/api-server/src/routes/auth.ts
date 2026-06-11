@@ -1,4 +1,5 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import bcrypt from "bcryptjs";
 import { db, usersTable, vendorsTable, riderProfilesTable } from "@workspace/db";
 import { eq, or } from "drizzle-orm";
@@ -6,6 +7,25 @@ import { RegisterBody, LoginBody } from "@workspace/api-zod";
 import { generateToken, requireAuth, getUser } from "../lib/auth";
 
 const router = Router();
+
+const rateLimitMessage = (error: string) => ({ success: false, error, code: "RATE_LIMITED" });
+
+// Auth rate limiting: protect against brute-force / abuse.
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: rateLimitMessage("Too many login attempts. Please try again in 15 minutes."),
+});
+
+const signupLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: rateLimitMessage("Too many sign-up attempts. Please try again later."),
+});
 
 type VendorOnboarding = {
   businessName?: string;
@@ -65,7 +85,7 @@ const userSelect = {
   createdAt: usersTable.createdAt,
 };
 
-router.post("/auth/register", async (req, res) => {
+router.post("/auth/register", signupLimiter, async (req, res) => {
   const parsed = RegisterBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ message: "Invalid request body" });
@@ -117,7 +137,7 @@ router.post("/auth/register", async (req, res) => {
   res.status(201).json({ user: { ...userOut, createdAt: userOut.createdAt.toISOString() }, token });
 });
 
-router.post("/auth/login", async (req, res) => {
+router.post("/auth/login", loginLimiter, async (req, res) => {
   const parsed = LoginBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ message: "Invalid request body" });

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useGetMe, User } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { setAuthTokenGetter } from "@workspace/api-client-react/src/custom-fetch";
+import { setAuthTokenGetter, setUnauthorizedHandler } from "@workspace/api-client-react/src/custom-fetch";
 import { getGetMeQueryKey } from "@workspace/api-client-react";
 
 interface AuthContextType {
@@ -38,6 +38,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Configure api client
   useEffect(() => {
     setAuthTokenGetter(() => localStorage.getItem("yajja_token"));
+    // On any 401, clear the stale session and bounce to login.
+    setUnauthorizedHandler(() => {
+      const had = localStorage.getItem("yajja_token");
+      localStorage.removeItem("yajja_token");
+      setTokenState(null);
+      queryClient.removeQueries({ queryKey: getGetMeQueryKey() });
+      if (had && !window.location.pathname.endsWith("/login")) {
+        window.location.assign(`${import.meta.env.BASE_URL.replace(/\/$/, "")}/login`);
+      }
+    });
+    return () => setUnauthorizedHandler(null);
   }, []);
 
   const { data: user, isLoading: isUserLoading, error } = useGetMe({
