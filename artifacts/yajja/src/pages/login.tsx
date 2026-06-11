@@ -97,11 +97,11 @@ export function AuthLogin({ role }: { role: AuthRole }) {
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center gap-3 pb-6">
           <img
-            src="/yajja-icon2.jpeg"
+            src="/yajja-icon1.png"
             alt="Yajja"
-            className="h-24 w-24 rounded-3xl object-cover shadow-xl ring-2 ring-white/10"
+            className="h-36 w-56 object-cover shadow-xl ring-2 ring-white/10 rounded-[45%]"
           />
-          <span className="text-3xl font-extrabold tracking-tight text-white">Yajja</span>
+          
         </div>
         <div className="bg-white rounded-3xl shadow-2xl px-6 pt-8 pb-10">
           <div className="flex justify-center pb-3">
