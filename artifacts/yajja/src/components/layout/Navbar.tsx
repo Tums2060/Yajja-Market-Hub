@@ -76,12 +76,12 @@ export default function Navbar() {
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#1A2340] text-white">
-      <div className="container flex h-16 items-center px-4 max-w-7xl mx-auto">
+      <div className="container flex h-20 items-center px-4 max-w-7xl mx-auto">
         <Link
           href={user?.role === "vendor" ? "/vendor-portal" : user?.role === "rider" ? "/rider-portal" : user?.role === "admin" ? "/admin" : "/"}
           className="mr-6 flex items-center gap-2 shrink-0"
         >
-          <img src="/yajja-icon2.jpeg" alt="Yajja" className="h-12 w-12 rounded-xl object-cover" />
+          <img src="/yajja-icon2.jpeg" alt="Yajja" className="h-16 w-26 object-cover shadow-xl ring-2 ring-white/10 rounded-[45%]" />
           {portalLabel && (
             <Badge variant="outline" className="text-xs hidden sm:inline-flex border-white/30 text-white bg-white/5">
               {portalLabel}
