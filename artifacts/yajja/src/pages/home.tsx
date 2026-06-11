@@ -198,7 +198,7 @@ export default function Home() {
               All orders <ChevronRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-          <div className="space-y-2">
+          <div className="flex flex-col gap-4">
             {recentOrders.map((order: any) => (
               <Link key={order.id} href={`/orders/${order.id}`}>
                 <div className="rounded-2xl bg-white border border-secondary/40 p-4 flex items-center gap-3 hover:border-primary/30 hover:shadow-sm transition-all cursor-pointer">

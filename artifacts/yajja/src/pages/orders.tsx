@@ -69,7 +69,7 @@ export default function Orders() {
           <Button asChild><Link href="/shop">Start Shopping</Link></Button>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <div className="flex flex-col gap-4">
           {orders.map((order: any) => (
             <Link key={order.id} href={`/orders/${order.id}`}>
               <Card className="cursor-pointer hover:shadow-md transition-all bg-white border-secondary/40">

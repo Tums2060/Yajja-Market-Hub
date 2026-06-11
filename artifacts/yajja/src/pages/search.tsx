@@ -133,7 +133,7 @@ export default function SearchResults() {
           <p className="text-sm text-muted-foreground">
             {totalItems} item{totalItems === 1 ? "" : "s"} in {groups.length} store{groups.length === 1 ? "" : "s"} for “{query}”
           </p>
-          <div className="space-y-6">
+          <div className="flex flex-col gap-4">
             {groups.map((group) => (
               <div key={group.vendorId} className="space-y-3">
                 <Link href={`/vendor/${group.vendorId}`}>
