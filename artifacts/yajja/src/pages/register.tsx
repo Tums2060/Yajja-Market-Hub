@@ -173,7 +173,24 @@ export function AuthRegister({ role }: { role: AuthRole }) {
   const inputClass = "h-12 rounded-xl bg-secondary/20 border-0 focus-visible:ring-secondary";
 
   return (
-    <div className="min-h-[100dvh] bg-primary-foreground flex items-center justify-center px-4 py-10">
+  <div className="relative min-h-[100dvh] overflow-hidden">
+
+    {/* Background Video */}
+    <video
+      autoPlay
+      loop
+      muted
+      playsInline
+      className="absolute inset-0 h-full w-full object-cover"
+    >
+      <source src="/background-video.mp4" type="video/mp4" />
+    </video>
+
+    {/* Dark Overlay */}
+    {/* <div className="absolute inset-0 bg-black/50"></div> */}
+    <div className="relative z-10 min-h-[100dvh] flex items-center justify-center px-4 py-10">
+
+      
       <div className="relative w-full max-w-md">
         <Link href={config.loginPath}>
           <Button
@@ -439,6 +456,7 @@ export function AuthRegister({ role }: { role: AuthRole }) {
           )}
         </div>
       </div>
+    </div>
     </div>
   );
 }
