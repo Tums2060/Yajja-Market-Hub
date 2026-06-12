@@ -110,7 +110,7 @@ export function AuthLogin({ role }: { role: AuthRole }) {
         </div>
         <div className="bg-white rounded-3xl shadow-2xl px-6 pt-8 pb-10">
           <div className="flex justify-center pb-3">
-            <span className="rounded-full border border-secondary/40 px-3 py-1 text-xs font-semibold text-primary bg-secondary/20">
+            <span className="rounded-full border border-secondary/40 px-3 py-1 text-xs font-semibold !text-black bg-secondary/20">
               {config.label} Account
             </span>
           </div>
