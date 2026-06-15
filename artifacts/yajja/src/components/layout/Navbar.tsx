@@ -82,7 +82,7 @@ export default function Navbar() {
           href={user?.role === "vendor" ? "/vendor-portal" : user?.role === "rider" ? "/rider-portal" : user?.role === "admin" ? "/admin" : "/"}
           className="mr-6 flex items-center gap-2 shrink-0"
         >
-          <img src="/yajja-icon2.jpeg" alt="Yajja" className="h-16 w-26 object-cover shadow-xl ring-2 ring-white/10 rounded-[45%]" />
+          <img src="/yajja-icon3.png" alt="Yajja" className="h-16 w-26 object-cover shadow-xl ring-2 ring-white/10 rounded-[45%]" />
           {portalLabel && (
             <Badge variant="outline" className="text-xs hidden sm:inline-flex border-white/30 text-white bg-white/5">
               {portalLabel}

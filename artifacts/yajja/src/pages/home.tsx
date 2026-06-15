@@ -146,8 +146,8 @@ export default function Home() {
         <div className="flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4 py-4 sm:mx-0 sm:px-0 sm:py-2 sm:grid sm:grid-cols-4">
           {CATEGORIES.map((cat) => (
             <Link key={cat.id} href={cat.href}>
-              <div className="flex flex-col items-center gap-4 active:scale-95 transition-transform w-20 sm:w-auto shrink-0 px-1">
-                <div className="relative aspect-square w-16 sm:w-full rounded-full bg-secondary/25 ring-4 ring-secondary/40 shadow-lg flex items-center justify-center">
+              <div className="flex flex-col items-center gap-4 active:scale-95 transition-transform w-32 sm:w-auto shrink-0 px-1">
+                <div className="relative aspect-square w-32 rounded-full bg-secondary/25 ring-4 ring-secondary/40 shadow-lg flex items-center justify-center">
                   <cat.Icon className="relative h-7 w-7 text-primary" />
                 </div>
                 <span className="text-[11px] sm:text-xs font-semibold text-primary text-center leading-tight">{cat.label}</span>
