@@ -104,6 +104,73 @@ export default function Checkout() {
   const [primaryOrderId, setPrimaryOrderId] = useState<number | null>(null);
   const [pendingOrderIds, setPendingOrderIds] = useState<number[]>([]);
 
+  const [checkoutRequestId, setCheckoutRequestId] = useState<string | null>(null);
+  const [isPolling, setIsPolling] = useState(false);
+  const pollIntervalRef = React.useRef<any>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    };
+  }, []);
+
+  const cancelPayment = () => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+    setIsPolling(false);
+    setStep("form");
+  };
+
+  const startPolling = (reqId: string) => {
+    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    let secondsElapsed = 0;
+    pollIntervalRef.current = setInterval(async () => {
+      secondsElapsed += 3;
+      if (secondsElapsed > 120) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+        setIsPolling(false);
+        setStep("confirm");
+        toast({
+          variant: "destructive",
+          title: "Payment Timeout",
+          description: "We did not receive confirmation from Safaricom. Please try again.",
+        });
+        return;
+      }
+      try {
+        const r = await fetch(`/api/payments/status?checkoutRequestId=${reqId}`, {
+          headers: authHeaders(),
+        });
+        if (r.ok) {
+          const data = await r.json();
+          if (data.status === "paid") {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+            setIsPolling(false);
+            queryClient.invalidateQueries({ predicate: (q) => JSON.stringify(q.queryKey).toLowerCase().includes("order") });
+            toast({ title: "Payment confirmed", description: "Your order has been sent to the vendor." });
+            setStep("success");
+          } else if (data.status === "failed") {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+            setIsPolling(false);
+            setStep("confirm");
+            toast({
+              variant: "destructive",
+              title: "Payment Failed",
+              description: data.resultDesc || "Transaction cancelled or failed.",
+            });
+          }
+        }
+      } catch (err) {
+        // ignore
+      }
+    }, 3000);
+  };
+
   const { data: cartData } = useGetCart({ query: { queryKey: getGetCartQueryKey(), enabled: true } });
 
   const items = (cartData as any)?.items || [];
@@ -167,22 +234,55 @@ export default function Checkout() {
   const handleConfirmPayment = async () => {
     setStep("processing");
     try {
-      for (const id of pendingOrderIds) {
-        const r = await fetch(`/api/orders/${id}/mock-payment-confirm`, {
-          method: "POST",
-          headers: authHeaders(),
-        });
-        if (!r.ok) {
-          const err = await r.json().catch(() => ({}));
-          throw new Error(err.message || "Payment failed");
-        }
+      const res = await fetch("/api/payments/stk-push", {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          orderIds: pendingOrderIds,
+          phone: phoneNumber,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to trigger STK push");
       }
-      queryClient.invalidateQueries({ predicate: (q) => JSON.stringify(q.queryKey).toLowerCase().includes("order") });
-      toast({ title: "Payment confirmed", description: "Your order has been sent to the vendor." });
-      setStep("success");
+
+      const payload = await res.json();
+      const reqId = payload.checkoutRequestId;
+      setCheckoutRequestId(reqId);
+
+      if (payload.simulated || payload.status === "paid") {
+        queryClient.invalidateQueries({ predicate: (q) => JSON.stringify(q.queryKey).toLowerCase().includes("order") });
+        toast({ title: "Payment confirmed", description: "Your order has been sent to the vendor." });
+        setStep("success");
+      } else {
+        setIsPolling(true);
+        startPolling(reqId);
+      }
     } catch (err: any) {
       toast({ variant: "destructive", title: err?.message || "Payment failed" });
       setStep("confirm");
+    }
+  };
+
+  const handleSimulateCallback = async (success: boolean) => {
+    if (!checkoutRequestId) return;
+    try {
+      const res = await fetch("/api/payments/simulate-callback", {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          checkoutRequestId,
+          success,
+        }),
+      });
+      if (!res.ok) {
+        throw new Error("Simulation failed");
+      }
+      toast({ title: "Simulation Triggered", description: `Callback sent: ${success ? "Success" : "Failed"}` });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: err?.message || "Failed to trigger simulation" });
     }
   };
 
@@ -246,16 +346,18 @@ export default function Checkout() {
           </Card>
         )}
 
-        <Dialog open={step === "confirm" || step === "processing"} onOpenChange={(o) => { if (!o && step === "confirm") setStep("form"); }}>
-          <DialogContent className="sm:max-w-md rounded-3xl p-6">
+        <Dialog open={step === "confirm" || step === "processing" || isPolling} onOpenChange={(o) => { if (!o) cancelPayment(); }}>
+          <DialogContent className="sm:max-w-md rounded-3xl p-6 bg-white border">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-foreground font-extrabold">
                 <Smartphone className="h-5 w-5 text-primary" /> Confirm M-Pesa STK Push
               </DialogTitle>
-              <DialogDescription className="text-muted-foreground text-xs">
-                {step === "processing"
-                  ? "Processing payment..."
-                  : `Please check your phone for the M-Pesa pin prompt to confirm transaction of ${formatKES(total)}.`}
+              <DialogDescription className="text-muted-foreground text-xs font-semibold leading-relaxed">
+                {isPolling
+                  ? "Please verify on your phone and enter your M-Pesa PIN to complete the transaction."
+                  : step === "processing"
+                  ? "Initiating payment request..."
+                  : `Please check your phone for the M-Pesa PIN prompt to confirm the transaction of ${formatKES(total)}.`}
               </DialogDescription>
             </DialogHeader>
             <div className="rounded-2xl bg-secondary/10 p-4 space-y-2.5">
@@ -267,15 +369,55 @@ export default function Checkout() {
                 <span>Amount</span>
                 <span className="text-foreground">{formatKES(total)}</span>
               </div>
+              {isPolling && (
+                <div className="flex justify-between text-xs font-bold text-muted-foreground">
+                  <span>Status</span>
+                  <span className="text-amber-600 animate-pulse flex items-center gap-1 font-extrabold">
+                    <Loader2 className="h-3 w-3 animate-spin text-amber-500" /> Waiting for M-Pesa PIN...
+                  </span>
+                </div>
+              )}
             </div>
-            <DialogFooter className="gap-2 sm:gap-0 mt-4">
-              <Button variant="outline" disabled={isPlacing} onClick={() => setStep("form")} className="rounded-xl font-bold h-11 text-xs">
+
+            {/* Local Developer Simulation Control Panel */}
+            {isPolling && checkoutRequestId && (
+              <div className="p-4 border border-dashed border-amber-300 bg-amber-500/5 rounded-2xl space-y-3 mt-2">
+                <div className="flex items-center gap-1.5 text-xs font-extrabold text-amber-700">
+                  <ShieldCheck className="h-4 w-4 animate-pulse text-amber-600" /> Dev Callback Simulator
+                </div>
+                <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
+                  Safaricom callbacks cannot reach a local development environment. Click below to simulate a Safaricom callback response.
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    className="flex-grow text-xs font-extrabold bg-[#1A2340] hover:bg-slate-800 text-white rounded-xl"
+                    onClick={() => handleSimulateCallback(true)}
+                  >
+                    Simulate Success
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-grow text-xs font-bold border-rose-200 text-rose-600 hover:bg-rose-50 rounded-xl"
+                    onClick={() => handleSimulateCallback(false)}
+                  >
+                    Simulate Failure
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <DialogFooter className="gap-2 sm:gap-0 mt-4 flex justify-end">
+              <Button variant="outline" disabled={step === "processing"} onClick={cancelPayment} className="rounded-xl font-bold h-11 text-xs px-4">
                 Cancel
               </Button>
-              <Button onClick={handleConfirmPayment} disabled={isPlacing} className="rounded-xl font-bold h-11 text-xs">
-                {isPlacing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Pay {formatKES(total)}
-              </Button>
+              {!isPolling && (
+                <Button onClick={handleConfirmPayment} disabled={step === "processing"} className="rounded-xl font-bold h-11 text-xs px-4">
+                  {step === "processing" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Pay {formatKES(total)}
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>

@@ -67,10 +67,10 @@ router.post("/payments/stk-push", requireAuth, async (req, res) => {
     if (configured) {
       const result = await stkPush({
         phone,
-        amount: total,
+        amount: 1, // Hardcoded to 1 KES for testing as requested by the user
         accountReference: accountRef,
         description: `Yajja ${accountRef}`,
-        callbackUrl: resolveCallbackUrl(),
+        callbackUrl: resolveCallbackUrl() || "https://example.com/api/payments/callback",
       });
       checkoutRequestId = result.checkoutRequestId;
       merchantRequestId = result.merchantRequestId;
@@ -146,6 +146,27 @@ router.get("/payments/status", requireAuth, async (req, res) => {
     resultDesc: payments[0].resultDesc,
     receipt: payments.find((p) => p.mpesaReceipt)?.mpesaReceipt ?? null,
   });
+});
+
+// Developer endpoint to manually simulate M-Pesa callback confirmations on localhost
+router.post("/payments/simulate-callback", async (req, res) => {
+  try {
+    const { checkoutRequestId, success } = req.body;
+    if (!checkoutRequestId) {
+      res.status(400).json({ message: "checkoutRequestId required" });
+      return;
+    }
+    await settlePaymentByCheckoutId(checkoutRequestId, {
+      success: success !== false,
+      receipt: `SIMULATED-${Date.now()}`,
+      resultCode: success !== false ? "0" : "1",
+      resultDesc: success !== false ? "Dev Simulated Callback Success" : "Dev Simulated Callback Failure",
+    });
+    res.json({ message: "Callback simulated successfully" });
+  } catch (err) {
+    req.log?.error({ err }, "mpesa simulation callback failed");
+    res.status(500).json({ message: "Failed to simulate callback", error: String(err) });
+  }
 });
 
 // Public Daraja callback — no auth. Safaricom POSTs the STK result here.
