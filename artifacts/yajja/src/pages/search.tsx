@@ -15,13 +15,6 @@ import { Search, Store, Plus, ChevronRight, Loader2, SearchX } from "lucide-reac
 import { ProductModal } from "@/components/ProductModal";
 import { formatKES } from "@/lib/format";
 
-const categoryLabel: Record<string, string> = {
-  food: "Food & Drinks",
-  liquor: "Liquor",
-  pharmacy: "Health & Beauty",
-  household: "Go",
-};
-
 type StoreGroup = {
   vendorId: number;
   vendorName: string;
@@ -98,98 +91,103 @@ export default function SearchResults() {
   };
 
   return (
-    <div className="container max-w-3xl mx-auto px-4 py-6 space-y-6">
-      <form onSubmit={submit} className="relative">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/60" />
-        <Input
-          autoFocus
-          placeholder="Search items by name, tag or category…"
-          className="pl-10 h-12 rounded-2xl bg-secondary/20 border-0 shadow-sm text-foreground placeholder:text-foreground/50"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-        />
-      </form>
+    <div className="min-h-screen bg-muted/20 pb-16 pt-8">
+      <div className="container max-w-3xl mx-auto px-4 space-y-6">
+        {/* Search Header Input */}
+        <form onSubmit={submit} className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Input
+            autoFocus
+            placeholder="Search items by name, tag or category…"
+            className="pl-11 h-14 rounded-2xl bg-white border border-secondary/20 shadow-md text-foreground placeholder:text-muted-foreground/60 text-base"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+          />
+        </form>
 
-      {!query ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <Search className="mx-auto h-10 w-10 opacity-20 mb-3" />
-          <p>Search for items across every store — try “chicken”, “whisky” or “painkiller”.</p>
-        </div>
-      ) : isLoading ? (
-        <div className="flex justify-center py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </div>
-      ) : totalItems === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <SearchX className="mx-auto h-10 w-10 opacity-20 mb-3" />
-          <p className="font-medium text-foreground">No items match “{query}”</p>
-          <p className="text-sm mt-1">Try a different keyword or browse stores instead.</p>
-          <Link href="/shop">
-            <Button variant="outline" className="mt-4 border-secondary/50 text-primary hover:bg-secondary/20">Browse all stores</Button>
-          </Link>
-        </div>
-      ) : (
-        <>
-          <p className="text-sm text-muted-foreground">
-            {totalItems} item{totalItems === 1 ? "" : "s"} in {groups.length} store{groups.length === 1 ? "" : "s"} for “{query}”
-          </p>
-          <div className="flex flex-col gap-4">
-            {groups.map((group) => (
-              <div key={group.vendorId} className="space-y-3">
-                <Link href={`/vendor/${group.vendorId}`}>
-                  <div className="flex items-center gap-3 group cursor-pointer">
-                    <div className="h-9 w-9 rounded-xl bg-secondary/25 flex items-center justify-center shrink-0">
-                      <Store className="h-4 w-4 text-primary" />
+        {!query ? (
+          <div className="text-center py-16 text-muted-foreground bg-white rounded-3xl border border-secondary/10 p-8 shadow-xs">
+            <Search className="mx-auto h-12 w-12 opacity-25 text-muted-foreground mb-4" />
+            <p className="font-semibold text-foreground text-base">Search across all stores</p>
+            <p className="text-sm mt-1 max-w-sm mx-auto">Try typing terms like "chicken", "whiskey", "beauty", or "bread".</p>
+          </div>
+        ) : isLoading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : totalItems === 0 ? (
+          <div className="text-center py-16 text-muted-foreground bg-white rounded-3xl border border-dashed border-secondary/20 p-8 shadow-xs">
+            <SearchX className="mx-auto h-12 w-12 opacity-20 mb-4" />
+            <p className="font-semibold text-lg text-foreground">No matches found for "{query}"</p>
+            <p className="text-sm mt-1">Try check spelling, different keywords, or explore stores directly.</p>
+            <Link href="/shop">
+              <Button variant="outline" className="mt-4 rounded-xl font-bold text-xs h-10 border-secondary/25 shadow-2xs cursor-pointer hover:bg-secondary/5">Browse All Stores</Button>
+            </Link>
+          </div>
+        ) : (
+          <>
+            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
+              {totalItems} item{totalItems === 1 ? "" : "s"} found in {groups.length} store{groups.length === 1 ? "" : "s"} for "{query}"
+            </p>
+            <div className="flex flex-col gap-6">
+              {groups.map((group) => (
+                <div key={group.vendorId} className="space-y-3">
+                  <Link href={`/vendor/${group.vendorId}`}>
+                    <div className="flex items-center gap-2.5 group cursor-pointer w-fit">
+                      <div className="h-9 w-9 rounded-xl bg-secondary/5 border border-secondary/5 flex items-center justify-center shrink-0">
+                        <Store className="h-4 w-4 text-primary" />
+                      </div>
+                      <h2 className="font-extrabold text-base text-foreground group-hover:text-primary transition-colors">{group.vendorName}</h2>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
                     </div>
-                    <h2 className="font-bold text-foreground group-hover:text-primary transition-colors">{group.vendorName}</h2>
-                    <ChevronRight className="h-4 w-4 text-primary/40 group-hover:translate-x-0.5 transition-transform" />
-                  </div>
-                </Link>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {group.items.map((product) => (
-                    <button
-                      key={product.id}
-                      type="button"
-                      onClick={() => { setSelectedProduct(product); setModalOpen(true); }}
-                      className="text-left"
-                    >
-                      <Card className="overflow-hidden flex flex-row h-28 hover:shadow-md hover:border-primary/30 transition-all active:scale-[0.99]">
-                        <div className="w-24 h-full bg-muted shrink-0">
-                          {product.imageUrl ? (
-                            <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-primary/5 text-primary/20 text-2xl font-bold">
-                              {product.name.charAt(0)}
+                  </Link>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {group.items.map((product) => (
+                      <button
+                        key={product.id}
+                        type="button"
+                        onClick={() => { setSelectedProduct(product); setModalOpen(true); }}
+                        className="text-left group"
+                      >
+                        <Card className="overflow-hidden flex flex-row justify-between h-28 bg-white border border-secondary/10 shadow-xs hover:shadow-md transition-all rounded-2xl p-3 gap-3">
+                          <div className="flex-1 flex flex-col justify-between min-w-0">
+                            <div>
+                              <h3 className="font-bold text-sm leading-tight truncate text-foreground group-hover:text-primary transition-colors">{product.name}</h3>
+                              {product.tags && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {String(product.tags).split(",").map((t: string) => t.trim()).filter(Boolean).slice(0, 2).map((t: string) => (
+                                    <Badge key={t} variant="outline" className="text-[9px] font-bold uppercase px-2 py-0 border-secondary/20 bg-secondary/5 text-primary tracking-wide rounded-full">{t}</Badge>
+                                  ))}
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                        <div className="p-3 flex-1 flex flex-col justify-between min-w-0">
-                          <div>
-                            <h3 className="font-bold text-sm leading-tight truncate">{product.name}</h3>
-                            {product.tags && (
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {String(product.tags).split(",").map((t: string) => t.trim()).filter(Boolean).slice(0, 2).map((t: string) => (
-                                  <Badge key={t} variant="outline" className="text-[10px] px-1.5 py-0 border-secondary/50 text-primary/70 capitalize">{t}</Badge>
-                                ))}
+                            <div className="font-extrabold text-sm text-foreground">{formatKES(product.price)}</div>
+                          </div>
+
+                          <div className="w-20 h-20 bg-secondary/5 rounded-lg shrink-0 relative overflow-hidden self-center border border-secondary/5">
+                            {product.imageUrl ? (
+                              <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-primary/5 text-primary/20 text-xl font-bold">
+                                {product.name.charAt(0)}
                               </div>
                             )}
+                            <div className="absolute bottom-1 right-1">
+                              <span className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:scale-105 transition-all">
+                                <Plus className="h-3.5 w-3.5" />
+                              </span>
+                            </div>
                           </div>
-                          <div className="flex items-center justify-between mt-1">
-                            <span className="font-bold text-sm text-primary">{formatKES(product.price)}</span>
-                            <span className="rounded-full px-2.5 py-1 inline-flex items-center text-xs font-bold bg-primary text-primary-foreground">
-                              <Plus className="h-3 w-3 mr-0.5" /> Add
-                            </span>
-                          </div>
-                        </div>
-                      </Card>
-                    </button>
-                  ))}
+                        </Card>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
+              ))}
+            </div>
+          </>
+        )}
+      </div>
 
       <ProductModal
         open={modalOpen}

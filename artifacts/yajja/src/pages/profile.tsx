@@ -68,159 +68,168 @@ export default function Profile() {
   if (!user) return null;
 
   return (
-    <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6 animate-in fade-in duration-500">
-      <h1 className="text-3xl font-extrabold tracking-tight text-primary">My Profile</h1>
-
-      <Card className="bg-white border-secondary/40">
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-5">
-            <div className="h-20 w-20 rounded-full bg-secondary/30 flex items-center justify-center text-primary text-3xl font-bold shrink-0 overflow-hidden border-4 border-secondary/50">
-              {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
-              ) : (
-                user.name?.charAt(0)?.toUpperCase() || "U"
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-2xl font-bold truncate">{user.name}</h2>
-              <Badge variant="outline" className="mt-1 capitalize">{user.role}</Badge>
-            </div>
+    <div className="min-h-screen bg-muted/20 pb-16">
+      {/* Header Banner */}
+      <div className="bg-background border-b border-secondary/5 py-6 mb-8">
+        <div className="container max-w-2xl mx-auto px-4 flex items-center gap-4">
+          <div className="h-16 w-16 rounded-full bg-secondary/10 flex items-center justify-center text-primary text-2xl font-bold shrink-0 overflow-hidden border-2 border-secondary/15">
+            {user.avatarUrl ? (
+              <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
+            ) : (
+              user.name?.charAt(0)?.toUpperCase() || "U"
+            )}
           </div>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-white border-secondary/40">
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <User className="h-4 w-4 text-primary" />
-            Account Details
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-3">
-            <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-            <div>
-              <p className="text-xs text-muted-foreground">Email</p>
-              <p className="font-medium">{user.email}</p>
-            </div>
+          <div>
+            <h1 className="text-2xl font-extrabold text-foreground tracking-tight">{user.name}</h1>
+            <Badge variant="outline" className="mt-0.5 capitalize text-[10px] font-bold tracking-wide border-secondary/25">{user.role} Account</Badge>
           </div>
-          {user.phone && (
-            <>
-              <Separator />
-              <div className="flex items-center gap-3">
-                <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Phone</p>
-                  <p className="font-medium">{user.phone}</p>
-                </div>
-              </div>
-            </>
-          )}
-          {user.address && (
-            <>
-              <Separator />
-              <div className="flex items-center gap-3">
-                <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Default Address</p>
-                  <p className="font-medium">{user.address}</p>
-                </div>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="bg-white border-secondary/40">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-base flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-primary" />
-            Saved Locations
-          </CardTitle>
-          <Button size="sm" variant="outline" className="gap-1" onClick={openAdd}>
-            <Plus className="h-4 w-4" /> Add
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {locationsLoading ? (
-            <div className="flex justify-center py-6">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      <div className="container max-w-2xl mx-auto px-4 space-y-6">
+        {/* Account Details */}
+        <Card className="bg-white border border-secondary/10 rounded-2xl shadow-xs overflow-hidden">
+          <CardHeader className="bg-background border-b border-secondary/5 py-4 px-6">
+            <CardTitle className="text-base font-extrabold text-foreground flex items-center gap-2">
+              <User className="h-4 w-4 text-primary" /> Account details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-lg bg-secondary/5 flex items-center justify-center shrink-0 border border-secondary/5">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Email address</p>
+                <p className="text-sm font-bold text-foreground mt-0.5">{user.email}</p>
+              </div>
             </div>
-          ) : locations.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-2">
-              No saved locations yet. Add one for faster checkout.
-            </p>
-          ) : (
-            locations.map((loc) => (
-              <div key={loc.id} className="flex items-start gap-3 rounded-lg border p-3">
-                <div className="h-9 w-9 rounded-lg bg-secondary/30 flex items-center justify-center shrink-0">
-                  <MapPin className="h-4 w-4 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold truncate">{loc.label}</p>
-                    {loc.isDefault && (
-                      <Badge variant="secondary" className="gap-1 text-xs">
-                        <Star className="h-3 w-3 fill-current" /> Default
-                      </Badge>
-                    )}
+            {user.phone && (
+              <>
+                <Separator className="bg-secondary/5" />
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-secondary/5 flex items-center justify-center shrink-0 border border-secondary/5">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <p className="text-sm text-muted-foreground truncate">{loc.address}</p>
+                  <div>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Phone number</p>
+                    <p className="text-sm font-bold text-foreground mt-0.5">{user.phone}</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  {!loc.isDefault && (
-                    <Button size="icon" variant="ghost" className="h-8 w-8" title="Set as default" onClick={() => handleSetDefault(loc.id)}>
-                      <Star className="h-4 w-4" />
-                    </Button>
-                  )}
-                  <Button size="icon" variant="ghost" className="h-8 w-8" title="Edit" onClick={() => openEdit(loc)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" title="Delete" onClick={() => handleDelete(loc.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+              </>
+            )}
+            {user.address && (
+              <>
+                <Separator className="bg-secondary/5" />
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-secondary/5 flex items-center justify-center shrink-0 border border-secondary/5">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Default address</p>
+                    <p className="text-sm font-bold text-foreground mt-0.5">{user.address}</p>
+                  </div>
                 </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Saved Locations */}
+        <Card className="bg-white border border-secondary/10 rounded-2xl shadow-xs overflow-hidden">
+          <CardHeader className="bg-background border-b border-secondary/5 py-4 px-6 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base font-extrabold text-foreground flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-primary" /> Saved Locations
+            </CardTitle>
+            <Button size="sm" variant="outline" className="gap-1 rounded-lg font-bold text-xs h-8 border-secondary/20 bg-white" onClick={openAdd}>
+              <Plus className="h-3.5 w-3.5" /> Add New
+            </Button>
+          </CardHeader>
+          <CardContent className="p-6 space-y-3">
+            {locationsLoading ? (
+              <div className="flex justify-center py-6">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+            ) : locations.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-2 font-medium">
+                No saved locations yet. Add one for a faster checkout.
+              </p>
+            ) : (
+              locations.map((loc) => (
+                <div key={loc.id} className="flex items-center gap-3 rounded-xl border border-secondary/10 p-3 bg-white">
+                  <div className="h-9 w-9 rounded-lg bg-secondary/5 border border-secondary/5 flex items-center justify-center shrink-0">
+                    <MapPin className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold text-sm text-foreground truncate">{loc.label}</p>
+                      {loc.isDefault && (
+                        <Badge variant="secondary" className="gap-1 text-[9px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-700 hover:bg-amber-500/15 border-amber-500/20 py-0 px-2 rounded-full">
+                          <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" /> Default
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate mt-0.5 font-medium">{loc.address}</p>
+                  </div>
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    {!loc.isDefault && (
+                      <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full hover:bg-secondary/10" title="Set as default" onClick={() => handleSetDefault(loc.id)}>
+                        <Star className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    )}
+                    <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full hover:bg-secondary/10" title="Edit" onClick={() => openEdit(loc)}>
+                      <Pencil className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full" title="Delete" onClick={() => handleDelete(loc.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
 
-      <LocationModal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        initial={editing}
-        onSubmit={handleSubmit}
-        saving={create.isPending || update.isPending}
-      />
+        {/* Quick Links */}
+        <Card className="bg-white border border-secondary/10 rounded-2xl shadow-xs overflow-hidden">
+          <CardHeader className="bg-background border-b border-secondary/5 py-4 px-6">
+            <CardTitle className="text-base font-extrabold text-foreground flex items-center gap-2">
+              <Shield className="h-4 w-4 text-primary" /> Quick Actions
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Button variant="ghost" className="w-full justify-between items-center h-14 rounded-none px-6 text-sm font-bold text-foreground border-b border-secondary/5" onClick={() => setLocation("/orders")}>
+              <span className="flex items-center gap-3">
+                <ShoppingBag className="h-5 w-5 text-muted-foreground" />
+                <span>My Order History</span>
+              </span>
+              <span className="text-muted-foreground font-semibold text-xs">View</span>
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-between items-center h-14 rounded-none px-6 text-sm font-bold text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={handleLogout}
+            >
+              <span className="flex items-center gap-3">
+                <LogOut className="h-5 w-5" />
+                <span>Sign Out Account</span>
+              </span>
+            </Button>
+          </CardContent>
+        </Card>
 
-      <Card className="bg-white border-secondary/40">
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Shield className="h-4 w-4 text-primary" />
-            Quick Links
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <Button variant="ghost" className="w-full justify-start gap-3 h-12" onClick={() => setLocation("/orders")}>
-            <ShoppingBag className="h-5 w-5 text-muted-foreground" />
-            My Orders
-          </Button>
-          <Separator />
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-3 h-12 text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={handleLogout}
-          >
-            <LogOut className="h-5 w-5" />
-            Sign Out
-          </Button>
-        </CardContent>
-      </Card>
+        <LocationModal
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          initial={editing}
+          onSubmit={handleSubmit}
+          saving={create.isPending || update.isPending}
+        />
 
-      <p className="text-center text-xs text-muted-foreground">
-        Member since {user.createdAt ? new Date(user.createdAt).toLocaleDateString("en-UG", { month: "long", year: "numeric" }) : "—"}
-      </p>
+        <p className="text-center text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+          Member since {user.createdAt ? new Date(user.createdAt).toLocaleDateString("en-UG", { month: "long", year: "numeric" }) : "—"}
+        </p>
+      </div>
     </div>
   );
 }

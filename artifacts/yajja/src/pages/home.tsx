@@ -2,21 +2,20 @@ import React, { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import {
-  ChevronRight, Search, MapPin, Bell, ShoppingBag, ShoppingCart,
-  Store, Package, Star, Clock, RotateCcw, User, ReceiptText,
-  Cross, Wine, UtensilsCrossed,
+  ChevronRight, Search, MapPin, Bell, Star, Clock, RotateCcw, User, ReceiptText,
+  ShoppingCart, Store, Wine, Cross, UtensilsCrossed, Flame, Compass, Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { HeroWatermark } from "@/components/HeroWatermark";
+import { Badge } from "@/components/ui/badge";
 import { useListPopularVendors, useListOrders } from "@workspace/api-client-react";
 import { formatKES, KENYA } from "@/lib/format";
 
 const CATEGORIES = [
-  { id: "food", label: "Yajja Food & Drinks", Icon: UtensilsCrossed, href: "/category/food" },
-  { id: "liquor", label: "Yajja Liquor", Icon: Wine, href: "/category/liquor" },
-  { id: "pharmacy", label: "Yajja Health", Icon: Cross, href: "/category/pharmacy" },
-  { id: "household", label: "Yajja Go", Icon: ShoppingCart, href: "/category/household" },
+  { id: "food", label: "Yajja Food & Drinks", Icon: UtensilsCrossed, href: "/category/food", desc: "Local & fast foods" },
+  { id: "liquor", label: "Yajja Liquor", Icon: Wine, href: "/category/liquor", desc: "Beers, wines & spirits" },
+  { id: "pharmacy", label: "Yajja Health", Icon: Cross, href: "/category/pharmacy", desc: "Medicines & wellness" },
+  { id: "household", label: "Yajja Go", Icon: ShoppingCart, href: "/category/household", desc: "Daily essentials" },
 ];
 
 const categoryLabel: Record<string, string> = {
@@ -26,27 +25,63 @@ const categoryLabel: Record<string, string> = {
   household: "Go",
 };
 
-function StoreCard({ vendor }: { vendor: any }) {
+// Premium Restaurant Discovery Card
+function RestaurantCard({ vendor }: { vendor: any }) {
   return (
     <Link href={`/vendor/${vendor.id}`}>
-      <div className="w-44 shrink-0 rounded-2xl bg-white border border-secondary/40 overflow-hidden shadow-sm hover:shadow-md hover:border-primary/30 transition-all active:scale-[0.98]">
-        <div className="h-24 bg-secondary/20 flex items-center justify-center overflow-hidden">
+      <div className="group rounded-2xl bg-white border border-secondary/10 overflow-hidden shadow-xs hover:shadow-md hover:border-primary/20 transition-all duration-200 active:scale-[0.99] cursor-pointer flex flex-col h-full">
+        {/* Cover Image */}
+        <div className="h-44 w-full bg-secondary/5 relative overflow-hidden shrink-0">
           {vendor.imageUrl ? (
-            <img src={vendor.imageUrl} alt={vendor.name} className="h-full w-full object-cover" />
+            <img
+              src={vendor.imageUrl}
+              alt={vendor.name}
+              className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
           ) : (
-            <Store className="h-8 w-8 text-primary/40" />
+            <div className="h-full w-full flex flex-col items-center justify-center bg-gradient-to-br from-secondary/5 to-secondary/15">
+              <Store className="h-10 w-10 text-primary/30" />
+            </div>
           )}
+          {/* Badge overlays */}
+          <div className="absolute top-3 right-3 flex gap-1.5">
+            {!vendor.isOpen && (
+              <Badge variant="destructive" className="font-bold">Closed</Badge>
+            )}
+            {vendor.isOpen && (
+              <span className="bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm">Open</span>
+            )}
+          </div>
         </div>
-        <div className="p-3 space-y-1">
-          <p className="font-bold text-sm text-foreground truncate">{vendor.name}</p>
-          <p className="text-[11px] text-muted-foreground capitalize">{categoryLabel[vendor.category] || vendor.category}</p>
-          <div className="flex items-center gap-3 text-[11px] text-muted-foreground pt-0.5">
-            {typeof vendor.rating === "number" && (
-              <span className="inline-flex items-center gap-1"><Star className="h-3 w-3 text-secondary fill-secondary" />{vendor.rating}</span>
-            )}
-            {vendor.deliveryTime && (
-              <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" />{vendor.deliveryTime}</span>
-            )}
+
+        {/* Details */}
+        <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+          <div className="space-y-1">
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="font-bold text-base text-foreground group-hover:text-primary transition-colors truncate">
+                {vendor.name}
+              </h3>
+              <div className="flex items-center gap-1 bg-amber-500/10 text-amber-700 text-xs font-extrabold px-1.5 py-0.5 rounded shrink-0">
+                <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+                <span>{(vendor.rating ?? 4.5).toFixed(1)}</span>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground line-clamp-1">
+              {vendor.description || "Fresh items delivered fast to your doorstep"}
+            </p>
+          </div>
+
+          <div className="pt-2 border-t border-secondary/5 flex items-center justify-between text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5" />
+              <span>{vendor.deliveryTime || "25-35 min"}</span>
+            </span>
+            <span className="h-1 w-1 bg-muted-foreground/30 rounded-full" />
+            <span>KES 200 delivery</span>
+            <span className="h-1 w-1 bg-muted-foreground/30 rounded-full" />
+            <span className="capitalize font-semibold text-primary/95 text-[11px] bg-secondary/10 px-2 py-0.5 rounded-full">
+              {categoryLabel[vendor.category] || vendor.category}
+            </span>
           </div>
         </div>
       </div>
@@ -64,7 +99,7 @@ function FloatingDock() {
     <div className="hidden md:flex fixed right-5 top-1/2 -translate-y-1/2 z-30 flex-col gap-3">
       {actions.map(({ href, label, Icon }) => (
         <Link key={href} href={href}>
-          <div className="group flex items-center gap-2 justify-end">
+          <div className="group flex items-center gap-2 justify-end cursor-pointer">
             <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-foreground text-background text-xs font-semibold px-2 py-1 rounded-lg shadow">
               {label}
             </span>
@@ -100,118 +135,126 @@ export default function Home() {
   const popular = (popularVendors as any[]) || [];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-muted/20 pb-16">
       <FloatingDock />
 
-      {/* Header */}
-      <div className="relative overflow-hidden">
-        <HeroWatermark />
-        <div className="relative z-10 px-4 pt-6 pb-6 max-w-2xl mx-auto">
-          <div className="bg-white rounded-3xl shadow-2xl px-6 pt-6 pb-5 border border-secondary/40">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <div className="flex items-center gap-1.5 text-primary/70 text-sm mb-0.5">
-                  <MapPin className="h-3.5 w-3.5" />
-                  <span>{KENYA.city}, {KENYA.country}</span>
-                </div>
-                <p className="text-primary font-semibold text-lg">
-                  Hey {user?.name?.split(" ")[0]}
-                </p>
+      {/* Hero Header Section */}
+      <div className="relative overflow-hidden bg-background border-b border-secondary/5">
+        <div className="px-4 pt-6 pb-6 max-w-4xl mx-auto space-y-6">
+          {/* Greeting & Location */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Delivering To</p>
+              <div className="flex items-center gap-1 text-foreground font-bold text-base mt-0.5 cursor-pointer hover:text-primary transition-colors">
+                <MapPin className="h-4 w-4 text-primary" />
+                <span>{KENYA.city}, {KENYA.country}</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-right hidden sm:block">
+                <p className="text-xs text-muted-foreground">Welcome back,</p>
+                <p className="text-sm font-extrabold text-foreground">{user?.name?.split(" ")[0]}</p>
               </div>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="icon"
-                className="text-primary/70 hover:text-primary hover:bg-secondary/30 h-9 w-9"
+                className="h-10 w-10 rounded-full border-secondary/20 shadow-xs relative bg-white"
               >
-                <Bell className="h-5 w-5" />
+                <Bell className="h-5 w-5 text-foreground" />
+                <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-primary" />
               </Button>
             </div>
+          </div>
 
+          {/* Search Header */}
+          <div className="max-w-2xl">
+            <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-4">
+              Hey {user?.name?.split(" ")[0]}! <br />
+              <span className="text-muted-foreground font-medium text-2xl">What are you craving today?</span>
+            </h1>
             <form onSubmit={handleSearch} className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/60" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
-                placeholder="Search food, drinks, stores..."
-                className="pl-10 h-12 rounded-2xl bg-secondary/20 border-0 shadow-lg text-foreground placeholder:text-foreground/50"
+                placeholder="Search food, drinks, pharmacies, stores..."
+                className="pl-11 h-14 rounded-2xl bg-white border border-secondary/20 shadow-md text-foreground placeholder:text-muted-foreground/60 text-base"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </form>
           </div>
+
+          {/* Promotional Banner */}
+          <div className="rounded-3xl bg-gradient-to-r from-primary to-[#2C386C] p-6 text-white relative overflow-hidden shadow-lg border border-white/5">
+            <div className="relative z-10 max-w-[65%] space-y-2">
+              <span className="inline-flex items-center gap-1 bg-white/20 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full backdrop-blur-xs">
+                <Sparkles className="h-3 w-3 text-amber-400" /> Promo Code: YAJJAFREE
+              </span>
+              <h3 className="text-2xl font-extrabold leading-tight">Free Delivery on your first order!</h3>
+              <p className="text-xs text-white/80">Satisfy your cravings from Yajja's best local food, drinks, and daily essentials.</p>
+              <Button
+                onClick={() => setLocation("/shop")}
+                size="sm"
+                className="bg-brand-yellow hover:bg-brand-yellow/90 text-[#1A2340] font-bold rounded-xl text-xs px-5 py-2.5 mt-2"
+              >
+                Explore Deals
+              </Button>
+            </div>
+            <div className="absolute right-2 -bottom-2 w-48 h-48 opacity-20 bg-[radial-gradient(circle,_#ffffff_10%,_transparent_60%)] rounded-full" />
+            <div className="absolute right-6 bottom-4 text-white/10 pointer-events-none">
+              <UtensilsCrossed className="h-32 w-32 rotate-12" />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Category tab bar */}
-      <div className="max-w-2xl mx-auto px-4 pt-2 pb-6">
-        <h2 className="text-base font-bold text-primary mb-4">What are you looking for?</h2>
-        <div className="flex gap-6 overflow-x-auto scrollbar-hide -mx-4 px-4 py-4 sm:mx-0 sm:px-0 sm:py-2 sm:flex sm:flex-wrap sm:justify-center sm:gap-8">
+      {/* Categories Section */}
+      <div className="max-w-4xl mx-auto px-4 py-6">
+        <h2 className="text-lg font-extrabold text-foreground mb-4 flex items-center gap-1.5">
+          <Compass className="h-5 w-5 text-primary" /> What are you looking for?
+        </h2>
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4 py-2 sm:mx-0 sm:px-0 sm:py-0 sm:grid sm:grid-cols-4">
           {CATEGORIES.map((cat) => (
             <Link key={cat.id} href={cat.href}>
-              <div className="flex flex-col items-center gap-4 active:scale-95 transition-transform shrink-0 px-2">
-                <div className="relative aspect-square w-54 rounded-full bg-secondary/25 ring-4 ring-secondary/40 shadow-lg flex items-center justify-center">
-                  <cat.Icon className="relative h-8 w-8 text-primary" />
+              <div className="flex items-center gap-3 bg-white border border-secondary/15 hover:border-primary/30 rounded-2xl p-3 shadow-2xs hover:shadow-sm active:scale-95 transition-all shrink-0 w-52 sm:w-auto cursor-pointer">
+                <div className="h-10 w-10 rounded-xl bg-secondary/10 flex items-center justify-center text-primary shrink-0">
+                  <cat.Icon className="h-5 w-5" />
                 </div>
-                <span className="text-[11px] sm:text-xs font-semibold text-primary text-center leading-tight">{cat.label}</span>
+                <div className="min-w-0">
+                  <p className="text-xs font-extrabold text-foreground leading-tight">{cat.label}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{cat.desc}</p>
+                </div>
               </div>
             </Link>
           ))}
         </div>
       </div>
 
-      {/* Most Popular Stores */}
-      <div className="max-w-2xl mx-auto px-4 pb-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-bold text-primary">Most Popular Stores</h2>
-          <Link href="/shop" className="text-xs font-semibold text-primary/70 hover:text-primary inline-flex items-center gap-0.5">
-            Explore more <ChevronRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-        {loadingPopular ? (
-          <div className="flex gap-3 overflow-hidden">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="w-44 shrink-0 rounded-2xl bg-white border border-secondary/40 overflow-hidden animate-pulse">
-                <div className="h-24 bg-muted" />
-                <div className="p-3 space-y-2">
-                  <div className="h-4 bg-muted rounded w-2/3" />
-                  <div className="h-3 bg-muted rounded w-1/2" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : popular.length === 0 ? (
-          <div className="rounded-2xl bg-white border border-dashed border-secondary/50 p-6 text-center">
-            <Store className="mx-auto h-8 w-8 text-primary/30 mb-2" />
-            <p className="text-sm text-muted-foreground">No stores yet. Check back soon!</p>
-          </div>
-        ) : (
-          <div className="flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4">
-            {popular.map((v) => <StoreCard key={v.id} vendor={v} />)}
-          </div>
-        )}
-      </div>
-
-      {/* Recently Ordered */}
+      {/* Same as last time (Recent Orders) */}
       {recentOrders.length > 0 && (
-        <div className="max-w-2xl mx-auto px-4 pb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-bold text-primary">Same as last time?</h2>
-            <Link href="/orders" className="text-xs font-semibold text-primary/70 hover:text-primary inline-flex items-center gap-0.5">
+        <div className="max-w-4xl mx-auto px-4 pb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-extrabold text-foreground flex items-center gap-1.5">
+              <RotateCcw className="h-5 w-5 text-primary" /> Same as last time?
+            </h2>
+            <Link href="/orders" className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-0.5">
               All orders <ChevronRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             {recentOrders.map((order: any) => (
               <Link key={order.id} href={`/orders/${order.id}`}>
-                <div className="rounded-2xl bg-white border border-secondary/40 p-4 flex items-center gap-3 hover:border-primary/30 hover:shadow-sm transition-all cursor-pointer">
-                  <div className="h-10 w-10 rounded-xl bg-secondary/25 flex items-center justify-center shrink-0">
+                <div className="rounded-2xl bg-white border border-secondary/10 p-4 flex items-center gap-3 hover:border-primary/25 hover:shadow-xs transition-all cursor-pointer">
+                  <div className="h-10 w-10 rounded-xl bg-secondary/10 flex items-center justify-center shrink-0">
                     <RotateCcw className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-sm text-foreground truncate">{order.vendorName || "Your order"}</p>
+                    <p className="font-extrabold text-sm text-foreground truncate">{order.vendorName || "Your order"}</p>
                     <p className="text-xs text-muted-foreground">
                       {(order.items?.length ?? order.itemCount ?? 0)} items • {formatKES(order.total)}
                     </p>
                   </div>
-                  <span className="text-xs font-semibold text-primary inline-flex items-center gap-0.5 shrink-0">
+                  <span className="text-xs font-bold text-primary inline-flex items-center gap-0.5 shrink-0 hover:underline">
                     Reorder <ChevronRight className="h-3.5 w-3.5" />
                   </span>
                 </div>
@@ -221,7 +264,40 @@ export default function Home() {
         </div>
       )}
 
-      <div className="pb-10" />
+      {/* Popular Restaurants / Stores */}
+      <div className="max-w-4xl mx-auto px-4 pb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-extrabold text-foreground flex items-center gap-1.5">
+            <Flame className="h-5 w-5 text-amber-500" /> Popular Near You
+          </h2>
+          <Link href="/shop" className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-0.5">
+            See all <ChevronRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+
+        {loadingPopular ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="rounded-2xl bg-white border border-secondary/10 overflow-hidden animate-pulse">
+                <div className="h-44 bg-muted" />
+                <div className="p-4 space-y-3">
+                  <div className="h-5 bg-muted rounded w-2/3" />
+                  <div className="h-4 bg-muted rounded w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : popular.length === 0 ? (
+          <div className="rounded-2xl bg-white border border-dashed border-secondary/20 p-8 text-center shadow-xs">
+            <Store className="mx-auto h-10 w-10 text-muted-foreground opacity-30 mb-2" />
+            <p className="text-sm text-muted-foreground font-medium">No stores available right now.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {popular.map((v) => <RestaurantCard key={v.id} vendor={v} />)}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ShoppingBag, Loader2, ChevronRight, Clock, RotateCcw } from "lucide-react";
 import { orderStatusLabel, ORDER_STATUS_COLORS } from "@/lib/order-status";
+import { formatKES } from "@/lib/format";
 
 export default function Orders() {
   const { data: orders, isLoading } = useListOrders({ query: { enabled: true, refetchInterval: 8000 } });
@@ -54,70 +55,94 @@ export default function Orders() {
   };
 
   return (
-    <div className="container max-w-3xl mx-auto py-8 px-4 space-y-6 animate-in fade-in duration-500">
-      <h1 className="text-3xl font-extrabold tracking-tight text-primary">My Orders</h1>
+    <div className="min-h-screen bg-muted/20 pb-16">
+      {/* Header Banner */}
+      <div className="bg-background border-b border-secondary/5 py-6 mb-8">
+        <div className="container max-w-2xl mx-auto px-4 flex items-center gap-3">
+          <div className="p-3 rounded-2xl bg-secondary/10 text-primary">
+            <ShoppingBag className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-extrabold text-foreground tracking-tight">My Orders</h1>
+            <p className="text-muted-foreground text-xs font-semibold uppercase mt-0.5">Your order delivery history</p>
+          </div>
+        </div>
+      </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      ) : !orders?.length ? (
-        <Card className="text-center py-16 border-dashed bg-white border-secondary/40">
-          <ShoppingBag className="mx-auto h-16 w-16 opacity-20 mb-4" />
-          <h2 className="text-xl font-semibold mb-2">No orders yet</h2>
-          <p className="text-muted-foreground mb-6">Your order history will appear here.</p>
-          <Button asChild><Link href="/shop">Start Shopping</Link></Button>
-        </Card>
-      ) : (
-        <div className="flex flex-col gap-4">
-          {orders.map((order: any) => (
-            <Link key={order.id} href={`/orders/${order.id}`}>
-              <Card className="cursor-pointer hover:shadow-md transition-all bg-white border-secondary/40">
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-xl bg-secondary/30 flex items-center justify-center text-primary shrink-0">
-                    <ShoppingBag className="h-6 w-6" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold">Order {order.orderCode || `#${order.id}`}</p>
-                    <p className="text-sm text-muted-foreground truncate">
-                      {order.vendorName || "Your order"} • {order.itemCount || 0} items
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Clock className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">
-                        {order.createdAt ? new Date(order.createdAt).toLocaleDateString("en-UG", { day: "numeric", month: "short", year: "numeric" }) : "—"}
-                      </span>
+      <div className="container max-w-2xl mx-auto px-4">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : !orders?.length ? (
+          <Card className="text-center py-16 border border-dashed border-secondary/20 bg-white rounded-3xl p-6 shadow-xs max-w-md mx-auto space-y-4">
+            <ShoppingBag className="mx-auto h-16 w-16 opacity-25 text-muted-foreground" />
+            <div>
+              <h2 className="text-xl font-extrabold text-foreground mb-1">No orders yet</h2>
+              <p className="text-muted-foreground text-sm">Your order history will appear here once you place your first order.</p>
+            </div>
+            <Button asChild className="h-11 rounded-xl font-bold px-6 shadow-xs">
+              <Link href="/shop">Start Shopping</Link>
+            </Button>
+          </Card>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {orders.map((order: any) => (
+              <Link key={order.id} href={`/orders/${order.id}`}>
+                <Card className="group cursor-pointer hover:shadow-md hover:border-primary/20 transition-all duration-200 bg-white border border-secondary/10 rounded-2xl shadow-xs overflow-hidden">
+                  <CardContent className="p-4 flex items-center gap-4">
+                    {/* Icon */}
+                    <div className="h-12 w-12 rounded-xl bg-secondary/5 flex items-center justify-center text-primary shrink-0 border border-secondary/5">
+                      <ShoppingBag className="h-6 w-6" />
                     </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-2 shrink-0">
-                    <p className="font-bold">KES {Math.round(order.total || 0).toLocaleString()}</p>
-                    <Badge className={`text-xs border ${ORDER_STATUS_COLORS[order.status] || ""}`} variant="outline">
-                      {orderStatusLabel(order.status)}
-                    </Badge>
-                    {["delivered", "cancelled", "rejected"].includes(order.status) && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs"
-                        onClick={(e) => handleReorder(e, order.id)}
-                        disabled={reorderingId === order.id}
-                      >
-                        {reorderingId === order.id ? (
-                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                        ) : (
-                          <RotateCcw className="h-3 w-3 mr-1" />
-                        )}
-                        Reorder
-                      </Button>
-                    )}
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      )}
+
+                    {/* Details */}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-extrabold text-sm text-foreground group-hover:text-primary transition-colors truncate">
+                        Order {order.orderCode || `#${order.id}`}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate font-medium">
+                        {order.vendorName || "Your order"} • {order.itemCount || 0} items
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-2 text-muted-foreground font-semibold text-[10px]">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span>
+                          {order.createdAt ? new Date(order.createdAt).toLocaleDateString("en-UG", { day: "numeric", month: "short", year: "numeric" }) : "—"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Meta/Price/Status */}
+                    <div className="flex flex-col items-end gap-2.5 shrink-0">
+                      <p className="font-extrabold text-sm text-foreground">{formatKES(order.total || 0)}</p>
+                      <Badge className={`text-[10px] font-bold border py-0.5 px-2.5 rounded-full ${ORDER_STATUS_COLORS[order.status] || ""}`} variant="outline">
+                        {orderStatusLabel(order.status)}
+                      </Badge>
+                      {["delivered", "cancelled", "rejected"].includes(order.status) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-[10px] font-bold border-secondary/20 shadow-2xs rounded-lg px-2.5 cursor-pointer hover:bg-secondary/5"
+                          onClick={(e) => handleReorder(e, order.id)}
+                          disabled={reorderingId === order.id}
+                        >
+                          {reorderingId === order.id ? (
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin text-primary" />
+                          ) : (
+                            <RotateCcw className="h-3 w-3 mr-1" />
+                          )}
+                          Reorder
+                        </Button>
+                      )}
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
