@@ -38,7 +38,7 @@ export default function BottomNav() {
             <button
               aria-label={label}
               className={`relative flex h-11 w-11 items-center justify-center rounded-full transition-colors ${
-                active ? "bg-primary text-primary-foreground" : "text-white hover:bg-white/10"
+                active ? "bg-brand-yellow text-brand-yellow-foreground" : "text-white hover:bg-white/10"
               }`}
             >
               <Icon className={`h-5 w-5 ${active ? "stroke-[2.5]" : "stroke-[1.75]"}`} />

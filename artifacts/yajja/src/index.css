@@ -56,6 +56,9 @@
   --color-sidebar-accent-border: var(--sidebar-accent-border);
   --color-sidebar-ring: hsl(var(--sidebar-ring));
 
+  --color-brand-yellow: hsl(var(--brand-yellow));
+  --color-brand-yellow-foreground: hsl(var(--brand-yellow-foreground));
+
   --font-sans: var(--app-font-sans);
   --font-serif: var(--app-font-serif);
   --font-mono: var(--app-font-mono);
@@ -99,8 +102,11 @@
   --popover-foreground: 210 40% 15%;
   --popover-border: 210 20% 90%;
 
-  --primary: 48 100% 67%;
-  --primary-foreground: 0 0% 10%;
+  --primary: 226 42% 18%;
+  --primary-foreground: 0 0% 100%;
+
+  --brand-yellow: 48 100% 67%;
+  --brand-yellow-foreground: 226 42% 18%;
 
   --secondary: 248 100% 34%;
   --secondary-foreground: 0 0% 100%;
@@ -187,8 +193,11 @@
   --popover-foreground: 0 0% 98%;
   --popover-border: 223 20% 20%;
 
-  --primary: 48 100% 67%;
-  --primary-foreground: 0 0% 10%;
+  --primary: 248 90% 75%;
+  --primary-foreground: 223 30% 10%;
+
+  --brand-yellow: 48 100% 67%;
+  --brand-yellow-foreground: 0 0% 10%;
 
   --secondary: 248 90% 60%;
   --secondary-foreground: 0 0% 100%;
