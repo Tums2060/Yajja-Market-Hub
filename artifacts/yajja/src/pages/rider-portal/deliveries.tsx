@@ -12,7 +12,7 @@ export default function RiderDeliveries() {
   const [, setLocation] = useLocation();
   const { data: orders, isLoading } = useListRiderOrders(
     { status: "delivered" } as any,
-    { query: { enabled: true, refetchInterval: 15000 } }
+    { query: { enabled: true, refetchInterval: 15000 } as any }
   );
 
   const list = (orders as any[]) || [];

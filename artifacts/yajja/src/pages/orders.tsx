@@ -15,7 +15,7 @@ import { orderStatusLabel, ORDER_STATUS_COLORS } from "@/lib/order-status";
 import { formatKES } from "@/lib/format";
 
 export default function Orders() {
-  const { data: orders, isLoading } = useListOrders({ query: { enabled: true, refetchInterval: 8000 } });
+  const { data: orders, isLoading } = useListOrders(undefined, { query: { enabled: true, refetchInterval: 8000 } as any });
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();

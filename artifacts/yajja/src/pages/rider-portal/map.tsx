@@ -13,7 +13,7 @@ export default function RiderMap() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  const { data: orders } = useListRiderOrders({ query: { enabled: true } });
+  const { data: orders } = useListRiderOrders(undefined, { query: { enabled: true } as any });
   const activeOrders = (orders as any[])?.filter(o => o.status === "picked_up") || [];
 
   const updateLocation = useUpdateRiderLocation();

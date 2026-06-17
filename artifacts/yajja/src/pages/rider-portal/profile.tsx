@@ -11,7 +11,7 @@ import { ArrowLeft, Bike, User, Phone, Mail, MapPin } from "lucide-react";
 export default function RiderProfile() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
-  const { data: riderProfile } = useGetRiderProfile({ query: { enabled: true } });
+  const { data: riderProfile } = useGetRiderProfile({ query: { enabled: true } as any });
 
   return (
     <div className="container max-w-xl mx-auto py-8 px-4 space-y-6 animate-in fade-in duration-500">

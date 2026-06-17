@@ -25,16 +25,16 @@ export default function VendorDetail() {
   const id = parseInt(vendorId || "0", 10);
 
   const { data: vendor, isLoading: vendorLoading } = useGetVendor(id, {
-    query: { enabled: !!id },
+    query: { enabled: !!id } as any,
   });
 
   const { data: products, isLoading: productsLoading } = useListProducts(
     { vendorId: id },
-    { query: { enabled: !!id } }
+    { query: { enabled: !!id } as any }
   );
 
   const { data: foodCategories } = useListFoodCategories(id, {
-    query: { enabled: !!id },
+    query: { enabled: !!id } as any,
   });
 
   const { data: cartData } = useGetCart();

@@ -98,7 +98,7 @@ export default function VendorProducts() {
   );
 
   const { data: foodCategories } = useListFoodCategories(vendorId as number, {
-    query: { enabled: !!vendorId },
+    query: { enabled: !!vendorId } as any,
   });
   const categoryList = (foodCategories as any[]) || [];
 

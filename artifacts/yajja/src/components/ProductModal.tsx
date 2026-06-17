@@ -38,6 +38,9 @@ type Props = {
   }) => void;
   isSubmitting?: boolean;
   addons?: Addon[];
+  initialQuantity?: number;
+  initialInstructions?: string;
+  initialSelectedAddonIds?: string[];
 };
 
 const DEFAULT_ADDONS: Addon[] = [
@@ -47,6 +50,8 @@ const DEFAULT_ADDONS: Addon[] = [
   { id: "spicy", label: "Make it spicy" },
 ];
 
+const EMPTY_ARRAY: string[] = [];
+
 export function ProductModal({
   product,
   open,
@@ -54,18 +59,24 @@ export function ProductModal({
   onConfirm,
   isSubmitting,
   addons = DEFAULT_ADDONS,
+  initialQuantity = 1,
+  initialInstructions = "",
+  initialSelectedAddonIds = EMPTY_ARRAY,
 }: Props) {
   const [quantity, setQuantity] = useState(1);
   const [selectedAddonIds, setSelectedAddonIds] = useState<Set<string>>(new Set());
   const [instructions, setInstructions] = useState("");
 
+  const addonIdsSerialized = (initialSelectedAddonIds || []).join(",");
+
   useEffect(() => {
     if (open) {
-      setQuantity(1);
-      setSelectedAddonIds(new Set());
-      setInstructions("");
+      setQuantity(initialQuantity);
+      setSelectedAddonIds(new Set(initialSelectedAddonIds));
+      setInstructions(initialInstructions);
     }
-  }, [open, product?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, product?.id, initialQuantity, initialInstructions, addonIdsSerialized]);
 
   if (!product) return null;
 

@@ -20,7 +20,7 @@ export default function VendorPortal() {
   const { user, logout } = useAuth();
   const [, setLocation] = useLocation();
 
-  const { data: orders } = useListVendorOrders({ status: "pending" }, { query: { enabled: true } });
+  const { data: orders } = useListVendorOrders({ status: "pending" }, { query: { enabled: true } as any });
   const pendingOrders = (orders || []).slice(0, 5);
 
   const handleLogout = () => { logout(); setLocation("/vendor/login"); };

@@ -80,7 +80,7 @@ export default function CategoryPage() {
 
   const { data: vendors, isLoading } = useListVendors(
     { category: categoryId as any },
-    { query: { enabled: true } }
+    { query: { enabled: true } as any }
   );
 
   const filtered = (vendors as any[])?.filter((v: any) => {

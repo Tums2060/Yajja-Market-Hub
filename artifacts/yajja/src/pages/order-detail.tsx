@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useParams, useLocation } from "wouter";
-import { useGetOrder } from "@workspace/api-client-react";
+import { useGetOrder, useAddToCart, getGetCartQueryKey } from "@workspace/api-client-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useRealtimeOrders } from "@/hooks/use-realtime-orders";
@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Loader2, MapPin, Package, Check, Bike, AlertCircle } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, Package, Check, Bike, AlertCircle, RotateCcw, ReceiptText } from "lucide-react";
 import {
   ORDER_STATUS_COLORS,
   orderStatusLabel,
@@ -26,7 +26,33 @@ export default function OrderDetail() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [cancelling, setCancelling] = useState(false);
-  const { data: order, isLoading } = useGetOrder(id, { query: { enabled: !!id, refetchInterval: 8000 } });
+  const [reordering, setReordering] = useState(false);
+  const addToCart = useAddToCart();
+  const { data: order, isLoading } = useGetOrder(id, { query: { enabled: !!id, refetchInterval: 8000 } as any });
+
+  const handleReorder = async () => {
+    setReordering(true);
+    try {
+      const items = (order?.items || []) as any[];
+      if (!items.length) throw new Error("No items to reorder");
+      for (const item of items) {
+        await addToCart.mutateAsync({
+          data: {
+            productId: item.productId,
+            quantity: item.quantity || 1,
+            notes: item.notes || undefined,
+          },
+        } as any);
+      }
+      queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() });
+      toast({ title: "Added to cart", description: "All items from this order are back in the cart." });
+      setLocation("/cart");
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Could not reorder", description: err.message });
+    } finally {
+      setReordering(false);
+    }
+  };
 
   const handleCancel = async () => {
     setCancelling(true);
@@ -108,6 +134,114 @@ export default function OrderDetail() {
   const status = (order as any).status as string;
   const currentStep = orderStepIndex(status);
   const isTerminal = ["cancelled", "rejected"].includes(status);
+  const isCompleted = ["delivered", "cancelled", "rejected"].includes(status);
+
+  if (isCompleted) {
+    return (
+      <div className="min-h-screen bg-muted/20 pb-16">
+        {/* Header Banner */}
+        <div className="bg-background border-b border-secondary/5 py-6 mb-8">
+          <div className="container max-w-2xl mx-auto px-4 flex items-center gap-3">
+            <Button variant="outline" size="icon" className="rounded-full border-secondary/20 h-10 w-10 bg-white" onClick={() => setLocation("/orders")}>
+              <ArrowLeft className="h-5 w-5 text-foreground" />
+            </Button>
+            <div>
+              <h1 className="text-xl font-extrabold text-foreground tracking-tight">Order {orderCode || `#${order.id}`}</h1>
+              <p className="text-muted-foreground text-xs font-semibold mt-0.5">
+                {(order as any).createdAt ? new Date((order as any).createdAt).toLocaleString("en-UG") : "—"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="container max-w-2xl mx-auto px-4 space-y-6">
+          <Card className="bg-white border border-secondary/10 rounded-2xl shadow-xs overflow-hidden">
+            <CardHeader className="bg-background border-b border-secondary/5 py-4 px-6">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-extrabold text-foreground flex items-center gap-2">
+                  <ReceiptText className="h-5 w-5 text-primary" /> Receipt Summary
+                </CardTitle>
+                <Badge className={`text-[10px] font-bold border rounded-full py-0.5 px-2.5 ${ORDER_STATUS_COLORS[status] || ""}`} variant="outline">
+                  {orderStatusLabel(status)}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+              {/* Itemized List */}
+              <div className="divide-y divide-secondary/5">
+                {itemsByVendor.map(([vendorName, items]) => (
+                  <div key={vendorName} className="py-4 first:pt-0 space-y-3">
+                    <p className="text-xs font-extrabold text-primary uppercase tracking-wider">{vendorName}</p>
+                    {items.map((item: any) => (
+                      <div key={item.id} className="flex items-center gap-3">
+                        <div className="h-12 w-12 bg-secondary/5 rounded-xl shrink-0 overflow-hidden border border-secondary/5">
+                          {item.product?.imageUrl
+                            ? <img src={item.product.imageUrl} alt={item.product.name} className="h-full w-full object-cover" />
+                            : <div className="h-full w-full flex items-center justify-center text-primary/20 font-bold bg-primary/5 text-lg">{item.productName?.charAt(0) || "P"}</div>
+                          }
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-sm text-foreground truncate">{item.productName || item.product?.name}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">Quantity: x{item.quantity}</p>
+                          {item.notes && (
+                            <span className="inline-block text-[10px] text-primary bg-secondary/10 px-2 py-0.5 rounded-full font-bold mt-1 max-w-full truncate">Note: {item.notes}</span>
+                          )}
+                        </div>
+                        <p className="font-extrabold text-sm text-foreground shrink-0">KES {Math.round((item.product?.price || item.unitPrice || 0) * item.quantity).toLocaleString()}</p>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+
+              <Separator className="bg-secondary/5" />
+
+              {/* Totals */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs font-bold text-muted-foreground">
+                  <span>Subtotal</span>
+                  <span className="text-foreground">KES {Math.round((order as any).subtotal || 0).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-xs font-bold text-muted-foreground">
+                  <span>Delivery fee</span>
+                  <span className="text-foreground">KES {Math.round((order as any).deliveryFee || 0).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between font-extrabold text-base text-foreground pt-1 border-t border-secondary/5">
+                  <span>Total Paid</span>
+                  <span>KES {Math.round((order as any).total || 0).toLocaleString()}</span>
+                </div>
+              </div>
+
+              <Separator className="bg-secondary/5" />
+
+              {/* Delivery Address */}
+              <div className="space-y-1.5">
+                <p className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">Delivery Address</p>
+                <div className="flex items-start gap-2 text-sm text-foreground font-semibold">
+                  <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <span>{(order as any).deliveryAddress}</span>
+                </div>
+              </div>
+
+              {/* Reorder Button */}
+              <Button
+                onClick={handleReorder}
+                disabled={reordering}
+                className="w-full h-12 text-sm font-bold rounded-xl shadow-xs mt-4 flex items-center justify-center gap-2"
+              >
+                {reordering ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RotateCcw className="h-4 w-4" />
+                )}
+                Reorder Items
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-muted/20 pb-16">

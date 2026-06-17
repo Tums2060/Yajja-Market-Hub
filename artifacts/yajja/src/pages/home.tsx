@@ -8,8 +8,63 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { useListPopularVendors, useListOrders } from "@workspace/api-client-react";
+import { useListPopularVendors, useListOrders, useAddToCart, getGetCartQueryKey } from "@workspace/api-client-react";
 import { formatKES, KENYA } from "@/lib/format";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { ProductModal } from "@/components/ProductModal";
+
+const CATEGORY_STYLES: Record<string, {
+  bg: string;
+  iconBg: string;
+  iconColor: string;
+  textColor: string;
+  descColor: string;
+  ctaBg: string;
+  ctaText: string;
+  ctaLabel: string;
+}> = {
+  food: {
+    bg: "bg-gradient-to-br from-[#1800AC] to-[#3F2BBE] text-white",
+    iconBg: "bg-white/10 backdrop-blur-md",
+    iconColor: "text-[#FFDE59]",
+    textColor: "text-white font-extrabold",
+    descColor: "text-white/80",
+    ctaBg: "bg-[#FFDE59] hover:bg-[#FFDE59]/90 text-[#1800AC]",
+    ctaText: "text-[#1800AC] font-black",
+    ctaLabel: "Order Food"
+  },
+  liquor: {
+    bg: "bg-gradient-to-br from-[#FFDE59] to-[#E2C035] text-[#1800AC]",
+    iconBg: "bg-[#1800AC]/10",
+    iconColor: "text-[#1800AC]",
+    textColor: "text-[#1800AC] font-extrabold",
+    descColor: "text-[#1800AC]/80",
+    ctaBg: "bg-[#1800AC] hover:bg-[#1800AC]/90 text-white",
+    ctaText: "text-white font-black",
+    ctaLabel: "Shop Drinks"
+  },
+  pharmacy: {
+    bg: "bg-gradient-to-br from-[#0F766E] to-[#115E59] text-white",
+    iconBg: "bg-white/10 backdrop-blur-md",
+    iconColor: "text-[#FFDE59]",
+    textColor: "text-white font-extrabold",
+    descColor: "text-teal-100/80",
+    ctaBg: "bg-[#FFDE59] hover:bg-[#FFDE59]/90 text-[#0F766E]",
+    ctaText: "text-[#0F766E] font-black",
+    ctaLabel: "Get Medicine"
+  },
+  household: {
+    bg: "bg-gradient-to-br from-[#4F46E5] to-[#312E81] text-white",
+    iconBg: "bg-white/10 backdrop-blur-md",
+    iconColor: "text-[#FFDE59]",
+    textColor: "text-white font-extrabold",
+    descColor: "text-indigo-100/80",
+    ctaBg: "bg-[#FFDE59] hover:bg-[#FFDE59]/90 text-[#312E81]",
+    ctaText: "text-[#312E81] font-black",
+    ctaLabel: "Shop Essentials"
+  }
+};
 
 const CATEGORIES = [
   { id: "food", label: "Yajja Food & Drinks", Icon: UtensilsCrossed, href: "/category/food", desc: "Local & fast foods" },
@@ -118,6 +173,16 @@ export default function Home() {
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
 
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const addToCartMutation = useAddToCart();
+
+  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [initialQuantity, setInitialQuantity] = useState(1);
+  const [initialInstructions, setInitialInstructions] = useState("");
+  const [initialAddonIds, setInitialAddonIds] = useState<string[]>([]);
+
   const { data: popularVendors, isLoading: loadingPopular } = useListPopularVendors(
     { limit: 6 } as any
   );
@@ -126,6 +191,79 @@ export default function Home() {
   const recentOrders = [...((orders as any[]) || [])]
     .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime())
     .slice(0, 3);
+
+  const handleReorderClick = (order: any) => {
+    const firstItem = order.items?.[0];
+    if (!firstItem) return;
+
+    const product = firstItem.product || {
+      id: firstItem.productId,
+      name: firstItem.productName,
+      price: firstItem.unitPrice,
+      isAvailable: true,
+    };
+
+    let addonIds: string[] = [];
+    let instructions = "";
+    if (firstItem.notes) {
+      const parts = firstItem.notes.split(" • ");
+      const possibleAddonsPart = parts[0] || "";
+      const possibleInstructionsPart = parts[1] || "";
+
+      const DEFAULT_ADDONS_LIST = [
+        { id: "extra-cheese", label: "Extra cheese" },
+        { id: "extra-sauce", label: "Extra sauce" },
+        { id: "no-onions", label: "No onions" },
+        { id: "spicy", label: "Make it spicy" },
+      ];
+
+      const labels = possibleAddonsPart.split(", ").map((s: string) => s.trim().toLowerCase());
+      const matched = DEFAULT_ADDONS_LIST.filter((a) => labels.includes(a.label.toLowerCase())).map((a) => a.id);
+
+      if (matched.length > 0) {
+        addonIds = matched;
+        instructions = possibleInstructionsPart;
+      } else {
+        instructions = firstItem.notes;
+      }
+    }
+
+    setSelectedProduct(product);
+    setInitialQuantity(firstItem.quantity || 1);
+    setInitialInstructions(instructions);
+    setInitialAddonIds(addonIds);
+    setModalOpen(true);
+  };
+
+  const handleConfirmAddToCart = ({
+    productId,
+    quantity,
+    addons,
+    instructions,
+  }: {
+    productId: number;
+    quantity: number;
+    addons: { id: string; label: string }[];
+    instructions: string;
+  }) => {
+    const prefs = addons.map((a) => a.label).join(", ");
+    const trimmedInstructions = instructions.trim();
+    const notes = [prefs, trimmedInstructions].filter(Boolean).join(" • ") || undefined;
+
+    addToCartMutation.mutate(
+      { data: { productId, quantity, notes } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() });
+          toast({ title: "Added to cart", description: "Item added to your cart successfully." });
+          setModalOpen(false);
+        },
+        onError: () => {
+          toast({ variant: "destructive", title: "Failed to add to cart" });
+        },
+      }
+    );
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -170,7 +308,7 @@ export default function Home() {
           {/* Search Header */}
           <div className="max-w-2xl">
             <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-4">
-              Hey {user?.name?.split(" ")[0]}! <br />
+              Hello Boss? <br />
               <span className="text-muted-foreground font-medium text-2xl">What are you craving today?</span>
             </h1>
             <form onSubmit={handleSearch} className="relative">
@@ -191,7 +329,7 @@ export default function Home() {
                 <Sparkles className="h-3 w-3 text-amber-400" /> Promo Code: YAJJAFREE
               </span>
               <h3 className="text-2xl font-extrabold leading-tight">Free Delivery on your first order!</h3>
-              <p className="text-xs text-white/80">Satisfy your cravings from Yajja's best local food, drinks, and daily essentials.</p>
+              <p className="text-xs text-white/80">Satisfy your cravings from Yajja's best local food and drinks.</p>
               <Button
                 onClick={() => setLocation("/shop")}
                 size="sm"
@@ -213,20 +351,26 @@ export default function Home() {
         <h2 className="text-lg font-extrabold text-foreground mb-4 flex items-center gap-1.5">
           <Compass className="h-5 w-5 text-primary" /> What are you looking for?
         </h2>
-        <div className="flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4 py-2 sm:mx-0 sm:px-0 sm:py-0 sm:grid sm:grid-cols-4">
-          {CATEGORIES.map((cat) => (
-            <Link key={cat.id} href={cat.href}>
-              <div className="flex items-center gap-3 bg-white border border-secondary/15 hover:border-primary/30 rounded-2xl p-3 shadow-2xs hover:shadow-sm active:scale-95 transition-all shrink-0 w-52 sm:w-auto cursor-pointer">
-                <div className="h-10 w-10 rounded-xl bg-secondary/10 flex items-center justify-center text-primary shrink-0">
-                  <cat.Icon className="h-5 w-5" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {CATEGORIES.map((cat) => {
+            const style = CATEGORY_STYLES[cat.id];
+            return (
+              <Link key={cat.id} href={cat.href}>
+                <div className={`w-full aspect-[3/4] flex flex-col items-center justify-between p-5 rounded-3xl cursor-pointer hover:scale-[1.03] active:scale-[0.97] transition-all duration-300 shadow-md border border-white/10 ${style.bg}`}>
+                  <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 ${style.iconBg} ${style.iconColor}`}>
+                    <cat.Icon className="h-6 w-6" />
+                  </div>
+                  <div className="flex-1 flex flex-col justify-center my-3 min-w-0">
+                    <p className={`text-sm font-extrabold leading-snug tracking-tight text-center ${style.textColor}`}>{cat.label}</p>
+                    <p className={`text-[10px] mt-1 text-center line-clamp-2 leading-normal px-2 ${style.descColor}`}>{cat.desc}</p>
+                  </div>
+                  <div className={`w-full py-2 rounded-xl text-center text-xs font-black shadow-xs tracking-wide uppercase ${style.ctaBg} ${style.ctaText}`}>
+                    {style.ctaLabel}
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-extrabold text-foreground leading-tight">{cat.label}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">{cat.desc}</p>
-                </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       </div>
 
@@ -242,27 +386,46 @@ export default function Home() {
             </Link>
           </div>
           <div className="flex flex-col gap-3">
-            {recentOrders.map((order: any) => (
-              <Link key={order.id} href={`/orders/${order.id}`}>
-                <div className="rounded-2xl bg-white border border-secondary/10 p-4 flex items-center gap-3 hover:border-primary/25 hover:shadow-xs transition-all cursor-pointer">
+            {recentOrders.map((order: any) => {
+              const displayLabel = order.items && order.items.length > 0
+                ? order.items.map((it: any) => `${it.productName} x${it.quantity}`).join(", ")
+                : "Your order";
+              return (
+                <div
+                  key={order.id}
+                  onClick={() => handleReorderClick(order)}
+                  className="rounded-2xl bg-white border border-secondary/10 p-4 flex items-center gap-3 hover:border-primary/25 hover:shadow-xs transition-all cursor-pointer"
+                >
                   <div className="h-10 w-10 rounded-xl bg-secondary/10 flex items-center justify-center shrink-0">
                     <RotateCcw className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-extrabold text-sm text-foreground truncate">{order.vendorName || "Your order"}</p>
+                    <p className="font-extrabold text-sm text-foreground truncate">{displayLabel}</p>
                     <p className="text-xs text-muted-foreground">
-                      {(order.items?.length ?? order.itemCount ?? 0)} items • {formatKES(order.total)}
+                      {order.vendorName || "Store"} • {formatKES(order.total)}
                     </p>
                   </div>
                   <span className="text-xs font-bold text-primary inline-flex items-center gap-0.5 shrink-0 hover:underline">
                     Reorder <ChevronRight className="h-3.5 w-3.5" />
                   </span>
                 </div>
-              </Link>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
+
+      {/* Product Customization Modal for Reorder */}
+      <ProductModal
+        open={modalOpen}
+        product={selectedProduct}
+        onClose={() => setModalOpen(false)}
+        onConfirm={handleConfirmAddToCart}
+        isSubmitting={addToCartMutation.isPending}
+        initialQuantity={initialQuantity}
+        initialInstructions={initialInstructions}
+        initialSelectedAddonIds={initialAddonIds}
+      />
 
       {/* Popular Restaurants / Stores */}
       <div className="max-w-4xl mx-auto px-4 pb-8">

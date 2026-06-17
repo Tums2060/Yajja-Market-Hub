@@ -57,7 +57,7 @@ export default function Navbar() {
     else setLocation("/login");
   };
 
-  const { data: cart } = useGetCart({ query: { enabled: !!user && user.role === "customer" } });
+  const { data: cart } = useGetCart({ query: { enabled: !!user && user.role === "customer" } as any });
   const cartCount = (cart as any)?.items?.length || 0;
 
   const navLinks = !user ? [] :
