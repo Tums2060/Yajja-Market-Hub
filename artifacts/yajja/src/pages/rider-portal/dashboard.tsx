@@ -32,6 +32,8 @@ import {
   AlertTriangle,
   Play,
   RotateCcw,
+  DollarSign,
+  User,
 } from "lucide-react";
 
 const statusColor: Record<string, string> = {
@@ -307,6 +309,31 @@ export default function RiderPortal() {
             }}
           >
             <LogOut className="h-4 w-4" /> Sign Out
+          </Button>
+        </div>
+
+        {/* Quick Navigation Panel */}
+        <div className="grid grid-cols-3 gap-3">
+          <Button
+            onClick={() => setLocation("/rider-portal")}
+            className="h-12 text-xs font-extrabold rounded-2xl flex items-center justify-center gap-1.5 shadow-sm border border-slate-100 bg-white text-slate-700 hover:bg-slate-50"
+            variant="ghost"
+          >
+            <Bike className="h-4 w-4 text-[#1A2340]" /> Active Jobs
+          </Button>
+          <Button
+            onClick={() => setLocation("/rider-portal/earnings")}
+            className="h-12 text-xs font-extrabold rounded-2xl flex items-center justify-center gap-1.5 shadow-sm border border-slate-100 bg-white text-slate-700 hover:bg-slate-50"
+            variant="ghost"
+          >
+            <DollarSign className="h-4 w-4 text-[#1A2340]" /> My Earnings
+          </Button>
+          <Button
+            onClick={() => setLocation("/rider-portal/profile")}
+            className="h-12 text-xs font-extrabold rounded-2xl flex items-center justify-center gap-1.5 shadow-sm border border-slate-100 bg-white text-slate-700 hover:bg-slate-50"
+            variant="ghost"
+          >
+            <User className="h-4 w-4 text-[#1A2340]" /> Profile
           </Button>
         </div>
 

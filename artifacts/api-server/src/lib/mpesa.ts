@@ -10,6 +10,9 @@ export const mpesaConfig = {
   environment: (env.MPESA_ENV || "sandbox").toLowerCase(),
   callbackUrl: env.MPESA_CALLBACK_URL || "",
   commissionRate: Number(env.MPESA_COMMISSION_RATE || "0.15"),
+  deliveryFee: Number(env.DELIVERY_FEE || "40"),
+  baseUrl: env.MPESA_BASE_URL || "",
+  transactionType: env.MPESA_TRANSACTION_TYPE || "CustomerPayBillOnline",
 };
 
 /**
@@ -26,7 +29,8 @@ export function isMpesaConfigured(): boolean {
   );
 }
 
-function baseUrl(): string {
+export function getMpesaBaseUrl(): string {
+  if (mpesaConfig.baseUrl) return mpesaConfig.baseUrl;
   return mpesaConfig.environment === "production"
     ? "https://api.safaricom.co.ke"
     : "https://sandbox.safaricom.co.ke";
@@ -81,7 +85,7 @@ export async function getAccessToken(): Promise<string> {
     `${mpesaConfig.consumerKey}:${mpesaConfig.consumerSecret}`,
   ).toString("base64");
   const res = await fetch(
-    `${baseUrl()}/oauth/v1/generate?grant_type=client_credentials`,
+    `${getMpesaBaseUrl()}/oauth/v1/generate?grant_type=client_credentials`,
     { headers: { Authorization: `Basic ${auth}` } },
   );
   if (!res.ok) {
@@ -118,7 +122,7 @@ export async function stkPush(params: StkPushParams): Promise<StkPushResult> {
     BusinessShortCode: mpesaConfig.shortcode,
     Password: password,
     Timestamp: ts,
-    TransactionType: "CustomerPayBillOnline",
+    TransactionType: mpesaConfig.transactionType,
     Amount: Math.max(1, Math.round(params.amount)),
     PartyA: phone,
     PartyB: mpesaConfig.shortcode,
@@ -128,7 +132,7 @@ export async function stkPush(params: StkPushParams): Promise<StkPushResult> {
     TransactionDesc: params.description.slice(0, 13),
   };
 
-  const res = await fetch(`${baseUrl()}/mpesa/stkpush/v1/processrequest`, {
+  const res = await fetch(`${getMpesaBaseUrl()}/mpesa/stkpush/v1/processrequest`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,

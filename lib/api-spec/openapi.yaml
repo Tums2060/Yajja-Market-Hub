@@ -679,6 +679,27 @@ paths:
               schema:
                 $ref: "#/components/schemas/MockPaymentResult"
 
+  /orders/{orderId}/confirm-delivery:
+    post:
+      operationId: confirmDelivery
+      tags: [orders]
+      summary: Confirm order delivery (customer)
+      parameters:
+        - $ref: "#/components/parameters/orderId"
+      responses:
+        "200":
+          description: Delivery confirmed and rider payout initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  customerConfirmedAt:
+                    type: string
+                required: [message, customerConfirmedAt]
+
   /vendor-orders:
     get:
       operationId: listVendorOrders
@@ -1183,6 +1204,8 @@ components:
           type: number
         imageUrl:
           type: string
+        payoutMethod:
+          $ref: "#/components/schemas/PayoutMethod"
       required: [name, email, password, role]
 
     LoginBody:
@@ -1225,6 +1248,18 @@ components:
           type: string
       required: [id, name, email, role, createdAt]
 
+    PayoutMethod:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [till, paybill, pochi, send_money]
+        accountNumber:
+          type: string
+        paybillAccountRef:
+          type: string
+      required: [type, accountNumber]
+
     # ── Vendor ───────────────────────────────────────────────────────────────────
     Vendor:
       type: object
@@ -1263,6 +1298,8 @@ components:
           type: integer
         createdAt:
           type: string
+        payoutMethod:
+          $ref: "#/components/schemas/PayoutMethod"
       required: [id, userId, name, category, isOpen, createdAt]
 
     CreateVendorBody:
@@ -1282,6 +1319,8 @@ components:
           type: string
         minOrder:
           type: number
+        payoutMethod:
+          $ref: "#/components/schemas/PayoutMethod"
       required: [name, category]
 
     UpdateVendorBody:
@@ -1309,6 +1348,8 @@ components:
           type: number
         isOpen:
           type: boolean
+        payoutMethod:
+          $ref: "#/components/schemas/PayoutMethod"
 
     VendorStats:
       type: object
@@ -1501,6 +1542,8 @@ components:
           type: number
         itemCount:
           type: integer
+        deliveryFee:
+          type: number
         vendorGroups:
           type: array
           items:
@@ -1517,7 +1560,7 @@ components:
               subtotal:
                 type: number
             required: [vendorId, vendorName, items, subtotal]
-      required: [items, subtotal, itemCount, vendorGroups]
+      required: [items, subtotal, itemCount, deliveryFee, vendorGroups]
 
     GroupCartItem:
       type: object
@@ -1647,6 +1690,25 @@ components:
           type: string
         updatedAt:
           type: string
+        disbursementStatus:
+          type: string
+        disbursementReceipt:
+          type: string
+          nullable: true
+        disbursementError:
+          type: string
+          nullable: true
+        riderDisbursementStatus:
+          type: string
+        riderDisbursementReceipt:
+          type: string
+          nullable: true
+        riderDisbursementError:
+          type: string
+          nullable: true
+        customerConfirmedAt:
+          type: string
+          nullable: true
       required: [id, userId, vendorId, status, subtotal, deliveryFee, total, items, createdAt, updatedAt]
 
     CreateOrderBody:

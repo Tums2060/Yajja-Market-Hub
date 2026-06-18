@@ -29,6 +29,13 @@ export const RegisterBody = zod.object({
   latitude: zod.number().optional(),
   longitude: zod.number().optional(),
   imageUrl: zod.string().optional(),
+  payoutMethod: zod
+    .object({
+      type: zod.enum(["till", "paybill", "pochi", "send_money"]),
+      accountNumber: zod.string(),
+      paybillAccountRef: zod.string().optional(),
+    })
+    .optional(),
 });
 
 /**
@@ -134,6 +141,13 @@ export const ListVendorsResponseItem = zod.object({
   status: zod.string().optional(),
   orderCount: zod.number().optional(),
   createdAt: zod.string(),
+  payoutMethod: zod
+    .object({
+      type: zod.enum(["till", "paybill", "pochi", "send_money"]),
+      accountNumber: zod.string(),
+      paybillAccountRef: zod.string().optional(),
+    })
+    .optional(),
 });
 export const ListVendorsResponse = zod.array(ListVendorsResponseItem);
 
@@ -148,6 +162,13 @@ export const CreateVendorBody = zod.object({
   address: zod.string().optional(),
   deliveryTime: zod.string().optional(),
   minOrder: zod.number().optional(),
+  payoutMethod: zod
+    .object({
+      type: zod.enum(["till", "paybill", "pochi", "send_money"]),
+      accountNumber: zod.string(),
+      paybillAccountRef: zod.string().optional(),
+    })
+    .optional(),
 });
 
 /**
@@ -171,6 +192,13 @@ export const GetMyVendorResponse = zod.object({
   status: zod.string().optional(),
   orderCount: zod.number().optional(),
   createdAt: zod.string(),
+  payoutMethod: zod
+    .object({
+      type: zod.enum(["till", "paybill", "pochi", "send_money"]),
+      accountNumber: zod.string(),
+      paybillAccountRef: zod.string().optional(),
+    })
+    .optional(),
 });
 
 /**
@@ -188,6 +216,13 @@ export const UpdateMyVendorBody = zod.object({
   deliveryTime: zod.string().optional(),
   minOrder: zod.number().optional(),
   isOpen: zod.boolean().optional(),
+  payoutMethod: zod
+    .object({
+      type: zod.enum(["till", "paybill", "pochi", "send_money"]),
+      accountNumber: zod.string(),
+      paybillAccountRef: zod.string().optional(),
+    })
+    .optional(),
 });
 
 export const UpdateMyVendorResponse = zod.object({
@@ -208,6 +243,13 @@ export const UpdateMyVendorResponse = zod.object({
   status: zod.string().optional(),
   orderCount: zod.number().optional(),
   createdAt: zod.string(),
+  payoutMethod: zod
+    .object({
+      type: zod.enum(["till", "paybill", "pochi", "send_money"]),
+      accountNumber: zod.string(),
+      paybillAccountRef: zod.string().optional(),
+    })
+    .optional(),
 });
 
 /**
@@ -235,6 +277,13 @@ export const ListPopularVendorsResponseItem = zod.object({
   status: zod.string().optional(),
   orderCount: zod.number().optional(),
   createdAt: zod.string(),
+  payoutMethod: zod
+    .object({
+      type: zod.enum(["till", "paybill", "pochi", "send_money"]),
+      accountNumber: zod.string(),
+      paybillAccountRef: zod.string().optional(),
+    })
+    .optional(),
 });
 export const ListPopularVendorsResponse = zod.array(
   ListPopularVendorsResponseItem,
@@ -262,6 +311,13 @@ export const GetVendorResponse = zod.object({
   status: zod.string().optional(),
   orderCount: zod.number().optional(),
   createdAt: zod.string(),
+  payoutMethod: zod
+    .object({
+      type: zod.enum(["till", "paybill", "pochi", "send_money"]),
+      accountNumber: zod.string(),
+      paybillAccountRef: zod.string().optional(),
+    })
+    .optional(),
 });
 
 export const UpdateVendorParams = zod.object({
@@ -280,6 +336,13 @@ export const UpdateVendorBody = zod.object({
   deliveryTime: zod.string().optional(),
   minOrder: zod.number().optional(),
   isOpen: zod.boolean().optional(),
+  payoutMethod: zod
+    .object({
+      type: zod.enum(["till", "paybill", "pochi", "send_money"]),
+      accountNumber: zod.string(),
+      paybillAccountRef: zod.string().optional(),
+    })
+    .optional(),
 });
 
 export const UpdateVendorResponse = zod.object({
@@ -300,6 +363,13 @@ export const UpdateVendorResponse = zod.object({
   status: zod.string().optional(),
   orderCount: zod.number().optional(),
   createdAt: zod.string(),
+  payoutMethod: zod
+    .object({
+      type: zod.enum(["till", "paybill", "pochi", "send_money"]),
+      accountNumber: zod.string(),
+      paybillAccountRef: zod.string().optional(),
+    })
+    .optional(),
 });
 
 /**
@@ -489,6 +559,7 @@ export const GetCartResponse = zod.object({
   ),
   subtotal: zod.number(),
   itemCount: zod.number(),
+  deliveryFee: zod.number(),
   vendorGroups: zod.array(
     zod.object({
       vendorId: zod.number(),
@@ -746,6 +817,13 @@ export const ListOrdersResponseItem = zod.object({
   notes: zod.string().optional(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
+  disbursementStatus: zod.string().optional(),
+  disbursementReceipt: zod.string().nullish(),
+  disbursementError: zod.string().nullish(),
+  riderDisbursementStatus: zod.string().optional(),
+  riderDisbursementReceipt: zod.string().nullish(),
+  riderDisbursementError: zod.string().nullish(),
+  customerConfirmedAt: zod.string().nullish(),
 });
 export const ListOrdersResponse = zod.array(ListOrdersResponseItem);
 
@@ -798,6 +876,13 @@ export const GetOrderResponse = zod.object({
   notes: zod.string().optional(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
+  disbursementStatus: zod.string().optional(),
+  disbursementReceipt: zod.string().nullish(),
+  disbursementError: zod.string().nullish(),
+  riderDisbursementStatus: zod.string().optional(),
+  riderDisbursementReceipt: zod.string().nullish(),
+  riderDisbursementError: zod.string().nullish(),
+  customerConfirmedAt: zod.string().nullish(),
 });
 
 /**
@@ -858,6 +943,13 @@ export const UpdateOrderStatusResponse = zod.object({
   notes: zod.string().optional(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
+  disbursementStatus: zod.string().optional(),
+  disbursementReceipt: zod.string().nullish(),
+  disbursementError: zod.string().nullish(),
+  riderDisbursementStatus: zod.string().optional(),
+  riderDisbursementReceipt: zod.string().nullish(),
+  riderDisbursementError: zod.string().nullish(),
+  customerConfirmedAt: zod.string().nullish(),
 });
 
 /**
@@ -908,6 +1000,13 @@ export const AssignRiderResponse = zod.object({
   notes: zod.string().optional(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
+  disbursementStatus: zod.string().optional(),
+  disbursementReceipt: zod.string().nullish(),
+  disbursementError: zod.string().nullish(),
+  riderDisbursementStatus: zod.string().optional(),
+  riderDisbursementReceipt: zod.string().nullish(),
+  riderDisbursementError: zod.string().nullish(),
+  customerConfirmedAt: zod.string().nullish(),
 });
 
 /**
@@ -931,6 +1030,18 @@ export const MockPaymentConfirmResponse = zod.object({
     "cancelled",
     "rejected",
   ]),
+});
+
+/**
+ * @summary Confirm order delivery (customer)
+ */
+export const ConfirmDeliveryParams = zod.object({
+  orderId: zod.coerce.number(),
+});
+
+export const ConfirmDeliveryResponse = zod.object({
+  message: zod.string(),
+  customerConfirmedAt: zod.string(),
 });
 
 /**
@@ -989,6 +1100,13 @@ export const ListVendorOrdersResponseItem = zod.object({
   notes: zod.string().optional(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
+  disbursementStatus: zod.string().optional(),
+  disbursementReceipt: zod.string().nullish(),
+  disbursementError: zod.string().nullish(),
+  riderDisbursementStatus: zod.string().optional(),
+  riderDisbursementReceipt: zod.string().nullish(),
+  riderDisbursementError: zod.string().nullish(),
+  customerConfirmedAt: zod.string().nullish(),
 });
 export const ListVendorOrdersResponse = zod.array(ListVendorOrdersResponseItem);
 
@@ -1048,6 +1166,13 @@ export const ListRiderOrdersResponseItem = zod.object({
   notes: zod.string().optional(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
+  disbursementStatus: zod.string().optional(),
+  disbursementReceipt: zod.string().nullish(),
+  disbursementError: zod.string().nullish(),
+  riderDisbursementStatus: zod.string().optional(),
+  riderDisbursementReceipt: zod.string().nullish(),
+  riderDisbursementError: zod.string().nullish(),
+  customerConfirmedAt: zod.string().nullish(),
 });
 export const ListRiderOrdersResponse = zod.array(ListRiderOrdersResponseItem);
 
@@ -1107,6 +1232,13 @@ export const ListGroupOrdersResponseItem = zod.object({
         notes: zod.string().optional(),
         createdAt: zod.string(),
         updatedAt: zod.string(),
+        disbursementStatus: zod.string().optional(),
+        disbursementReceipt: zod.string().nullish(),
+        disbursementError: zod.string().nullish(),
+        riderDisbursementStatus: zod.string().optional(),
+        riderDisbursementReceipt: zod.string().nullish(),
+        riderDisbursementError: zod.string().nullish(),
+        customerConfirmedAt: zod.string().nullish(),
       }),
     )
     .optional(),
@@ -1462,6 +1594,13 @@ export const PickupOrderResponse = zod.object({
   notes: zod.string().optional(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
+  disbursementStatus: zod.string().optional(),
+  disbursementReceipt: zod.string().nullish(),
+  disbursementError: zod.string().nullish(),
+  riderDisbursementStatus: zod.string().optional(),
+  riderDisbursementReceipt: zod.string().nullish(),
+  riderDisbursementError: zod.string().nullish(),
+  customerConfirmedAt: zod.string().nullish(),
 });
 
 /**
@@ -1508,4 +1647,11 @@ export const DeliverOrderResponse = zod.object({
   notes: zod.string().optional(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
+  disbursementStatus: zod.string().optional(),
+  disbursementReceipt: zod.string().nullish(),
+  disbursementError: zod.string().nullish(),
+  riderDisbursementStatus: zod.string().optional(),
+  riderDisbursementReceipt: zod.string().nullish(),
+  riderDisbursementError: zod.string().nullish(),
+  customerConfirmedAt: zod.string().nullish(),
 });

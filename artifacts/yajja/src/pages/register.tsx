@@ -35,6 +35,9 @@ function makeSchema(role: AuthRole) {
     address: z.string().optional(),
     latitude: z.number().optional(),
     longitude: z.number().optional(),
+    payoutMethodType: z.enum(["till", "paybill", "pochi", "send_money"]).optional(),
+    payoutAccountNumber: z.string().optional(),
+    payoutPaybillAccountRef: z.string().optional(),
   };
 
   if (role === "vendor") {
@@ -42,11 +45,52 @@ function makeSchema(role: AuthRole) {
     base.category = z.enum(["food", "liquor", "pharmacy", "household"], {
       message: "Please choose a category",
     }) as any;
+    base.payoutMethodType = z.enum(["till", "paybill", "pochi", "send_money"], {
+      message: "Please choose a payout method",
+    }) as any;
+    base.payoutAccountNumber = z.string().min(1, "Payout account is required") as any;
   }
 
   return z.object(base).refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
     path: ["confirmPassword"],
+  }).superRefine((data, ctx) => {
+    if (role === "vendor") {
+      const type = data.payoutMethodType;
+      const num = data.payoutAccountNumber || "";
+      if (type === "till") {
+        if (!/^\d{6}$/.test(num)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Till number must be exactly 6 digits",
+            path: ["payoutAccountNumber"],
+          });
+        }
+      } else if (type === "paybill") {
+        if (!/^\d{5,6}$/.test(num)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Paybill business number must be 5 or 6 digits",
+            path: ["payoutAccountNumber"],
+          });
+        }
+        if (!data.payoutPaybillAccountRef || data.payoutPaybillAccountRef.trim() === "") {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Account reference is required for Paybill",
+            path: ["payoutPaybillAccountRef"],
+          });
+        }
+      } else if (type === "pochi" || type === "send_money") {
+        if (!/^(07|01)\d{8}$/.test(num)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Phone number must be a valid Kenyan mobile number starting with 07 or 01 (10 digits total)",
+            path: ["payoutAccountNumber"],
+          });
+        }
+      }
+    }
   });
 }
 
@@ -106,6 +150,7 @@ export function AuthRegister({ role }: { role: AuthRole }) {
       name: "", email: "", phone: "", password: "", confirmPassword: "",
       businessName: "", category: undefined, address: "",
       latitude: undefined, longitude: undefined,
+      payoutMethodType: undefined, payoutAccountNumber: "", payoutPaybillAccountRef: "",
     },
     mode: "onChange",
   });
@@ -117,6 +162,7 @@ export function AuthRegister({ role }: { role: AuthRole }) {
   const lat = form.watch("latitude");
   const lng = form.watch("longitude");
   const category = form.watch("category");
+  const payoutMethodType = form.watch("payoutMethodType");
   const passwordsMatch = pw.length > 0 && pw === cpw;
 
   function captureLocation() {
@@ -141,7 +187,7 @@ export function AuthRegister({ role }: { role: AuthRole }) {
   }
 
   function onSubmit(values: z.infer<ReturnType<typeof makeSchema>>) {
-    const { confirmPassword: _omit, businessName, category, address, latitude, longitude, ...rest } = values;
+    const { confirmPassword: _omit, businessName, category, address, latitude, longitude, payoutMethodType, payoutAccountNumber, payoutPaybillAccountRef, ...rest } = values;
     void _omit;
     const payload: any = { ...rest, role };
     if (isVendor) {
@@ -150,6 +196,13 @@ export function AuthRegister({ role }: { role: AuthRole }) {
       if (address) payload.address = address;
       if (typeof latitude === "number") payload.latitude = latitude;
       if (typeof longitude === "number") payload.longitude = longitude;
+      if (payoutMethodType && payoutAccountNumber) {
+        payload.payoutMethod = {
+          type: payoutMethodType,
+          accountNumber: payoutAccountNumber,
+          paybillAccountRef: payoutPaybillAccountRef || undefined,
+        };
+      }
     }
     registerMutation.mutate(
       { data: payload },
@@ -354,6 +407,80 @@ export function AuthRegister({ role }: { role: AuthRole }) {
                       ? `Location pinned (${lat.toFixed(4)}, ${lng.toFixed(4)})`
                       : "Pin my store location (GPS)"}
                   </Button>
+
+                  <div className="h-px bg-secondary/15 my-4" />
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Payout Method Settings</p>
+                  
+                  <FormField
+                    control={form.control}
+                    name="payoutMethodType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <select
+                            value={field.value ?? ""}
+                            onChange={(e) => {
+                              field.onChange(e.target.value || undefined);
+                              form.setValue("payoutAccountNumber", "", { shouldValidate: true });
+                              form.setValue("payoutPaybillAccountRef", "", { shouldValidate: true });
+                            }}
+                            className={`${inputClass} w-full px-3 text-sm ${field.value ? "text-foreground" : "text-muted-foreground"}`}
+                          >
+                            <option value="" disabled>Select payout method</option>
+                            <option value="till">Buy Goods (Till Number)</option>
+                            <option value="paybill">Paybill</option>
+                            <option value="pochi">Pochi La Biashara</option>
+                            <option value="send_money">Send Money (B2C)</option>
+                          </select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {payoutMethodType && (
+                    <FormField
+                      control={form.control}
+                      name="payoutAccountNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input
+                              placeholder={
+                                payoutMethodType === "till"
+                                  ? "6-digit Till Number"
+                                  : payoutMethodType === "paybill"
+                                  ? "5 to 6-digit Paybill Business Number"
+                                  : "Kenyan Phone Number (07xx xxx xxx or 01xx xxx xxx)"
+                              }
+                              type="text"
+                              className={inputClass}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                  {payoutMethodType === "paybill" && (
+                    <FormField
+                      control={form.control}
+                      name="payoutPaybillAccountRef"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input
+                              placeholder="Account Reference (e.g. business name)"
+                              type="text"
+                              className={inputClass}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </>
               )}
 

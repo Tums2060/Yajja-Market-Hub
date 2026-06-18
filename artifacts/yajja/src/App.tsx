@@ -33,12 +33,14 @@ const VendorPortal = lazy(() => import("@/pages/vendor-portal/dashboard"));
 const VendorOrders = lazy(() => import("@/pages/vendor-portal/orders"));
 const VendorProducts = lazy(() => import("@/pages/vendor-portal/products"));
 const VendorProfile = lazy(() => import("@/pages/vendor-portal/profile"));
+const VendorPayouts = lazy(() => import("@/pages/vendor-portal/payouts"));
 
 const RiderPortal = lazy(() => import("@/pages/rider-portal/dashboard"));
 const RiderMap = lazy(() => import("@/pages/rider-portal/map"));
 const RiderProfile = lazy(() => import("@/pages/rider-portal/profile"));
 const RiderDeliveries = lazy(() => import("@/pages/rider-portal/deliveries"));
 const RiderHistory = lazy(() => import("@/pages/rider-portal/history"));
+const RiderEarnings = lazy(() => import("@/pages/rider-portal/earnings"));
 
 const AdminDashboard = lazy(() => import("@/pages/admin-portal/dashboard"));
 const AdminVendors = lazy(() => import("@/pages/admin-portal/vendors"));
@@ -114,6 +116,7 @@ function Router() {
             <Route path="/vendor-portal/orders"><ProtectedRoute component={VendorOrders} allowedRoles={["vendor"]} /></Route>
             <Route path="/vendor-portal/products"><ProtectedRoute component={VendorProducts} allowedRoles={["vendor"]} /></Route>
             <Route path="/vendor-portal/profile"><ProtectedRoute component={VendorProfile} allowedRoles={["vendor"]} /></Route>
+            <Route path="/vendor-portal/payouts"><ProtectedRoute component={VendorPayouts} allowedRoles={["vendor"]} /></Route>
 
             {/* Rider Routes */}
             <Route path="/rider-portal"><ProtectedRoute component={RiderPortal} allowedRoles={["rider"]} /></Route>
@@ -121,6 +124,7 @@ function Router() {
             <Route path="/rider-portal/deliveries"><ProtectedRoute component={RiderDeliveries} allowedRoles={["rider"]} /></Route>
             <Route path="/rider-portal/history"><ProtectedRoute component={RiderHistory} allowedRoles={["rider"]} /></Route>
             <Route path="/rider-portal/profile"><ProtectedRoute component={RiderProfile} allowedRoles={["rider"]} /></Route>
+            <Route path="/rider-portal/earnings"><ProtectedRoute component={RiderEarnings} allowedRoles={["rider"]} /></Route>
 
             {/* Admin Routes */}
             <Route path="/admin"><ProtectedRoute component={AdminDashboard} allowedRoles={["admin"]} /></Route>

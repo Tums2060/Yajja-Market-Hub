@@ -67,7 +67,7 @@ router.post("/payments/stk-push", requireAuth, async (req, res) => {
     if (configured) {
       const result = await stkPush({
         phone,
-        amount: 1, // Hardcoded to 1 KES for testing as requested by the user
+        amount: total,
         accountReference: accountRef,
         description: `Yajja ${accountRef}`,
         callbackUrl: resolveCallbackUrl() || "https://example.com/api/payments/callback",

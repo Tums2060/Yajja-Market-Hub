@@ -75,7 +75,7 @@ router.get("/admin/vendors", requireAdmin, async (req, res) => {
 
 // Approve vendor
 router.put("/admin/vendors/:vendorId/approve", requireAdmin, async (req, res) => {
-  const vendorId = parseInt(req.params.vendorId);
+  const vendorId = parseInt(String(req.params.vendorId), 10);
   const vendor = await dbUpdateReturning(vendorsTable, { status: "approved" }, eq(vendorsTable.id, vendorId));
   if (!vendor) { res.status(404).json({ message: "Vendor not found" }); return; }
   res.json({ ...vendor, createdAt: vendor.createdAt.toISOString() });
@@ -83,7 +83,7 @@ router.put("/admin/vendors/:vendorId/approve", requireAdmin, async (req, res) =>
 
 // Reject vendor
 router.put("/admin/vendors/:vendorId/reject", requireAdmin, async (req, res) => {
-  const vendorId = parseInt(req.params.vendorId);
+  const vendorId = parseInt(String(req.params.vendorId), 10);
   const vendor = await dbUpdateReturning(vendorsTable, { status: "rejected" }, eq(vendorsTable.id, vendorId));
   if (!vendor) { res.status(404).json({ message: "Vendor not found" }); return; }
   res.json({ ...vendor, createdAt: vendor.createdAt.toISOString() });
@@ -136,7 +136,7 @@ router.get("/admin/riders", requireAdmin, async (req, res) => {
 
 // Toggle rider availability
 router.put("/admin/riders/:riderId/toggle", requireAdmin, async (req, res) => {
-  const riderId = parseInt(req.params.riderId);
+  const riderId = parseInt(String(req.params.riderId), 10);
   const [rider] = await db.select().from(riderProfilesTable).where(eq(riderProfilesTable.id, riderId)).limit(1);
   if (!rider) { res.status(404).json({ message: "Rider not found" }); return; }
   const updated = await dbUpdateReturning(riderProfilesTable, { isAvailable: !rider.isAvailable }, eq(riderProfilesTable.id, riderId));
@@ -164,20 +164,20 @@ router.put("/admin/riders/:riderId/reinstate", requireAdmin, async (req, res) =>
 router.get("/admin/revenue", requireAdmin, async (req, res) => {
   const orders = await db.select().from(ordersTable);
   const delivered = orders.filter(o => o.status === "delivered");
-  const commissionRate = Number(process.env.MPESA_COMMISSION_RATE) || 0.15;
   const grossRevenue = orders.reduce((s, o) => s + o.total, 0);
   const deliveredSubtotal = delivered.reduce((s, o) => s + o.subtotal, 0);
   const deliveryFees = delivered.reduce((s, o) => s + o.deliveryFee, 0);
-  const commission = deliveredSubtotal * commissionRate;
-  const vendorPayouts = deliveredSubtotal - commission;
+  const commission = deliveryFees * 0.20;
+  const vendorPayouts = deliveredSubtotal;
+  const riderPayouts = deliveryFees * 0.80;
   res.json({
     grossRevenue,
     deliveredOrders: delivered.length,
     totalOrders: orders.length,
     commission,
-    commissionRate,
+    commissionRate: 0.20,
     vendorPayouts,
-    riderPayouts: deliveryFees,
+    riderPayouts,
   });
 });
 

@@ -6,7 +6,9 @@ import { requireAuth, getUser } from "../lib/auth";
 import { broadcastToUser, broadcastToUsers } from "../lib/ws";
 import { createNotification, statusMessage } from "../lib/notify";
 import { releaseEscrowForOrder } from "../lib/payments-core";
+import { disburseRiderPayout } from "../lib/disbursement-service";
 import { formatOrderCode } from "../lib/order-code";
+import { mpesaConfig } from "../lib/mpesa";
 import { z } from "zod";
 
 const router = Router();
@@ -223,7 +225,7 @@ router.post("/orders", requireAuth, async (req, res) => {
           const product = productMap.get(item.productId);
           return sum + (product?.price || 0) * item.quantity;
         }, 0);
-        const deliveryFee = 200;
+        const deliveryFee = mpesaConfig.deliveryFee;
         const total = subtotal + deliveryFee;
 
         const [order] = await tx.insert(ordersTable).values({
@@ -449,6 +451,48 @@ router.post("/orders/:orderId/cancel", requireAuth, async (req, res) => {
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
   await notifyOrderParties(order, "order:status");
   res.json(await enrichOrder(order, { hideCoords: !(await canSeeCoords(user, order)) }));
+});
+
+// Customer confirms delivery of their order.
+// This triggers the rider payout disbursement.
+router.post("/orders/:orderId/confirm-delivery", requireAuth, async (req, res) => {
+  try {
+    const orderId = parseInt(String(req.params.orderId), 10);
+    const user = getUser(req);
+    const [existing] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
+    if (!existing) {
+      res.status(404).json({ message: "Order not found" });
+      return;
+    }
+    if (existing.userId !== user.id && user.role !== "admin") {
+      res.status(403).json({ message: "Forbidden" });
+      return;
+    }
+    if (existing.status !== "delivered") {
+      res.status(400).json({ message: "Delivery can only be confirmed once the order is marked as delivered." });
+      return;
+    }
+    if (existing.customerConfirmedAt) {
+      res.json({ message: "Delivery already confirmed.", customerConfirmedAt: existing.customerConfirmedAt.toISOString() });
+      return;
+    }
+
+    const now = new Date();
+    await db.update(ordersTable).set({
+      customerConfirmedAt: now,
+      updatedAt: now,
+    }).where(eq(ordersTable.id, orderId));
+
+    // Trigger rider B2C payout asynchronously
+    void disburseRiderPayout(orderId).catch((err) => {
+      req.log?.error({ orderId, err }, "Failed to run rider payout B2C");
+    });
+
+    res.json({ message: "Delivery confirmed. Rider payout initiated.", customerConfirmedAt: now.toISOString() });
+  } catch (err) {
+    req.log?.error({ err }, "failed to confirm delivery");
+    res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 router.post("/orders/:orderId/assign-rider", requireAuth, async (req, res) => {

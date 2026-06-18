@@ -15,6 +15,20 @@
       "when": 1781202424301,
       "tag": "0001_groovy_vulture",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781809717552,
+      "tag": "0002_new_tenebrous",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1781812825230,
+      "tag": "0003_brainy_valeria_richards",
+      "breakpoints": true
     }
   ]
 }

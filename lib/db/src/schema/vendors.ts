@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, timestamp, boolean, real, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, timestamp, boolean, real, pgEnum, jsonb } from "drizzle-orm/pg-core";
 
 export const categoryEnum = pgEnum("category", ["food", "liquor", "pharmacy", "household"]);
 export const vendorStatusEnum = pgEnum("vendor_status", ["pending_review", "approved", "rejected"]);
@@ -19,6 +19,11 @@ export const vendorsTable = pgTable("vendors", {
   minOrder: real("min_order").default(0),
   isOpen: boolean("is_open").notNull().default(true),
   status: vendorStatusEnum("status").notNull().default("approved"),
+  payoutMethod: jsonb("payout_method").$type<{
+    type: "till" | "paybill" | "pochi" | "send_money";
+    accountNumber: string;
+    paybillAccountRef?: string;
+  }>(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

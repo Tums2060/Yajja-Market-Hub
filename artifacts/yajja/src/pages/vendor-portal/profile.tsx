@@ -54,6 +54,19 @@ export default function VendorProfile() {
   const [uploading, setUploading] = useState(false);
   const [locating, setLocating] = useState(false);
 
+  const [isEditingPayout, setIsEditingPayout] = useState(false);
+  const [payoutEdit, setPayoutEdit] = useState<{
+    type: "till" | "paybill" | "pochi" | "send_money";
+    accountNumber: string;
+    paybillAccountRef?: string;
+  }>({
+    type: "till",
+    accountNumber: "",
+    paybillAccountRef: "",
+  });
+  const [payoutError, setPayoutError] = useState("");
+  const [savingPayout, setSavingPayout] = useState(false);
+
   useEffect(() => {
     document.title = "Store Profile - Yajja";
   }, []);
@@ -74,7 +87,89 @@ export default function VendorProfile() {
       lat: v.lat ?? undefined,
       lng: v.lng ?? undefined,
     });
+
+    if (v.payoutMethod) {
+      setPayoutEdit({
+        type: v.payoutMethod.type || "till",
+        accountNumber: v.payoutMethod.accountNumber || "",
+        paybillAccountRef: v.payoutMethod.paybillAccountRef || "",
+      });
+    } else {
+      setPayoutEdit({
+        type: "till",
+        accountNumber: "",
+        paybillAccountRef: "",
+      });
+    }
   }, [vendor]);
+
+  function cancelPayoutEdit() {
+    setIsEditingPayout(false);
+    setPayoutError("");
+    const val = vendor as any;
+    if (val?.payoutMethod) {
+      setPayoutEdit({
+        type: val.payoutMethod.type || "till",
+        accountNumber: val.payoutMethod.accountNumber || "",
+        paybillAccountRef: val.payoutMethod.paybillAccountRef || "",
+      });
+    } else {
+      setPayoutEdit({
+        type: "till",
+        accountNumber: "",
+        paybillAccountRef: "",
+      });
+    }
+  }
+
+  async function savePayoutMethod() {
+    const type = payoutEdit.type;
+    const num = payoutEdit.accountNumber || "";
+    const ref = payoutEdit.paybillAccountRef || "";
+
+    if (type === "till") {
+      if (!/^\d{6}$/.test(num)) {
+        setPayoutError("Till number must be exactly 6 digits");
+        return;
+      }
+    } else if (type === "paybill") {
+      if (!/^\d{5,6}$/.test(num)) {
+        setPayoutError("Paybill business number must be 5 or 6 digits");
+        return;
+      }
+      if (!ref.trim()) {
+        setPayoutError("Account reference is required for Paybill payouts");
+        return;
+      }
+    } else if (type === "pochi" || type === "send_money") {
+      if (!/^(07|01)\d{8}$/.test(num)) {
+        setPayoutError("Phone number must be a valid Kenyan mobile number starting with 07 or 01 (10 digits total)");
+        return;
+      }
+    }
+
+    setSavingPayout(true);
+    try {
+      const body: any = {
+        name: form.name.trim(),
+        category: form.category,
+        payoutMethod: {
+          type,
+          accountNumber: num,
+          paybillAccountRef: type === "paybill" ? ref : undefined,
+        }
+      };
+      await updateVendor.mutateAsync({ data: body });
+      setIsEditingPayout(false);
+      setPayoutError("");
+      await refetch();
+      toast({ title: "Payout method updated successfully" });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Update failed", description: e?.message || "Please try again" });
+    } finally {
+      setSavingPayout(false);
+    }
+  }
 
   useEffect(() => {
     if (!imageFile) {
@@ -316,6 +411,130 @@ export default function VendorProfile() {
               Save changes
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-secondary/40">
+        <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-secondary/5">
+          <CardTitle className="text-lg font-bold">Payout Method</CardTitle>
+          {!isEditingPayout ? (
+            <Button variant="outline" size="sm" onClick={() => setIsEditingPayout(true)} className="font-semibold">
+              Edit Payout Method
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={cancelPayoutEdit} className="text-xs">
+                Cancel
+              </Button>
+              <Button size="sm" onClick={savePayoutMethod} disabled={savingPayout} className="text-xs font-bold">
+                {savingPayout && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
+                Save
+              </Button>
+            </div>
+          )}
+        </CardHeader>
+        <CardContent className="p-6">
+          {!isEditingPayout ? (
+            v?.payoutMethod ? (
+              <div className="space-y-3">
+                <div className="flex justify-between text-sm py-1 border-b border-secondary/5">
+                  <span className="font-semibold text-muted-foreground">Type</span>
+                  <span className="capitalize font-bold text-foreground">
+                    {v.payoutMethod.type === "till"
+                      ? "Buy Goods (Till)"
+                      : v.payoutMethod.type === "paybill"
+                      ? "Paybill"
+                      : v.payoutMethod.type === "pochi"
+                      ? "Pochi La Biashara"
+                      : "Send Money"}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm py-1 border-b border-secondary/5">
+                  <span className="font-semibold text-muted-foreground">Account Number</span>
+                  <span className="font-bold text-foreground">{v.payoutMethod.accountNumber}</span>
+                </div>
+                {v.payoutMethod.type === "paybill" && (
+                  <div className="flex justify-between text-sm py-1">
+                    <span className="font-semibold text-muted-foreground">Account Reference</span>
+                    <span className="font-bold text-foreground">{v.payoutMethod.paybillAccountRef}</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-amber-600 bg-amber-500/5 border border-dashed border-amber-300 rounded-xl p-4 font-semibold">
+                No payout method set. Please add one to receive orders and automatic split-payment payouts.
+              </p>
+            )
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="payoutType" className="text-sm font-bold">Payout Type</Label>
+                <select
+                  id="payoutType"
+                  value={payoutEdit.type}
+                  onChange={(e) => {
+                    setPayoutEdit(prev => ({
+                      ...prev,
+                      type: e.target.value as any,
+                      accountNumber: "",
+                      paybillAccountRef: ""
+                    }));
+                    setPayoutError("");
+                  }}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="till">Buy Goods (Till Number)</option>
+                  <option value="paybill">Paybill</option>
+                  <option value="pochi">Pochi La Biashara</option>
+                  <option value="send_money">Send Money (B2C)</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="payoutAccountNumber" className="text-sm font-bold">
+                  {payoutEdit.type === "till"
+                    ? "Till Number"
+                    : payoutEdit.type === "paybill"
+                    ? "Paybill Business Number"
+                    : "Phone Number"}
+                </Label>
+                <Input
+                  id="payoutAccountNumber"
+                  value={payoutEdit.accountNumber}
+                  onChange={(e) => {
+                    setPayoutEdit(prev => ({ ...prev, accountNumber: e.target.value }));
+                    setPayoutError("");
+                  }}
+                  placeholder={
+                    payoutEdit.type === "till"
+                      ? "6 digits exactly"
+                      : payoutEdit.type === "paybill"
+                      ? "5 to 6 digits"
+                      : "Kenyan mobile number starting with 07 or 01, 10 digits"
+                  }
+                />
+              </div>
+
+              {payoutEdit.type === "paybill" && (
+                <div className="space-y-2">
+                  <Label htmlFor="payoutPaybillAccountRef" className="text-sm font-bold">Account Reference</Label>
+                  <Input
+                    id="payoutPaybillAccountRef"
+                    value={payoutEdit.paybillAccountRef || ""}
+                    onChange={(e) => {
+                      setPayoutEdit(prev => ({ ...prev, paybillAccountRef: e.target.value }));
+                      setPayoutError("");
+                    }}
+                    placeholder="e.g. business name or billing reference"
+                  />
+                </div>
+              )}
+
+              {payoutError && (
+                <p className="text-xs text-rose-600 font-bold leading-none mt-1">{payoutError}</p>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

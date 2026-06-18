@@ -13,7 +13,7 @@ const rateLimitMessage = (error: string) => ({ success: false, error, code: "RAT
 // Auth rate limiting: protect against brute-force / abuse.
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10,
+  max: process.env.NODE_ENV === "development" ? 1000 : 10,
   standardHeaders: true,
   legacyHeaders: false,
   message: rateLimitMessage("Too many login attempts. Please try again in 15 minutes."),
@@ -21,7 +21,7 @@ const loginLimiter = rateLimit({
 
 const signupLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5,
+  max: process.env.NODE_ENV === "development" ? 1000 : 5,
   standardHeaders: true,
   legacyHeaders: false,
   message: rateLimitMessage("Too many sign-up attempts. Please try again later."),
@@ -34,6 +34,11 @@ type VendorOnboarding = {
   latitude?: number;
   longitude?: number;
   imageUrl?: string;
+  payoutMethod?: {
+    type: "till" | "paybill" | "pochi" | "send_money";
+    accountNumber: string;
+    paybillAccountRef?: string;
+  };
 };
 
 async function ensureVendorProfile(user: any, details?: VendorOnboarding) {
@@ -51,6 +56,7 @@ async function ensureVendorProfile(user: any, details?: VendorOnboarding) {
     lat: details?.latitude ?? null,
     lng: details?.longitude ?? null,
     imageUrl: details?.imageUrl || null,
+    payoutMethod: details?.payoutMethod || null,
     status: "pending_review",
   });
 
@@ -91,7 +97,7 @@ router.post("/auth/register", signupLimiter, async (req, res) => {
     res.status(400).json({ message: "Invalid request body" });
     return;
   }
-  const { name, email, password, role, phone, businessName, category, address, latitude, longitude, imageUrl } = parsed.data;
+  const { name, email, password, role, phone, businessName, category, address, latitude, longitude, imageUrl, payoutMethod } = parsed.data;
 
   // Anti-fraud: phone is required for customer accounts
   if (role === "customer" && !phone) {
@@ -127,7 +133,7 @@ router.post("/auth/register", signupLimiter, async (req, res) => {
 
   // Create role-specific profiles
   if (role === "vendor") {
-    await ensureVendorProfile(user, { businessName, category, address, latitude, longitude, imageUrl });
+    await ensureVendorProfile(user, { businessName, category, address, latitude, longitude, imageUrl, payoutMethod: payoutMethod as any });
   } else if (role === "rider") {
     await ensureRiderProfile(user);
   }

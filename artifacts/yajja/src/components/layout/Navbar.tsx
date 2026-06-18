@@ -13,7 +13,7 @@ import {
 import {
   ShoppingBag, ShoppingCart, Users, User,
   LayoutDashboard, Package, Map, Menu, LogOut, Home,
-  Store, Truck, Receipt, History
+  Store, Truck, Receipt, History, DollarSign
 } from "lucide-react";
 import { useGetCart } from "@workspace/api-client-react";
 import NotificationBell from "./NotificationBell";
@@ -29,11 +29,13 @@ const vendorLinks = [
   { href: "/vendor-portal", label: "Dashboard", icon: LayoutDashboard },
   { href: "/vendor-portal/orders", label: "Orders", icon: Receipt },
   { href: "/vendor-portal/products", label: "My Menu", icon: Package },
+  { href: "/vendor-portal/payouts", label: "Payout Proofs", icon: History },
 ];
 
 const riderLinks = [
   { href: "/rider-portal", label: "Dashboard", icon: LayoutDashboard },
   { href: "/rider-portal/map", label: "Live Tracking", icon: Map },
+  { href: "/rider-portal/earnings", label: "Earnings", icon: DollarSign },
   { href: "/rider-portal/history", label: "History", icon: History },
   { href: "/rider-portal/profile", label: "Profile", icon: User },
 ];

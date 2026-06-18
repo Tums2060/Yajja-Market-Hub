@@ -45,6 +45,22 @@ export const UserRole = {
   admin: "admin",
 } as const;
 
+export type PayoutMethodType =
+  (typeof PayoutMethodType)[keyof typeof PayoutMethodType];
+
+export const PayoutMethodType = {
+  till: "till",
+  paybill: "paybill",
+  pochi: "pochi",
+  send_money: "send_money",
+} as const;
+
+export interface PayoutMethod {
+  type: PayoutMethodType;
+  accountNumber: string;
+  paybillAccountRef?: string;
+}
+
 export interface RegisterBody {
   name: string;
   email: string;
@@ -57,6 +73,7 @@ export interface RegisterBody {
   latitude?: number;
   longitude?: number;
   imageUrl?: string;
+  payoutMethod?: PayoutMethod;
 }
 
 export interface LoginBody {
@@ -98,6 +115,7 @@ export interface Vendor {
   status?: string;
   orderCount?: number;
   createdAt: string;
+  payoutMethod?: PayoutMethod;
 }
 
 export interface CreateVendorBody {
@@ -108,6 +126,7 @@ export interface CreateVendorBody {
   address?: string;
   deliveryTime?: string;
   minOrder?: number;
+  payoutMethod?: PayoutMethod;
 }
 
 export interface UpdateVendorBody {
@@ -122,6 +141,7 @@ export interface UpdateVendorBody {
   deliveryTime?: string;
   minOrder?: number;
   isOpen?: boolean;
+  payoutMethod?: PayoutMethod;
 }
 
 export type VendorStatsOrdersThisWeekItem = {
@@ -228,6 +248,7 @@ export interface CartResponse {
   items: CartItem[];
   subtotal: number;
   itemCount: number;
+  deliveryFee: number;
   vendorGroups: CartResponseVendorGroupsItem[];
 }
 
@@ -294,6 +315,13 @@ export interface Order {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  disbursementStatus?: string;
+  disbursementReceipt?: string | null;
+  disbursementError?: string | null;
+  riderDisbursementStatus?: string;
+  riderDisbursementReceipt?: string | null;
+  riderDisbursementError?: string | null;
+  customerConfirmedAt?: string | null;
 }
 
 export interface CreateOrderBody {
@@ -480,6 +508,11 @@ export type ListProductsParams = {
 
 export type ListOrdersParams = {
   status?: OrderStatus;
+};
+
+export type ConfirmDelivery200 = {
+  message: string;
+  customerConfirmedAt: string;
 };
 
 export type ListVendorOrdersParams = {

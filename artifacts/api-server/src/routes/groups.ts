@@ -44,7 +44,7 @@ router.post("/groups", requireAuth, async (req, res) => {
 });
 
 router.get("/groups/:groupId", requireAuth, async (req, res) => {
-  const groupId = parseInt(req.params.groupId);
+  const groupId = parseInt(String(req.params.groupId), 10);
   const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
   if (!group) {
     res.status(404).json({ message: "Group not found" });
@@ -54,7 +54,7 @@ router.get("/groups/:groupId", requireAuth, async (req, res) => {
 });
 
 router.get("/groups/:groupId/members", requireAuth, async (req, res) => {
-  const groupId = parseInt(req.params.groupId);
+  const groupId = parseInt(String(req.params.groupId), 10);
   const members = await db.select().from(groupMembersTable).where(eq(groupMembersTable.groupId, groupId));
   const enriched = await Promise.all(members.map(async (m) => {
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, m.userId)).limit(1);
@@ -70,15 +70,15 @@ router.get("/groups/:groupId/members", requireAuth, async (req, res) => {
 });
 
 router.delete("/groups/:groupId/members/:userId", requireAuth, async (req, res) => {
-  const groupId = parseInt(req.params.groupId);
-  const userId = parseInt(req.params.userId);
+  const groupId = parseInt(String(req.params.groupId), 10);
+  const userId = parseInt(String(req.params.userId), 10);
   await db.delete(groupMembersTable).where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, userId)));
   res.json({ message: "Member removed" });
 });
 
 // Messages
 router.get("/groups/:groupId/messages", requireAuth, async (req, res) => {
-  const groupId = parseInt(req.params.groupId);
+  const groupId = parseInt(String(req.params.groupId), 10);
   const limit = parseInt((req.query.limit as string) || "50");
   const messages = await db.select().from(groupMessagesTable)
     .where(eq(groupMessagesTable.groupId, groupId))
@@ -97,7 +97,7 @@ router.get("/groups/:groupId/messages", requireAuth, async (req, res) => {
 });
 
 router.post("/groups/:groupId/messages", requireAuth, async (req, res) => {
-  const groupId = parseInt(req.params.groupId);
+  const groupId = parseInt(String(req.params.groupId), 10);
   const user = getUser(req);
   const parsed = SendGroupMessageBody.safeParse(req.body);
   if (!parsed.success) {
@@ -149,7 +149,7 @@ router.post("/invites", requireAuth, async (req, res) => {
 });
 
 router.post("/invites/:inviteId/accept", requireAuth, async (req, res) => {
-  const inviteId = parseInt(req.params.inviteId);
+  const inviteId = parseInt(String(req.params.inviteId), 10);
   const user = getUser(req);
   const invite = await dbUpdateReturning(invitesTable, { status: "accepted" }, eq(invitesTable.id, inviteId));
   if (!invite) {
@@ -176,7 +176,7 @@ router.post("/invites/:inviteId/accept", requireAuth, async (req, res) => {
 });
 
 router.post("/invites/:inviteId/decline", requireAuth, async (req, res) => {
-  const inviteId = parseInt(req.params.inviteId);
+  const inviteId = parseInt(String(req.params.inviteId), 10);
   await db.update(invitesTable).set({ status: "declined" }).where(eq(invitesTable.id, inviteId));
   res.json({ message: "Invite declined" });
 });

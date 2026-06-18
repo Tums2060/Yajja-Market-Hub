@@ -175,7 +175,7 @@ export default function Checkout() {
 
   const items = (cartData as any)?.items || [];
   const subtotal = (cartData as any)?.subtotal || 0;
-  const deliveryFee = 200;
+  const deliveryFee = (cartData as any)?.deliveryFee ?? 40;
   const total = subtotal + deliveryFee;
 
   const authHeaders = () => {

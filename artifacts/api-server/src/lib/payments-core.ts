@@ -11,6 +11,7 @@ import { mpesaConfig } from "./mpesa";
 import { createNotification } from "./notify";
 import { formatOrderCode } from "./order-code";
 import { logger } from "./logger";
+import { disbursePayoutForOrder } from "./disbursement-service";
 
 type Order = typeof ordersTable.$inferSelect;
 
@@ -36,6 +37,11 @@ export async function settlePaymentByCheckoutId(
   let updated = 0;
   for (const payment of payments) {
     if (payment.status === "paid" || payment.status === "failed") continue;
+
+    logger.info(
+      { checkoutRequestId, outcome, orderId: payment.orderId, amount: payment.amount },
+      `[STK PUSH CALLBACK] Received payment callback. Success: ${outcome.success}`
+    );
 
     if (!outcome.success) {
       await db
@@ -77,6 +83,11 @@ export async function settlePaymentByCheckoutId(
       .update(ordersTable)
       .set({ paymentStatus: "paid", updatedAt: new Date() })
       .where(eq(ordersTable.id, order.id));
+
+    // Run disbursement asynchronously to avoid blocking the caller
+    void disbursePayoutForOrder(order.id).catch((err) => {
+      logger.error({ orderId: order.id, err }, "Error running vendor payout disbursement");
+    });
 
     // Record the escrow hold (money received, held until delivery).
     await db.insert(ledgerEntriesTable).values({
@@ -136,9 +147,9 @@ export async function releaseEscrowForOrder(order: Order): Promise<void> {
     .where(eq(paymentsTable.orderId, order.id))
     .limit(1);
 
-  const commission = round2(order.subtotal * mpesaConfig.commissionRate);
-  const vendorPayout = round2(order.subtotal - commission);
-  const riderPayout = order.deliveryFee;
+  const commission = round2(order.deliveryFee * 0.20);
+  const vendorPayout = order.subtotal;
+  const riderPayout = round2(order.deliveryFee * 0.80);
 
   const [vendor] = await db
     .select({ userId: vendorsTable.userId })

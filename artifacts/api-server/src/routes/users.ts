@@ -24,7 +24,7 @@ router.get("/users", requireAuth, async (req, res) => {
 });
 
 router.get("/users/:userId", requireAuth, async (req, res) => {
-  const userId = parseInt(req.params.userId);
+  const userId = parseInt(String(req.params.userId), 10);
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
   if (!user) {
     res.status(404).json({ message: "User not found" });

@@ -47,3 +47,6 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+#Safaricom API Json file
+Safaricom APIs.postman_collection.json

@@ -24,6 +24,7 @@ import type {
   BillAssignmentBody,
   CartItem,
   CartResponse,
+  ConfirmDelivery200,
   CreateGroupBody,
   CreateGroupOrderBody,
   CreateOrderBody,
@@ -3251,6 +3252,90 @@ export const useMockPaymentConfirm = <
   TContext
 > => {
   return useMutation(getMockPaymentConfirmMutationOptions(options));
+};
+
+/**
+ * @summary Confirm order delivery (customer)
+ */
+export const getConfirmDeliveryUrl = (orderId: number) => {
+  return `/api/orders/${orderId}/confirm-delivery`;
+};
+
+export const confirmDelivery = async (
+  orderId: number,
+  options?: RequestInit,
+): Promise<ConfirmDelivery200> => {
+  return customFetch<ConfirmDelivery200>(getConfirmDeliveryUrl(orderId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getConfirmDeliveryMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof confirmDelivery>>,
+    TError,
+    { orderId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof confirmDelivery>>,
+  TError,
+  { orderId: number },
+  TContext
+> => {
+  const mutationKey = ["confirmDelivery"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof confirmDelivery>>,
+    { orderId: number }
+  > = (props) => {
+    const { orderId } = props ?? {};
+
+    return confirmDelivery(orderId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ConfirmDeliveryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof confirmDelivery>>
+>;
+
+export type ConfirmDeliveryMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Confirm order delivery (customer)
+ */
+export const useConfirmDelivery = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof confirmDelivery>>,
+    TError,
+    { orderId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof confirmDelivery>>,
+  TError,
+  { orderId: number },
+  TContext
+> => {
+  return useMutation(getConfirmDeliveryMutationOptions(options));
 };
 
 /**

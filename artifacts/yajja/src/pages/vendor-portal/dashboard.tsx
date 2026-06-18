@@ -5,7 +5,7 @@ import { useGetVendorStats, useListVendorOrders } from "@workspace/api-client-re
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, Package, TrendingUp, Star, LogOut, ChevronRight, Store } from "lucide-react";
+import { ShoppingBag, Package, TrendingUp, Star, LogOut, ChevronRight, Store, History } from "lucide-react";
 
 const statusColor: Record<string, string> = {
   pending: "bg-secondary/30 text-amber-800 border-secondary/50",
@@ -62,7 +62,7 @@ export default function VendorPortal() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Button asChild className="h-14 text-base" variant="outline">
           <Link href="/vendor-portal/orders">
             <ShoppingBag className="mr-2 h-5 w-5" /> All Orders
@@ -71,6 +71,11 @@ export default function VendorPortal() {
         <Button asChild className="h-14 text-base">
           <Link href="/vendor-portal/products">
             <Package className="mr-2 h-5 w-5" /> My Menu
+          </Link>
+        </Button>
+        <Button asChild className="h-14 text-base" variant="outline">
+          <Link href="/vendor-portal/payouts">
+            <History className="mr-2 h-5 w-5" /> Payout Proofs
           </Link>
         </Button>
         <Button asChild className="h-14 text-base" variant="outline">

@@ -3,8 +3,48 @@ import { db, vendorsTable, ordersTable } from "@workspace/db";
 import { eq, and, ilike, sql } from "drizzle-orm";
 import { CreateVendorBody, UpdateVendorBody } from "@workspace/api-zod";
 import { requireAuth, getUser } from "../lib/auth";
+import { z } from "zod";
 
 const router = Router();
+
+export const payoutMethodSchema = z.object({
+  type: z.enum(["till", "paybill", "pochi", "send_money"]),
+  accountNumber: z.string(),
+  paybillAccountRef: z.string().optional().nullable(),
+}).superRefine((data, ctx) => {
+  if (data.type === "till") {
+    if (!/^\d{6}$/.test(data.accountNumber)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Till number must be exactly 6 digits",
+        path: ["accountNumber"],
+      });
+    }
+  } else if (data.type === "paybill") {
+    if (!/^\d{5,6}$/.test(data.accountNumber)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Paybill business number must be 5 or 6 digits",
+        path: ["accountNumber"],
+      });
+    }
+    if (!data.paybillAccountRef || data.paybillAccountRef.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Account reference is required for Paybill payouts",
+        path: ["paybillAccountRef"],
+      });
+    }
+  } else if (data.type === "pochi" || data.type === "send_money") {
+    if (!/^(07|01)\d{8}$/.test(data.accountNumber)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Phone number must be a valid Kenyan mobile number (starts with 07 or 01, 10 digits total)",
+        path: ["accountNumber"],
+      });
+    }
+  }
+});
 
 function serializeVendor(v: typeof vendorsTable.$inferSelect) {
   return {
@@ -70,6 +110,14 @@ router.put("/vendors/me", requireAuth, async (req, res) => {
   if (!parsed.success) {
     res.status(400).json({ message: "Invalid body" });
     return;
+  }
+
+  if (parsed.data.payoutMethod) {
+    const payoutResult = payoutMethodSchema.safeParse(parsed.data.payoutMethod);
+    if (!payoutResult.success) {
+      res.status(400).json({ message: "Invalid payout method details", errors: payoutResult.error.format() });
+      return;
+    }
   }
 
   const user = getUser(req);
@@ -149,6 +197,14 @@ router.post("/vendors", requireAuth, async (req, res) => {
     return;
   }
 
+  if (parsed.data.payoutMethod) {
+    const payoutResult = payoutMethodSchema.safeParse(parsed.data.payoutMethod);
+    if (!payoutResult.success) {
+      res.status(400).json({ message: "Invalid payout method details", errors: payoutResult.error.format() });
+      return;
+    }
+  }
+
   const user = getUser(req);
 
   await db.insert(vendorsTable).values({
@@ -195,6 +251,14 @@ router.put("/vendors/:vendorId", async (req, res) => {
       message: "Invalid body",
     });
     return;
+  }
+
+  if (parsed.data.payoutMethod) {
+    const payoutResult = payoutMethodSchema.safeParse(parsed.data.payoutMethod);
+    if (!payoutResult.success) {
+      res.status(400).json({ message: "Invalid payout method details", errors: payoutResult.error.format() });
+      return;
+    }
   }
 
   const [existing] = await db

@@ -4,6 +4,7 @@ import { broadcastToGroup } from "../lib/ws";
 import { eq, and } from "drizzle-orm";
 import { AddToCartBody, UpdateCartItemBody } from "@workspace/api-zod";
 import { requireAuth, getUser } from "../lib/auth";
+import { mpesaConfig } from "../lib/mpesa";
 
 const router = Router();
 
@@ -57,6 +58,7 @@ router.get("/cart", requireAuth, async (req, res) => {
     items: enriched,
     subtotal,
     itemCount: enriched.length,
+    deliveryFee: mpesaConfig.deliveryFee,
     vendorGroups: Array.from(vendorMap.values()),
   });
 });
@@ -100,7 +102,7 @@ router.post("/cart/items", requireAuth, async (req, res) => {
 
 router.put("/cart/items/:cartItemId", requireAuth, async (req, res) => {
   const user = getUser(req);
-  const cartItemId = parseInt(req.params.cartItemId);
+  const cartItemId = parseInt(String(req.params.cartItemId), 10);
   const parsed = UpdateCartItemBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ message: "Invalid body" });
@@ -121,7 +123,7 @@ router.put("/cart/items/:cartItemId", requireAuth, async (req, res) => {
 
 router.delete("/cart/items/:cartItemId", requireAuth, async (req, res) => {
   const user = getUser(req);
-  const cartItemId = parseInt(req.params.cartItemId);
+  const cartItemId = parseInt(String(req.params.cartItemId), 10);
   const [existingItem] = await db.select().from(cartItemsTable)
     .where(and(eq(cartItemsTable.id, cartItemId), eq(cartItemsTable.userId, user.id)))
     .limit(1);
@@ -142,7 +144,7 @@ router.delete("/cart/clear", requireAuth, async (req, res) => {
 
 // Group cart
 router.get("/groups/:groupId/cart", requireAuth, async (req, res) => {
-  const groupId = parseInt(req.params.groupId);
+  const groupId = parseInt(String(req.params.groupId), 10);
   const items = await db.select().from(groupCartItemsTable).where(eq(groupCartItemsTable.groupId, groupId));
 
   const enriched = await Promise.all(items.map(async (item) => {
@@ -176,7 +178,7 @@ router.get("/groups/:groupId/cart", requireAuth, async (req, res) => {
 });
 
 router.post("/groups/:groupId/cart/items", requireAuth, async (req, res) => {
-  const groupId = parseInt(req.params.groupId);
+  const groupId = parseInt(String(req.params.groupId), 10);
   const user = getUser(req);
   const parsed = AddToCartBody.safeParse(req.body);
   if (!parsed.success) {
@@ -222,8 +224,8 @@ router.post("/groups/:groupId/cart/items", requireAuth, async (req, res) => {
 
 router.put("/groups/:groupId/cart/items/:cartItemId", requireAuth, async (req, res) => {
   const user = getUser(req);
-  const groupId = parseInt(req.params.groupId);
-  const cartItemId = parseInt(req.params.cartItemId);
+  const groupId = parseInt(String(req.params.groupId), 10);
+  const cartItemId = parseInt(String(req.params.cartItemId), 10);
   const parsed = UpdateCartItemBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ message: "Invalid body" });
@@ -273,8 +275,8 @@ router.put("/groups/:groupId/cart/items/:cartItemId", requireAuth, async (req, r
 
 router.delete("/groups/:groupId/cart/items/:cartItemId", requireAuth, async (req, res) => {
   const user = getUser(req);
-  const groupId = parseInt(req.params.groupId);
-  const cartItemId = parseInt(req.params.cartItemId);
+  const groupId = parseInt(String(req.params.groupId), 10);
+  const cartItemId = parseInt(String(req.params.cartItemId), 10);
   // Only the user who added the item can remove it from the group cart
   const [existingItem] = await db.select().from(groupCartItemsTable)
     .where(and(

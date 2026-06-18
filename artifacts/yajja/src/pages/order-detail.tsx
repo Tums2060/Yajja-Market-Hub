@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useParams, useLocation } from "wouter";
-import { useGetOrder, useAddToCart, getGetCartQueryKey } from "@workspace/api-client-react";
+import { useGetOrder, useAddToCart, useConfirmDelivery, getGetCartQueryKey } from "@workspace/api-client-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useRealtimeOrders } from "@/hooks/use-realtime-orders";
@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Loader2, MapPin, Package, Check, Bike, AlertCircle, RotateCcw, ReceiptText } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, Package, Check, Bike, AlertCircle, RotateCcw, ReceiptText, CheckCircle2 } from "lucide-react";
 import {
   ORDER_STATUS_COLORS,
   orderStatusLabel,
@@ -29,6 +29,22 @@ export default function OrderDetail() {
   const [reordering, setReordering] = useState(false);
   const addToCart = useAddToCart();
   const { data: order, isLoading } = useGetOrder(id, { query: { enabled: !!id, refetchInterval: 8000 } as any });
+  const [confirming, setConfirming] = useState(false);
+  const confirmDelivery = useConfirmDelivery();
+
+  const handleConfirmDelivery = async () => {
+    setConfirming(true);
+    try {
+      await confirmDelivery.mutateAsync({ orderId: id });
+      toast({ title: "Delivery Confirmed", description: "Thank you! Rider payment has been released." });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries();
+    } catch (e: any) {
+      toast({ title: "Could not confirm", description: e.message || String(e), variant: "destructive" });
+    } finally {
+      setConfirming(false);
+    }
+  };
 
   const handleReorder = async () => {
     setReordering(true);
@@ -155,6 +171,41 @@ export default function OrderDetail() {
         </div>
 
         <div className="container max-w-2xl mx-auto px-4 space-y-6">
+          {status === "delivered" && !(order as any).customerConfirmedAt && (
+            <Card className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-2xl shadow-sm overflow-hidden">
+              <CardContent className="p-6 text-center space-y-4">
+                <AlertCircle className="h-10 w-10 text-amber-600 mx-auto" />
+                <div>
+                  <h3 className="font-extrabold text-[#1A2340] text-base">Has your order arrived?</h3>
+                  <p className="text-xs text-slate-500 mt-1 font-semibold leading-relaxed">
+                    Please confirm you have received your food. Once you confirm, rider disbursement payment will be released.
+                  </p>
+                </div>
+                <Button
+                  onClick={handleConfirmDelivery}
+                  disabled={confirming}
+                  className="w-full sm:w-auto px-6 h-11 font-extrabold bg-[#1A2340] text-white hover:bg-slate-800 rounded-xl"
+                >
+                  {confirming ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                  ) : (
+                    <Check className="h-4 w-4 mr-1.5" />
+                  )}
+                  Yes, I Received It
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {status === "delivered" && (order as any).customerConfirmedAt && (
+            <Card className="bg-emerald-500/10 border border-emerald-500/15 rounded-2xl shadow-sm overflow-hidden">
+              <CardContent className="p-4 text-center flex items-center justify-center gap-2 text-xs font-bold text-emerald-800">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                <span>You confirmed delivery receipt on {new Date((order as any).customerConfirmedAt).toLocaleString("en-UG")}.</span>
+              </CardContent>
+            </Card>
+          )}
+
           <Card className="bg-white border border-secondary/10 rounded-2xl shadow-xs overflow-hidden">
             <CardHeader className="bg-background border-b border-secondary/5 py-4 px-6">
               <div className="flex items-center justify-between">
