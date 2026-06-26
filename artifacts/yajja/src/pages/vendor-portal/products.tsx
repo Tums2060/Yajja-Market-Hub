@@ -138,7 +138,7 @@ export default function VendorProducts() {
       {
         onSuccess: () => {
           invalidateCategories();
-          queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getListProductsQueryKey(vendorId ? { vendorId } as any : {}) });
           toast({ title: "Category deleted" });
         },
         onError: () => toast({ variant: "destructive", title: "Failed to delete category" }),
@@ -238,7 +238,7 @@ export default function VendorProducts() {
         toast({ title: "Product created" });
       }
 
-      queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getListProductsQueryKey(vendorId ? { vendorId } as any : {}) });
       setDialogOpen(false);
     } catch (error) {
       toast({ variant: "destructive", title: "Failed to save product" });
@@ -250,7 +250,7 @@ export default function VendorProducts() {
   const handleDelete = (id: number) => {
     deleteProduct.mutate({ productId: id } as any, {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getListProductsQueryKey(vendorId ? { vendorId } as any : {}) });
         toast({ title: "Product deleted" });
       },
       onError: () => toast({ variant: "destructive", title: "Failed to delete" }),

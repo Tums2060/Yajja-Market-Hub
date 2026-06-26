@@ -9,6 +9,7 @@ import { releaseEscrowForOrder } from "../lib/payments-core";
 import { disburseRiderPayout } from "../lib/disbursement-service";
 import { formatOrderCode } from "../lib/order-code";
 import { mpesaConfig } from "../lib/mpesa";
+import { sendRiderAcceptedEmail, sendDeliveryConfirmedEmail } from "../lib/email";
 import { z } from "zod";
 
 const router = Router();
@@ -488,6 +489,11 @@ router.post("/orders/:orderId/confirm-delivery", requireAuth, async (req, res) =
       req.log?.error({ orderId, err }, "Failed to run rider payout B2C");
     });
 
+    // Trigger Email 3: Customer Confirms Delivery
+    void sendDeliveryConfirmedEmail(orderId).catch((err) => {
+      req.log?.error({ orderId, err }, "Failed to send delivery confirmed email");
+    });
+
     res.json({ message: "Delivery confirmed. Rider payout initiated.", customerConfirmedAt: now.toISOString() });
   } catch (err) {
     req.log?.error({ err }, "failed to confirm delivery");
@@ -543,6 +549,12 @@ router.post("/orders/:orderId/assign-rider", requireAuth, async (req, res) => {
   }
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
   await notifyOrderParties(order, "order:assigned");
+
+  // Trigger Email 2: Rider Accepts Order
+  void sendRiderAcceptedEmail(order.id).catch((err) => {
+    req.log?.error({ orderId: order.id, err }, "Failed to send Rider Accepted email");
+  });
+
   res.json(await enrichOrder(order, { hideCoords: !(await canSeeCoords(user, order)) }));
 });
 

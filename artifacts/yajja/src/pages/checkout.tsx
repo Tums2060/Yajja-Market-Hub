@@ -69,7 +69,16 @@ export default function Checkout() {
 
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState(user?.phone || "");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const hasPrepopulatedPhone = React.useRef(false);
+
+  React.useEffect(() => {
+    if (user?.phone && !hasPrepopulatedPhone.current) {
+      setPhoneNumber(user.phone);
+      hasPrepopulatedPhone.current = true;
+    }
+  }, [user]);
+
   const [deliveryLat, setDeliveryLat] = useState<number | null>(null);
   const [deliveryLng, setDeliveryLng] = useState<number | null>(null);
   const [locating, setLocating] = useState(false);
@@ -103,6 +112,7 @@ export default function Checkout() {
   const [orderCode, setOrderCode] = useState<string | null>(null);
   const [primaryOrderId, setPrimaryOrderId] = useState<number | null>(null);
   const [pendingOrderIds, setPendingOrderIds] = useState<number[]>([]);
+  const [orderTotal, setOrderTotal] = useState<number>(0);
 
   const [checkoutRequestId, setCheckoutRequestId] = useState<string | null>(null);
   const [isPolling, setIsPolling] = useState(false);
@@ -175,8 +185,9 @@ export default function Checkout() {
 
   const items = (cartData as any)?.items || [];
   const subtotal = (cartData as any)?.subtotal || 0;
-  const deliveryFee = (cartData as any)?.deliveryFee ?? 40;
+  const deliveryFee = (cartData as any)?.deliveryFee ?? 60;
   const total = subtotal + deliveryFee;
+  const displayTotal = orderTotal || total;
 
   const authHeaders = () => {
     const token = localStorage.getItem("yajja_token");
@@ -223,6 +234,9 @@ export default function Checkout() {
         .map((o: any) => o?.id)
         .filter((id: any) => typeof id === "number");
       setPendingOrderIds(orderIds);
+
+      const calculatedTotal = (payload?.orders || []).reduce((sum: number, o: any) => sum + (o?.total || 0), 0);
+      setOrderTotal(calculatedTotal);
 
       setStep("confirm");
     } catch (err: any) {
@@ -357,7 +371,7 @@ export default function Checkout() {
                   ? "Please verify on your phone and enter your M-Pesa PIN to complete the transaction."
                   : step === "processing"
                   ? "Initiating payment request..."
-                  : `Please check your phone for the M-Pesa PIN prompt to confirm the transaction of ${formatKES(total)}.`}
+                  : `Please check your phone for the M-Pesa PIN prompt to confirm the transaction of ${formatKES(displayTotal)}.`}
               </DialogDescription>
             </DialogHeader>
             <div className="rounded-2xl bg-secondary/10 p-4 space-y-2.5">
@@ -367,7 +381,7 @@ export default function Checkout() {
               </div>
               <div className="flex justify-between text-xs font-bold text-muted-foreground">
                 <span>Amount</span>
-                <span className="text-foreground">{formatKES(total)}</span>
+                <span className="text-foreground">{formatKES(displayTotal)}</span>
               </div>
               {isPolling && (
                 <div className="flex justify-between text-xs font-bold text-muted-foreground">
@@ -415,7 +429,7 @@ export default function Checkout() {
               {!isPolling && (
                 <Button onClick={handleConfirmPayment} disabled={step === "processing"} className="rounded-xl font-bold h-11 text-xs px-4">
                   {step === "processing" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Pay {formatKES(total)}
+                  Pay {formatKES(displayTotal)}
                 </Button>
               )}
             </DialogFooter>
@@ -538,7 +552,6 @@ export default function Checkout() {
                       <p className="font-bold text-sm text-foreground truncate">{item.product?.name}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">Quantity: x{item.quantity}</p>
                     </div>
-                    <p className="font-extrabold text-sm text-foreground shrink-0">{formatKES((item.product?.price || 0) * item.quantity)}</p>
                   </div>
                 ))}
               </CardContent>
@@ -554,18 +567,9 @@ export default function Checkout() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 p-6">
-                <div className="flex justify-between text-xs font-bold text-muted-foreground">
-                  <span>Subtotal</span>
-                  <span className="text-foreground">{formatKES(subtotal)}</span>
-                </div>
-                <div className="flex justify-between text-xs font-bold text-muted-foreground">
-                  <span>Delivery fee</span>
-                  <span className="text-foreground">{formatKES(deliveryFee)}</span>
-                </div>
-                <Separator className="bg-secondary/5" />
                 <div className="flex justify-between font-extrabold text-lg text-foreground pt-1">
                   <span>Total</span>
-                  <span>{formatKES(total)}</span>
+                  <span>{formatKES(displayTotal)}</span>
                 </div>
               </CardContent>
               <CardFooter className="flex-col gap-3 p-6 pt-0">

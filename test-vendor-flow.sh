@@ -12,13 +12,13 @@ API_URL="http://localhost:3000"
 echo -e "${YELLOW}[TEST 1] Registering vendor account...${NC}"
 REGISTER_RESPONSE=$(curl -s -X POST "$API_URL/api/auth/register" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "Test Vendor",
-    "email": "testvendor@test.com",
-    "phone": "+254700000001",
-    "password": "password123",
-    "role": "vendor"
-  }')
+  -d "{
+    \"name\": \"Test Vendor\",
+    \"email\": \"testvendor_${RANDOM}@test.com\",
+    \"phone\": \"+254700$(($RANDOM%900000+100000))\",
+    \"password\": \"password123\",
+    \"role\": \"vendor\"
+  }")
 
 echo "Response: $REGISTER_RESPONSE"
 TOKEN=$(echo $REGISTER_RESPONSE | grep -o '"token":"[^"]*' | cut -d'"' -f4)

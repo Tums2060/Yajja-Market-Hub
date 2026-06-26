@@ -270,7 +270,7 @@ export async function disburseRiderPayout(orderId: number): Promise<void> {
     return;
   }
 
-  const riderAmount = order.deliveryFee * 0.80;
+  const riderAmount = order.deliveryFee * 0.85;
   const initiatorName = process.env.MPESA_INITIATOR_NAME;
   const securityCredential = process.env.MPESA_SECURITY_CREDENTIAL;
   const isConfigured = Boolean(initiatorName && securityCredential);

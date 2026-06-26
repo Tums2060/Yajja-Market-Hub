@@ -167,15 +167,15 @@ router.get("/admin/revenue", requireAdmin, async (req, res) => {
   const grossRevenue = orders.reduce((s, o) => s + o.total, 0);
   const deliveredSubtotal = delivered.reduce((s, o) => s + o.subtotal, 0);
   const deliveryFees = delivered.reduce((s, o) => s + o.deliveryFee, 0);
-  const commission = deliveryFees * 0.20;
+  const commission = deliveryFees * 0.15;
   const vendorPayouts = deliveredSubtotal;
-  const riderPayouts = deliveryFees * 0.80;
+  const riderPayouts = deliveryFees * 0.85;
   res.json({
     grossRevenue,
     deliveredOrders: delivered.length,
     totalOrders: orders.length,
     commission,
-    commissionRate: 0.20,
+    commissionRate: 0.15,
     vendorPayouts,
     riderPayouts,
   });

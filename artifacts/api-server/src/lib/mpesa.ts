@@ -6,11 +6,11 @@ export const mpesaConfig = {
   consumerKey: env.MPESA_CONSUMER_KEY || "",
   consumerSecret: env.MPESA_CONSUMER_SECRET || "",
   shortcode: env.MPESA_SHORTCODE || "",
+  storeNumber: env.MPESA_STORE_NUMBER || "",
   passkey: env.MPESA_PASSKEY || "",
   environment: (env.MPESA_ENV || "sandbox").toLowerCase(),
   callbackUrl: env.MPESA_CALLBACK_URL || "",
-  commissionRate: Number(env.MPESA_COMMISSION_RATE || "0.15"),
-  deliveryFee: Number(env.DELIVERY_FEE || "40"),
+  deliveryFee: Number(env.DELIVERY_FEE || "60"),
   baseUrl: env.MPESA_BASE_URL || "",
   transactionType: env.MPESA_TRANSACTION_TYPE || "CustomerPayBillOnline",
 };
@@ -61,8 +61,9 @@ function timestamp(): string {
 }
 
 export function generatePassword(ts: string): string {
+  const shortcode = mpesaConfig.storeNumber || mpesaConfig.shortcode;
   return Buffer.from(
-    mpesaConfig.shortcode + mpesaConfig.passkey + ts,
+    shortcode + mpesaConfig.passkey + ts,
   ).toString("base64");
 }
 
@@ -119,7 +120,7 @@ export async function stkPush(params: StkPushParams): Promise<StkPushResult> {
   const phone = normalizePhone(params.phone);
 
   const body = {
-    BusinessShortCode: mpesaConfig.shortcode,
+    BusinessShortCode: mpesaConfig.storeNumber || mpesaConfig.shortcode,
     Password: password,
     Timestamp: ts,
     TransactionType: mpesaConfig.transactionType,
@@ -153,3 +154,53 @@ export async function stkPush(params: StkPushParams): Promise<StkPushResult> {
     customerMessage: data.CustomerMessage,
   };
 }
+
+export interface QueryStkPushParams {
+  checkoutRequestId: string;
+}
+
+export interface QueryStkPushResult {
+  responseCode: string;
+  responseDescription: string;
+  merchantRequestId: string;
+  checkoutRequestId: string;
+  resultCode: string;
+  resultDesc: string;
+}
+
+export async function queryStkPush(params: QueryStkPushParams): Promise<QueryStkPushResult> {
+  const token = await getAccessToken();
+  const ts = timestamp();
+  const password = generatePassword(ts);
+
+  const body = {
+    BusinessShortCode: mpesaConfig.storeNumber || mpesaConfig.shortcode,
+    Password: password,
+    Timestamp: ts,
+    CheckoutRequestID: params.checkoutRequestId,
+  };
+
+  const res = await fetch(`${getMpesaBaseUrl()}/mpesa/stkpushquery/v1/query`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = (await res.json()) as Record<string, string>;
+  if (!res.ok || data.errorCode) {
+    logger.error({ data }, "Daraja STK push query failed");
+    throw new Error(`STK push query failed: ${data.errorMessage || data.ResponseDescription || res.status}`);
+  }
+  return {
+    responseCode: data.ResponseCode,
+    responseDescription: data.ResponseDescription,
+    merchantRequestId: data.MerchantRequestID,
+    checkoutRequestId: data.CheckoutRequestID,
+    resultCode: data.ResultCode,
+    resultDesc: data.ResultDesc,
+  };
+}
+

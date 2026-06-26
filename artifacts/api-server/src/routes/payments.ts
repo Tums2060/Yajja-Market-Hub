@@ -8,6 +8,7 @@ import {
   stkPush,
   resolveCallbackUrl,
   normalizePhone,
+  queryStkPush,
 } from "../lib/mpesa";
 import { settlePaymentByCheckoutId } from "../lib/payments-core";
 import { formatOrderCode } from "../lib/order-code";
@@ -140,7 +141,56 @@ router.get("/payments/status", requireAuth, async (req, res) => {
   }
   const anyFailed = payments.some((p) => p.status === "failed");
   const allPaid = payments.every((p) => p.status === "paid");
-  const status = anyFailed ? "failed" : allPaid ? "paid" : "pending";
+  let status = anyFailed ? "failed" : allPaid ? "paid" : "pending";
+
+  if (status === "pending" && isMpesaConfigured() && !checkoutRequestId.startsWith("SIM-")) {
+    try {
+      const queryResult = await queryStkPush({ checkoutRequestId });
+      if (queryResult.responseCode === "0") {
+        const resultCode = queryResult.resultCode;
+        const resultDesc = queryResult.resultDesc || "";
+        const isStillProcessing =
+          resultCode === "4999" ||
+          resultDesc.toLowerCase().includes("processing") ||
+          resultDesc.toLowerCase().includes("pending");
+
+        if (isStillProcessing) {
+          req.log?.info({ checkoutRequestId, resultCode, resultDesc }, "Transaction is still under processing");
+        } else {
+          const success = resultCode === "0";
+          await settlePaymentByCheckoutId(checkoutRequestId, {
+            success,
+            resultCode,
+            resultDesc,
+          });
+
+          // Re-query database to return the updated status
+          const updated = await db
+            .select()
+            .from(paymentsTable)
+            .where(
+              and(
+                eq(paymentsTable.checkoutRequestId, checkoutRequestId),
+                eq(paymentsTable.userId, user.id),
+              ),
+            );
+          if (updated.length > 0) {
+            const updatedAnyFailed = updated.some((p) => p.status === "failed");
+            const updatedAllPaid = updated.every((p) => p.status === "paid");
+            res.json({
+              status: updatedAnyFailed ? "failed" : updatedAllPaid ? "paid" : "pending",
+              resultDesc: updated[0].resultDesc,
+              receipt: updated.find((p) => p.mpesaReceipt)?.mpesaReceipt ?? null,
+            });
+            return;
+          }
+        }
+      }
+    } catch (queryErr) {
+      req.log?.error({ queryErr, checkoutRequestId }, "Failed to query STK Push status from Daraja");
+    }
+  }
+
   res.json({
     status,
     resultDesc: payments[0].resultDesc,

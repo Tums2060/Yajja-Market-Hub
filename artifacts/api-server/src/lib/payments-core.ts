@@ -12,6 +12,7 @@ import { createNotification } from "./notify";
 import { formatOrderCode } from "./order-code";
 import { logger } from "./logger";
 import { disbursePayoutForOrder } from "./disbursement-service";
+import { sendPaymentReceivedEmail } from "./email";
 
 type Order = typeof ordersTable.$inferSelect;
 
@@ -89,6 +90,11 @@ export async function settlePaymentByCheckoutId(
       logger.error({ orderId: order.id, err }, "Error running vendor payout disbursement");
     });
 
+    // Send payment confirmation email asynchronously
+    void sendPaymentReceivedEmail(order.id).catch((err) => {
+      logger.error({ orderId: order.id, err }, "Error sending payment confirmation email");
+    });
+
     // Record the escrow hold (money received, held until delivery).
     await db.insert(ledgerEntriesTable).values({
       orderId: order.id,
@@ -147,9 +153,9 @@ export async function releaseEscrowForOrder(order: Order): Promise<void> {
     .where(eq(paymentsTable.orderId, order.id))
     .limit(1);
 
-  const commission = round2(order.deliveryFee * 0.20);
+  const commission = round2(order.deliveryFee * 0.15);
   const vendorPayout = order.subtotal;
-  const riderPayout = round2(order.deliveryFee * 0.80);
+  const riderPayout = round2(order.deliveryFee * 0.85);
 
   const [vendor] = await db
     .select({ userId: vendorsTable.userId })
