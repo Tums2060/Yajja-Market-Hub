@@ -67,10 +67,10 @@ const CATEGORY_STYLES: Record<string, {
 };
 
 const CATEGORIES = [
-  { id: "food", label: "Yajja Food & Drinks", Icon: UtensilsCrossed, href: "/category/food", desc: "Local & fast foods" },
-  { id: "liquor", label: "Yajja Liquor", Icon: Wine, href: "/category/liquor", desc: "Beers, wines & spirits" },
-  { id: "pharmacy", label: "Yajja Health", Icon: Cross, href: "/category/pharmacy", desc: "Medicines & wellness" },
-  { id: "household", label: "Yajja Go", Icon: ShoppingCart, href: "/category/household", desc: "Daily essentials" },
+  { id: "food", label: "Food & Drinks", Icon: UtensilsCrossed, href: "/category/food", desc: "Local & fast foods" },
+  { id: "liquor", label: "Liquor", Icon: Wine, href: "/category/liquor", desc: "Beers, wines & spirits" },
+  { id: "pharmacy", label: "Health", Icon: Cross, href: "/category/pharmacy", desc: "Medicines & wellness" },
+  { id: "household", label: "Go", Icon: ShoppingCart, href: "/category/household", desc: "Daily essentials" },
 ];
 
 const categoryLabel: Record<string, string> = {
@@ -308,8 +308,8 @@ export default function Home() {
           {/* Search Header */}
           <div className="max-w-2xl">
             <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-4">
-              Hello Boss? <br />
-              <span className="text-muted-foreground font-medium text-2xl">What are you craving today?</span>
+              Hello Boss <br />
+              <span className="text-muted-foreground font-medium text-2xl">Any cravings today?</span>
             </h1>
             <form onSubmit={handleSearch} className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -349,7 +349,7 @@ export default function Home() {
       {/* Categories Section */}
       <div className="max-w-4xl mx-auto px-4 py-6">
         <h2 className="text-lg font-extrabold text-foreground mb-4 flex items-center gap-1.5">
-          <Compass className="h-5 w-5 text-primary" /> What are you looking for?
+          <Compass className="h-5 w-5 text-primary" /> What should we get you?
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {CATEGORIES.map((cat) => {
@@ -379,7 +379,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto px-4 pb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-extrabold text-foreground flex items-center gap-1.5">
-              <RotateCcw className="h-5 w-5 text-primary" /> Same as last time?
+              <RotateCcw className="h-5 w-5 text-primary" /> The usual?
             </h2>
             <Link href="/orders" className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-0.5">
               All orders <ChevronRight className="h-3.5 w-3.5" />
