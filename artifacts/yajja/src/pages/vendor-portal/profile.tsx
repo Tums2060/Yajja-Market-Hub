@@ -462,7 +462,7 @@ export default function VendorProfile() {
               </div>
             ) : (
               <p className="text-sm text-amber-600 bg-amber-500/5 border border-dashed border-amber-300 rounded-xl p-4 font-semibold">
-                No payout method set. Please add one to receive orders and automatic split-payment payouts.
+                No payout method set. Please add one to receive orders and manual split-payment payouts.
               </p>
             )
           ) : (

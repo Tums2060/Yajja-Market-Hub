@@ -81,7 +81,7 @@ export function AuthLogin({ role }: { role: AuthRole }) {
   }, [user, isLoading, setLocation]);
 
   function onSubmit(values: z.infer<typeof loginSchema>) {
-    loginMutation.mutate({ data: values }, {
+    loginMutation.mutate({ data: { ...values, role } }, {
       onSuccess: (data) => {
         setToken(data.token);
         toast({ title: "Welcome back!" });

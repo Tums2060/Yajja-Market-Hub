@@ -588,7 +588,9 @@ router.get("/rider-orders", requireAuth, async (req, res) => {
   const [rider] = await db.select().from(riderProfilesTable).where(eq(riderProfilesTable.userId, user.id)).limit(1);
 
   let orders = await db.select().from(ordersTable);
-  if (status) {
+  if (status === "all") {
+    // Return all orders (no status filter)
+  } else if (status) {
     orders = orders.filter((o) => o.status === status);
   } else {
     orders = orders.filter((o) => o.status === "accepted" || o.status === "ready" || o.status === "picked_up");

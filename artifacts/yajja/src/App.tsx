@@ -25,6 +25,7 @@ const Cart = lazy(() => import("@/pages/cart"));
 const Checkout = lazy(() => import("@/pages/checkout"));
 const Orders = lazy(() => import("@/pages/orders"));
 const OrderDetail = lazy(() => import("@/pages/order-detail"));
+const TrackOrders = lazy(() => import("@/pages/track-orders"));
 const Profile = lazy(() => import("@/pages/profile"));
 const VendorDetail = lazy(() => import("@/pages/vendor-detail"));
 const SearchResults = lazy(() => import("@/pages/search"));
@@ -108,6 +109,7 @@ function Router() {
             <Route path="/cart"><ProtectedRoute component={Cart} allowedRoles={["customer"]} /></Route>
             <Route path="/checkout"><ProtectedRoute component={Checkout} allowedRoles={["customer"]} /></Route>
             <Route path="/orders"><ProtectedRoute component={Orders} allowedRoles={["customer"]} /></Route>
+            <Route path="/orders/track"><ProtectedRoute component={TrackOrders} allowedRoles={["customer"]} /></Route>
             <Route path="/orders/:orderId"><ProtectedRoute component={OrderDetail} allowedRoles={["customer"]} /></Route>
             <Route path="/profile"><ProtectedRoute component={Profile} allowedRoles={["customer"]} /></Route>
 

@@ -13,7 +13,7 @@ import {
 import {
   ShoppingBag, ShoppingCart, Users, User,
   LayoutDashboard, Package, Map, Menu, LogOut, Home,
-  Store, Truck, Receipt, History, DollarSign
+  Store, Truck, Receipt, History, DollarSign, Clock
 } from "lucide-react";
 import { useGetCart } from "@workspace/api-client-react";
 import NotificationBell from "./NotificationBell";
@@ -23,6 +23,7 @@ const customerLinks = [
   { href: "/shop", label: "Explore", icon: ShoppingBag },
   { href: "/cart", label: "Cart", icon: ShoppingCart },
   { href: "/orders", label: "Orders", icon: Receipt },
+  { href: "/orders/track", label: "Track Orders", icon: Clock },
 ];
 
 const vendorLinks = [
@@ -138,6 +139,11 @@ export default function Navbar() {
                         <DropdownMenuItem asChild>
                           <Link href="/orders" className="flex items-center gap-2">
                             <Receipt className="h-4 w-4" /> Orders
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href="/orders/track" className="flex items-center gap-2">
+                            <Clock className="h-4 w-4" /> Track Orders
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />

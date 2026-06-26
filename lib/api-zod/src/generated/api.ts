@@ -44,6 +44,7 @@ export const RegisterBody = zod.object({
 export const LoginBody = zod.object({
   email: zod.string(),
   password: zod.string(),
+  role: zod.string().optional(),
 });
 
 export const LoginResponse = zod.object({

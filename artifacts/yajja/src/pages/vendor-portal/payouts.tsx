@@ -27,10 +27,10 @@ const statusColor: Record<string, string> = {
 };
 
 const statusLabel: Record<string, string> = {
-  pending: "Pending Callback",
+  pending: "Pending Review",
   processing: "Processing Payout",
-  completed: "Disbursed",
-  manual_review: "Action Required",
+  completed: "Disbursed (Paid)",
+  manual_review: "Awaiting Manual Transfer",
 };
 
 export default function PayoutsPage() {
@@ -121,7 +121,7 @@ export default function PayoutsPage() {
           </Button>
           <div>
             <h1 className="text-2xl font-black text-[#1A2340]">Payout Proofs</h1>
-            <p className="text-sm text-slate-500">Official records of automated M-Pesa vendor disbursements</p>
+            <p className="text-sm text-slate-500">Official records of manual M-Pesa vendor disbursements</p>
           </div>
         </div>
 
@@ -129,9 +129,9 @@ export default function PayoutsPage() {
         <div className="bg-[#1A2340] text-white rounded-2xl p-4 shadow-sm flex items-start gap-3 border border-white/5">
           <ShieldCheck className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
           <div className="text-xs space-y-1">
-            <p className="font-extrabold text-sm">Automated Split Payout Ledger</p>
+            <p className="font-extrabold text-sm">Manual Disbursement Split Payout Ledger</p>
             <p className="text-white/80 leading-relaxed">
-              When a customer completes payment via STK Push, the platform automatically keeps the platform fee (KES 40) and instantly routes your portion (Total - KES 40) directly to your configured payout method. All records here are fetched in real time directly from the Safaricom Daraja API callbacks.
+              When a customer completes payment via STK Push, Yajja keeps the platform fee (KES 60) and our admin team manually disburses your portion (Total - KES 60) directly to your configured payout method. The status below tracks these manual disbursements.
             </p>
           </div>
         </div>

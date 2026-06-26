@@ -149,7 +149,7 @@ router.post("/auth/login", loginLimiter, async (req, res) => {
     res.status(400).json({ message: "Invalid request body" });
     return;
   }
-  const { email, password } = parsed.data;
+  const { email, password, role } = parsed.data;
   const [user] = await db.select(userSelect).from(usersTable).where(eq(usersTable.email, email)).limit(1);
   if (!user) {
     res.status(401).json({ message: "Invalid credentials" });
@@ -157,6 +157,11 @@ router.post("/auth/login", loginLimiter, async (req, res) => {
   }
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) {
+    res.status(401).json({ message: "Invalid credentials" });
+    return;
+  }
+
+  if (role && user.role !== role) {
     res.status(401).json({ message: "Invalid credentials" });
     return;
   }

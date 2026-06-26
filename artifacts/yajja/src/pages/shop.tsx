@@ -136,7 +136,7 @@ export default function Shop() {
                         <span>{vendor.deliveryTime || "25-35 min"}</span>
                       </span>
                       <span className="h-1 w-1 bg-muted-foreground/30 rounded-full" />
-                      <span>KES 200 delivery</span>
+                      <span>KES 60 delivery</span>
                       <span className="h-1 w-1 bg-muted-foreground/30 rounded-full" />
                       <span className="capitalize font-semibold text-primary/95 text-[10px] bg-secondary/10 px-2 py-0.5 rounded-full">
                         {categoryLabel[vendor.category] || vendor.category}

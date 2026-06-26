@@ -57,10 +57,10 @@ export default function RiderEarningsPage() {
   });
 
   const { data: orders, isLoading } = useListRiderOrders(
-    undefined,
+    { status: "all" as any },
     {
       query: {
-        queryKey: getListRiderOrdersQueryKey(),
+        queryKey: getListRiderOrdersQueryKey({ status: "all" as any }),
         enabled: !!riderProfile?.id,
         refetchInterval: 5000,
       },
@@ -73,8 +73,8 @@ export default function RiderEarningsPage() {
     return ((orders as any[]) || [])
       .filter((o) => o.riderId === riderProfile.id)
       .map((o) => {
-        // Rider receives 80% of delivery fee
-        const riderAmount = Math.max(0, o.deliveryFee * 0.80);
+        // Rider receives 85% of delivery fee
+        const riderAmount = Math.max(0, o.deliveryFee * 0.85);
         return {
           ...o,
           riderAmount,
@@ -169,9 +169,9 @@ export default function RiderEarningsPage() {
         <div className="bg-[#1A2340] text-white rounded-2xl p-4 shadow-sm flex items-start gap-3 border border-white/5">
           <ShieldCheck className="h-5 w-5 text-[#22C55E] shrink-0 mt-0.5" />
           <div className="text-xs space-y-1">
-            <p className="font-extrabold text-sm">Automated Delivery Payout Release</p>
+            <p className="font-extrabold text-sm">Delivery Payout Release</p>
             <p className="text-white/80 leading-relaxed">
-              Upon delivering the order, once the customer confirms receipt on their device, the system automatically triggers a B2C M-Pesa payout to your registered phone number. The delivery fee (KES 50) is split as 80% to you (KES 40) and 20% to the platform.
+              Upon delivering the order, once the customer confirms receipt on their device, the system logs your payout. The delivery fee (KES 60) is split as 85% to you (KES 51) and 15% to the platform (KES 9). Disbursements are processed manually to your registered phone number.
             </p>
           </div>
         </div>
@@ -339,7 +339,7 @@ export default function RiderEarningsPage() {
                             {formatKES(delivery.riderAmount)}
                           </p>
                           <p className="text-[10px] text-slate-400 font-semibold">
-                            (80% of {formatKES(delivery.deliveryFee)})
+                            (85% of {formatKES(delivery.deliveryFee)})
                           </p>
                         </td>
                         <td className="p-4 whitespace-nowrap text-xs font-semibold text-slate-600">

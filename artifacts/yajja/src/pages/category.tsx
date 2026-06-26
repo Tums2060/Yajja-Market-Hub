@@ -215,7 +215,7 @@ export default function CategoryPage() {
                         <span>{vendor.deliveryTime || "25-35 min"}</span>
                       </span>
                       <span className="h-1 w-1 bg-muted-foreground/30 rounded-full" />
-                      <span>KES 200 delivery</span>
+                      <span>KES 60 delivery</span>
                       {vendor.minOrder > 0 && (
                         <>
                           <span className="h-1 w-1 bg-muted-foreground/30 rounded-full" />

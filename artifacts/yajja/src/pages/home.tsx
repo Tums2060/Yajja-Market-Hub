@@ -132,7 +132,7 @@ function RestaurantCard({ vendor }: { vendor: any }) {
               <span>{vendor.deliveryTime || "25-35 min"}</span>
             </span>
             <span className="h-1 w-1 bg-muted-foreground/30 rounded-full" />
-            <span>KES 200 delivery</span>
+            <span>KES 60 delivery</span>
             <span className="h-1 w-1 bg-muted-foreground/30 rounded-full" />
             <span className="capitalize font-semibold text-primary/95 text-[11px] bg-secondary/10 px-2 py-0.5 rounded-full">
               {categoryLabel[vendor.category] || vendor.category}
@@ -148,6 +148,7 @@ function FloatingDock() {
   const actions = [
     { href: "/cart", label: "Cart", Icon: ShoppingCart },
     { href: "/orders", label: "Orders", Icon: ReceiptText },
+    { href: "/orders/track", label: "Track Orders", Icon: Clock },
     { href: "/profile", label: "Account", Icon: User },
   ];
   return (
@@ -187,6 +188,12 @@ export default function Home() {
     { limit: 6 } as any
   );
   const { data: orders } = useListOrders({} as any);
+
+  const liveOrders = React.useMemo(() => {
+    return ((orders as any[]) || []).filter(
+      (o) => !["delivered", "cancelled", "rejected"].includes(o.status)
+    );
+  }, [orders]);
 
   const recentOrders = [...((orders as any[]) || [])]
     .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime())
@@ -345,6 +352,32 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Live Order Tracking Banner */}
+      {liveOrders.length > 0 && (
+        <div className="max-w-4xl mx-auto px-4 pb-4">
+          <Link href="/orders/track">
+            <div className="bg-emerald-500/10 border border-emerald-500/25 rounded-2xl p-4 flex items-center justify-between cursor-pointer hover:bg-emerald-500/15 transition-all">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-600">
+                  <Clock className="h-5 w-5 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-foreground">
+                    You have active orders!
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Track the live status of your {liveOrders.length === 1 ? "delivery" : `${liveOrders.length} deliveries`}.
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs font-bold text-primary flex items-center gap-0.5">
+                Track Live <ChevronRight className="h-4 w-4" />
+              </span>
+            </div>
+          </Link>
+        </div>
+      )}
 
       {/* Categories Section */}
       <div className="max-w-4xl mx-auto px-4 py-6">
