@@ -18,7 +18,7 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-export type AuthRole = "customer" | "vendor" | "rider";
+export type AuthRole = "customer" | "vendor" | "rider" | "admin";
 
 const roleConfig: Record<AuthRole, {
   label: string;
@@ -50,6 +50,14 @@ const roleConfig: Record<AuthRole, {
     subheading: "Manage deliveries and tracking.",
     loginPath: "/rider/login",
     registerPath: "/rider/register",
+    showCustomerExtras: false,
+  },
+  admin: {
+    label: "Admin",
+    heading: "Sign In as Admin",
+    subheading: "Access the Yajja administration console.",
+    loginPath: "/login/admin",
+    registerPath: "",
     showCustomerExtras: false,
   },
 };
@@ -179,18 +187,20 @@ export function AuthLogin({ role }: { role: AuthRole }) {
             </form>
           </Form>
 
-          <div className="mt-8 space-y-3">
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <div className="flex-1 h-px bg-border" />
-              <span>New to Yajja?</span>
-              <div className="flex-1 h-px bg-border" />
+          {role !== "admin" && (
+            <div className="mt-8 space-y-3">
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <div className="flex-1 h-px bg-border" />
+                <span>New to Yajja?</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+              <Link href={config.registerPath}>
+                <Button variant="outline" className="w-full h-12 rounded-xl border-secondary/40 text-primary font-semibold hover:bg-secondary/30">
+                  {`Sign Up as ${config.label}`}
+                </Button>
+              </Link>
             </div>
-            <Link href={config.registerPath}>
-              <Button variant="outline" className="w-full h-12 rounded-xl border-secondary/40 text-primary font-semibold hover:bg-secondary/30">
-                {`Sign Up as ${config.label}`}
-              </Button>
-            </Link>
-          </div>
+          )}
 
           {config.showCustomerExtras && (
             <>

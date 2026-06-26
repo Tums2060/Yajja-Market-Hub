@@ -18,6 +18,7 @@ const VendorLogin = lazy(() => import("@/pages/vendor-login"));
 const VendorRegister = lazy(() => import("@/pages/vendor-register"));
 const RiderLogin = lazy(() => import("@/pages/rider-login"));
 const RiderRegister = lazy(() => import("@/pages/rider-register"));
+const AdminLogin = lazy(() => import("@/pages/admin-login"));
 const Home = lazy(() => import("@/pages/home"));
 const Shop = lazy(() => import("@/pages/shop"));
 const CategoryPage = lazy(() => import("@/pages/category"));
@@ -96,6 +97,8 @@ function Router() {
             <Route path="/vendor/register" component={VendorRegister} />
             <Route path="/rider/login" component={RiderLogin} />
             <Route path="/rider/register" component={RiderRegister} />
+            <Route path="/admin/login" component={AdminLogin} />
+            <Route path="/login/admin" component={AdminLogin} />
             <Route path="/forgot-password" component={ForgotPassword} />
             <Route path="/reset-password" component={ResetPassword} />
 
