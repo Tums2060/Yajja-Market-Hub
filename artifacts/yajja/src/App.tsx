@@ -86,9 +86,41 @@ function PageLoader() {
   );
 }
 
+function SubdomainRedirect() {
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    const hostname = window.location.hostname;
+    const subdomain = hostname.split(".")[0];
+    const path = window.location.pathname;
+
+    // Only redirect if we're at the root path (don't interrupt deep links)
+    if (path !== "/") return;
+
+    switch (subdomain) {
+      case "customer":
+        setLocation("/login");
+        break;
+      case "vendor":
+        setLocation("/vendor/login");
+        break;
+      case "rider":
+        setLocation("/rider/login");
+        break;
+      case "admin":
+        setLocation("/admin/login");
+        break;
+      // "yajja" (main domain) and "www" fall through — show landing page as normal
+    }
+  }, [setLocation]);
+
+  return null;
+}
+
 function Router() {
   return (
     <Layout>
+      <SubdomainRedirect />
       <ErrorBoundary>
         <Suspense fallback={<PageLoader />}>
           <Switch>
@@ -146,6 +178,7 @@ function Router() {
         </Suspense>
       </ErrorBoundary>
     </Layout>
+
   );
 }
 
