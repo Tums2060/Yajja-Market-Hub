@@ -63,11 +63,7 @@ export default function Landing() {
   ];
 
   const features = [
-    {
-      title: "Group Buying & Bill Splitting",
-      desc: "Invite friends to build a group cart. We split the transport fees and help calculate bill assignments automatically.",
-      icon: Users,
-    },
+
     {
       title: "Rapid Last-Mile Delivery",
       desc: "Our dedicated network of riders ensures your package arrives safely and fresh in under 35 minutes.",
@@ -94,7 +90,7 @@ export default function Landing() {
           transition={{ duration: 0.6 }}
           className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#5c3fb5]/40 bg-[#5c3fb5]/10 text-xs font-semibold tracking-wide text-[#a58bff] mb-6 backdrop-blur-sm"
         >
-          <TrendingUp className="h-3.5 w-3.5" /> Uganda's Premier Multi-Category Delivery Platform
+          <TrendingUp className="h-3.5 w-3.5" /> Madaraka's Premier Multi-Category Delivery Platform
         </motion.div>
 
         <motion.h1
