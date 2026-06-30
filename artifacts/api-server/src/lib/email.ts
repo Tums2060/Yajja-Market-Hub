@@ -266,3 +266,53 @@ export async function sendDeliveryConfirmedEmail(orderId: number): Promise<void>
     logger.error({ err, orderId }, "[EMAIL] Error preparing Delivery Confirmed email");
   }
 }
+
+export async function sendPasswordResetEmail(
+  toEmail: string,
+  toName: string,
+  resetUrl: string
+): Promise<void> {
+  if (!YAJJA_EMAIL || !YAJJA_EMAIL_PASSWORD) {
+    logger.warn("[EMAIL] Mailer credentials are not configured in .env. Skipping password reset email.");
+    return;
+  }
+  try {
+    const transporter = getTransporter();
+    const info = await transporter.sendMail({
+      from: `"Yajja" <${YAJJA_EMAIL}>`,
+      to: toEmail,
+      subject: "Reset your Yajja password",
+      html: `
+        <div style="font-family: 'Helvetica Neue', sans-serif; max-width: 520px; margin: 0 auto; background: #ffffff;">
+          <div style="background: #5c3fb5; padding: 40px 32px; text-align: center; border-radius: 12px 12px 0 0;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Yajja</h1>
+            <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0; font-size: 14px;">Everything in order</p>
+          </div>
+          <div style="padding: 40px 32px; background: #ffffff; border-left: 1px solid #eee; border-right: 1px solid #eee;">
+            <h2 style="color: #1a1a2e; font-size: 22px; font-weight: 700; margin: 0 0 12px;">Reset your password</h2>
+            <p style="color: #555; font-size: 15px; line-height: 1.6; margin: 0 0 28px;">
+              Hi ${toName}, we received a request to reset the password for your Yajja account.
+              Click the button below to set a new password. This link expires in <strong>15 minutes</strong>.
+            </p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetUrl}" style="display: inline-block; background: #5c3fb5; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 15px; padding: 14px 32px; border-radius: 10px;">
+                Reset Password
+              </a>
+            </div>
+            <p style="color: #999; font-size: 13px; margin: 28px 0 0; line-height: 1.6;">
+              If you didn't request this, you can safely ignore this email — your password won't change.
+            </p>
+          </div>
+          <div style="padding: 20px 32px; background: #f8f9fa; border-radius: 0 0 12px 12px; text-align: center; border: 1px solid #eee; border-top: none;">
+            <p style="color: #aaa; font-size: 12px; margin: 0;">© 2026 Yajja · Nairobi, Kenya</p>
+          </div>
+        </div>
+      `,
+    });
+    logger.info({ messageId: info.messageId, to: toEmail }, "[EMAIL] Password reset email sent successfully");
+  } catch (err) {
+    logger.error({ err, to: toEmail }, "[EMAIL] Failed to send password reset email");
+    throw err;
+  }
+}
+

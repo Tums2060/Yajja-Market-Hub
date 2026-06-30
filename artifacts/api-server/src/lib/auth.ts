@@ -4,7 +4,18 @@ import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
+if (process.env.NODE_ENV === "production") {
+  if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET === "change-me" || process.env.SESSION_SECRET === "yajja-secret-key") {
+    throw new Error("FATAL: Insecure SESSION_SECRET configured for production. Process exiting.");
+  }
+} else {
+  if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET === "change-me" || process.env.SESSION_SECRET === "yajja-secret-key") {
+    console.warn("WARNING: Insecure SESSION_SECRET configured. For development only.");
+  }
+}
+
 const JWT_SECRET = process.env.SESSION_SECRET || "yajja-secret-key";
+
 
 export function generateToken(userId: number): string {
   return jwt.sign({ userId }, JWT_SECRET, { expiresIn: "30d" });

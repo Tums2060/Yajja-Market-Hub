@@ -45,6 +45,20 @@ router.post("/groups", requireAuth, async (req, res) => {
 
 router.get("/groups/:groupId", requireAuth, async (req, res) => {
   const groupId = parseInt(String(req.params.groupId), 10);
+  const user = getUser(req);
+
+  // Authz: Only group members or admin can view group details
+  if (user.role !== "admin" && user.role !== "super_admin") {
+    const [member] = await db.select()
+      .from(groupMembersTable)
+      .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, user.id)))
+      .limit(1);
+    if (!member) {
+      res.status(403).json({ message: "Forbidden" });
+      return;
+    }
+  }
+
   const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
   if (!group) {
     res.status(404).json({ message: "Group not found" });
@@ -55,6 +69,20 @@ router.get("/groups/:groupId", requireAuth, async (req, res) => {
 
 router.get("/groups/:groupId/members", requireAuth, async (req, res) => {
   const groupId = parseInt(String(req.params.groupId), 10);
+  const user = getUser(req);
+
+  // Authz: Only group members or admin can list group members
+  if (user.role !== "admin" && user.role !== "super_admin") {
+    const [member] = await db.select()
+      .from(groupMembersTable)
+      .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, user.id)))
+      .limit(1);
+    if (!member) {
+      res.status(403).json({ message: "Forbidden" });
+      return;
+    }
+  }
+
   const members = await db.select().from(groupMembersTable).where(eq(groupMembersTable.groupId, groupId));
   const enriched = await Promise.all(members.map(async (m) => {
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, m.userId)).limit(1);
@@ -72,6 +100,24 @@ router.get("/groups/:groupId/members", requireAuth, async (req, res) => {
 router.delete("/groups/:groupId/members/:userId", requireAuth, async (req, res) => {
   const groupId = parseInt(String(req.params.groupId), 10);
   const userId = parseInt(String(req.params.userId), 10);
+  const user = getUser(req);
+
+  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
+  if (!group) {
+    res.status(404).json({ message: "Group not found" });
+    return;
+  }
+
+  // Authz: Only the group admin, the user leaving themselves, or platform admin can remove a member
+  const isGroupAdmin = group.adminId === user.id;
+  const isSelf = userId === user.id;
+  const isPlatformAdmin = user.role === "admin" || user.role === "super_admin";
+
+  if (!isGroupAdmin && !isSelf && !isPlatformAdmin) {
+    res.status(403).json({ message: "Forbidden" });
+    return;
+  }
+
   await db.delete(groupMembersTable).where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, userId)));
   res.json({ message: "Member removed" });
 });
@@ -79,6 +125,20 @@ router.delete("/groups/:groupId/members/:userId", requireAuth, async (req, res) 
 // Messages
 router.get("/groups/:groupId/messages", requireAuth, async (req, res) => {
   const groupId = parseInt(String(req.params.groupId), 10);
+  const user = getUser(req);
+
+  // Authz: Only group members or admin can view group messages
+  if (user.role !== "admin" && user.role !== "super_admin") {
+    const [member] = await db.select()
+      .from(groupMembersTable)
+      .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, user.id)))
+      .limit(1);
+    if (!member) {
+      res.status(403).json({ message: "Forbidden" });
+      return;
+    }
+  }
+
   const limit = parseInt((req.query.limit as string) || "50");
   const messages = await db.select().from(groupMessagesTable)
     .where(eq(groupMessagesTable.groupId, groupId))
@@ -99,6 +159,19 @@ router.get("/groups/:groupId/messages", requireAuth, async (req, res) => {
 router.post("/groups/:groupId/messages", requireAuth, async (req, res) => {
   const groupId = parseInt(String(req.params.groupId), 10);
   const user = getUser(req);
+
+  // Authz: Only group members or admin can post messages
+  if (user.role !== "admin" && user.role !== "super_admin") {
+    const [member] = await db.select()
+      .from(groupMembersTable)
+      .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, user.id)))
+      .limit(1);
+    if (!member) {
+      res.status(403).json({ message: "Forbidden" });
+      return;
+    }
+  }
+
   const parsed = SendGroupMessageBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ message: "Invalid body" });

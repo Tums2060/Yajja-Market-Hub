@@ -9,8 +9,19 @@ const router = Router();
 async function requireAdmin(req: Request, res: Response, next: NextFunction) {
   await requireAuth(req, res, async () => {
     const user = getUser(req);
-    if (user.role !== "admin") {
+    if (user.role !== "admin" && user.role !== "super_admin") {
       res.status(403).json({ message: "Admin access required" });
+      return;
+    }
+    next();
+  });
+}
+
+async function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {
+  await requireAuth(req, res, async () => {
+    const user = getUser(req);
+    if (user.role !== "super_admin") {
+      res.status(403).json({ message: "Super Admin access required" });
       return;
     }
     next();
@@ -103,6 +114,20 @@ router.put("/admin/users/:userId/deactivate", requireAdmin, async (req, res) => 
     res.status(400).json({ success: false, error: "You cannot deactivate your own account", code: "INVALID_OPERATION" });
     return;
   }
+
+  // Find target user first
+  const [targetUser] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+  if (!targetUser) {
+    res.status(404).json({ success: false, error: "User not found", code: "NOT_FOUND" });
+    return;
+  }
+
+  // Protect Super Admin from normal admins
+  if (targetUser.role === "super_admin" && admin.role !== "super_admin") {
+    res.status(403).json({ success: false, error: "Forbidden: You cannot modify or deactivate the Super Admin", code: "FORBIDDEN" });
+    return;
+  }
+
   const updated = await dbUpdateReturning(usersTable, { isActive: false }, eq(usersTable.id, userId));
   if (!updated) { res.status(404).json({ success: false, error: "User not found", code: "NOT_FOUND" }); return; }
   const { passwordHash: _p, ...out } = updated;
@@ -112,10 +137,84 @@ router.put("/admin/users/:userId/deactivate", requireAdmin, async (req, res) => 
 // Reactivate a user account
 router.put("/admin/users/:userId/activate", requireAdmin, async (req, res) => {
   const userId = parseInt(String(req.params.userId), 10);
+  const admin = getUser(req);
+
+  // Find target user first
+  const [targetUser] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+  if (!targetUser) {
+    res.status(404).json({ success: false, error: "User not found", code: "NOT_FOUND" });
+    return;
+  }
+
+  // Protect Super Admin from normal admins
+  if (targetUser.role === "super_admin" && admin.role !== "super_admin") {
+    res.status(403).json({ success: false, error: "Forbidden: You cannot modify or activate the Super Admin", code: "FORBIDDEN" });
+    return;
+  }
+
   const updated = await dbUpdateReturning(usersTable, { isActive: true }, eq(usersTable.id, userId));
   if (!updated) { res.status(404).json({ success: false, error: "User not found", code: "NOT_FOUND" }); return; }
   const { passwordHash: _p, ...out } = updated;
   res.json({ ...out, createdAt: out.createdAt.toISOString() });
+});
+
+// Create a new admin account (Super Admin only)
+router.post("/admin/users/create-admin", requireSuperAdmin, async (req, res) => {
+  const { name, email, password, phone } = req.body ?? {};
+
+  if (!name || !email || !password) {
+    res.status(400).json({ success: false, error: "Name, email, and password are required", code: "VALIDATION_ERROR" });
+    return;
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    res.status(400).json({ success: false, error: "Invalid email format", code: "VALIDATION_ERROR" });
+    return;
+  }
+
+  // Check if email already exists
+  const [existingEmail] = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(eq(usersTable.email, email))
+    .limit(1);
+
+  if (existingEmail) {
+    res.status(409).json({ success: false, error: "Email already registered", code: "CONFLICT" });
+    return;
+  }
+
+  // Check if phone number already exists
+  if (phone) {
+    const [existingPhone] = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(eq(usersTable.phone, phone))
+      .limit(1);
+
+    if (existingPhone) {
+      res.status(409).json({ success: false, error: "Phone number already in use", code: "CONFLICT" });
+      return;
+    }
+  }
+
+  const bcrypt = await import("bcryptjs");
+  const passwordHash = await bcrypt.default.hash(password, 10);
+
+  const [newAdmin] = await db
+    .insert(usersTable)
+    .values({
+      name,
+      email,
+      passwordHash,
+      role: "admin",
+      phone: phone || null,
+      isActive: true,
+    })
+    .returning();
+
+  const { passwordHash: _, ...out } = newAdmin;
+  res.status(201).json({ success: true, user: { ...out, createdAt: out.createdAt.toISOString() } });
 });
 
 // List all orders (platform-wide)

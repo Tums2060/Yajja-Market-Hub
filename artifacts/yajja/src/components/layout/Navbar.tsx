@@ -66,7 +66,7 @@ export default function Navbar() {
   const navLinks = !user ? [] :
     user.role === "vendor" ? vendorLinks :
     user.role === "rider" ? riderLinks :
-    user.role === "admin" ? adminLinks :
+    (user.role === "admin" || user.role === "super_admin") ? adminLinks :
     customerLinks;
 
   const isActive = (href: string) => {
@@ -76,13 +76,13 @@ export default function Navbar() {
 
   const portalLabel = user?.role === "vendor" ? "Vendor Portal" :
     user?.role === "rider" ? "Rider Portal" :
-    user?.role === "admin" ? "Admin Portal" : null;
+    (user?.role === "admin" || user?.role === "super_admin") ? "Admin Portal" : null;
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#1800AC] text-white">
       <div className="container flex h-20 items-center px-4 max-w-7xl mx-auto">
         <Link
-          href={user?.role === "vendor" ? "/vendor-portal" : user?.role === "rider" ? "/rider-portal" : user?.role === "admin" ? "/admin" : "/"}
+          href={user?.role === "vendor" ? "/vendor-portal" : user?.role === "rider" ? "/rider-portal" : (user?.role === "admin" || user?.role === "super_admin") ? "/admin" : "/"}
           className="mr-6 flex items-center gap-2 shrink-0"
         >
           <img src="/yajja-icon3.png" alt="Yajja" className="h-16 w-26 object-cover shadow-xl ring-2 ring-white/10 rounded-[45%]" />
@@ -180,7 +180,7 @@ export default function Navbar() {
                   </Button>
                 )}
                 <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 hover:text-white" asChild>
-                  <Link href={user.role === "vendor" ? "/vendor-portal" : user.role === "rider" ? "/rider-portal/profile" : user.role === "admin" ? "/admin" : "/profile"}>
+                  <Link href={user.role === "vendor" ? "/vendor-portal" : user.role === "rider" ? "/rider-portal/profile" : (user.role === "admin" || user.role === "super_admin") ? "/admin" : "/profile"}>
                     <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-white text-xs font-bold overflow-hidden">
                       {user.avatarUrl
                         ? <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />

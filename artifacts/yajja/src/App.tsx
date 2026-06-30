@@ -19,6 +19,7 @@ const VendorRegister = lazy(() => import("@/pages/vendor-register"));
 const RiderLogin = lazy(() => import("@/pages/rider-login"));
 const RiderRegister = lazy(() => import("@/pages/rider-register"));
 const AdminLogin = lazy(() => import("@/pages/admin-login"));
+const Landing = lazy(() => import("@/pages/landing"));
 const Home = lazy(() => import("@/pages/home"));
 const Shop = lazy(() => import("@/pages/shop"));
 const CategoryPage = lazy(() => import("@/pages/category"));
@@ -66,8 +67,8 @@ const ProtectedRoute = ({ component: Component, allowedRoles, ...rest }: any) =>
       // Redirect to their portal
       if (user.role === "vendor") setLocation("/vendor-portal");
       else if (user.role === "rider") setLocation("/rider-portal");
-      else if (user.role === "admin") setLocation("/admin");
-      else setLocation("/");
+      else if (user.role === "admin" || user.role === "super_admin") setLocation("/admin");
+      else setLocation("/home");
     }
   }, [user, isLoading, setLocation]);
 
@@ -103,7 +104,8 @@ function Router() {
             <Route path="/reset-password" component={ResetPassword} />
 
             {/* Customer Routes */}
-            <Route path="/"><ProtectedRoute component={Home} allowedRoles={["customer"]} /></Route>
+            <Route path="/" component={Landing} />
+            <Route path="/home"><ProtectedRoute component={Home} allowedRoles={["customer"]} /></Route>
             <Route path="/shop"><ProtectedRoute component={Shop} allowedRoles={["customer"]} /></Route>
             <Route path="/shop/:category"><ProtectedRoute component={Shop} allowedRoles={["customer"]} /></Route>
             <Route path="/category/:category"><ProtectedRoute component={CategoryPage} allowedRoles={["customer"]} /></Route>
@@ -132,12 +134,12 @@ function Router() {
             <Route path="/rider-portal/earnings"><ProtectedRoute component={RiderEarnings} allowedRoles={["rider"]} /></Route>
 
             {/* Admin Routes */}
-            <Route path="/admin"><ProtectedRoute component={AdminDashboard} allowedRoles={["admin"]} /></Route>
-            <Route path="/admin/vendors"><ProtectedRoute component={AdminVendors} allowedRoles={["admin"]} /></Route>
-            <Route path="/admin/orders"><ProtectedRoute component={AdminOrders} allowedRoles={["admin"]} /></Route>
-            <Route path="/admin/riders"><ProtectedRoute component={AdminRiders} allowedRoles={["admin"]} /></Route>
-            <Route path="/admin/users"><ProtectedRoute component={AdminUsers} allowedRoles={["admin"]} /></Route>
-            <Route path="/admin/customers"><ProtectedRoute component={AdminCustomers} allowedRoles={["admin"]} /></Route>
+            <Route path="/admin"><ProtectedRoute component={AdminDashboard} allowedRoles={["admin", "super_admin"]} /></Route>
+            <Route path="/admin/vendors"><ProtectedRoute component={AdminVendors} allowedRoles={["admin", "super_admin"]} /></Route>
+            <Route path="/admin/orders"><ProtectedRoute component={AdminOrders} allowedRoles={["admin", "super_admin"]} /></Route>
+            <Route path="/admin/riders"><ProtectedRoute component={AdminRiders} allowedRoles={["admin", "super_admin"]} /></Route>
+            <Route path="/admin/users"><ProtectedRoute component={AdminUsers} allowedRoles={["admin", "super_admin"]} /></Route>
+            <Route path="/admin/customers"><ProtectedRoute component={AdminCustomers} allowedRoles={["admin", "super_admin"]} /></Route>
 
             <Route component={NotFound} />
           </Switch>

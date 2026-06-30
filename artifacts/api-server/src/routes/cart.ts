@@ -145,6 +145,19 @@ router.delete("/cart/clear", requireAuth, async (req, res) => {
 // Group cart
 router.get("/groups/:groupId/cart", requireAuth, async (req, res) => {
   const groupId = parseInt(String(req.params.groupId), 10);
+  const user = getUser(req);
+
+  // Authz check: user must be group member or admin
+  if (user.role !== "admin" && user.role !== "super_admin") {
+    const [membership] = await db.select().from(groupMembersTable)
+      .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, user.id)))
+      .limit(1);
+    if (!membership) {
+      res.status(403).json({ message: "Not a member of this group" });
+      return;
+    }
+  }
+
   const items = await db.select().from(groupCartItemsTable).where(eq(groupCartItemsTable.groupId, groupId));
 
   const enriched = await Promise.all(items.map(async (item) => {
@@ -180,6 +193,18 @@ router.get("/groups/:groupId/cart", requireAuth, async (req, res) => {
 router.post("/groups/:groupId/cart/items", requireAuth, async (req, res) => {
   const groupId = parseInt(String(req.params.groupId), 10);
   const user = getUser(req);
+
+  // Authz check: user must be group member or admin
+  if (user.role !== "admin" && user.role !== "super_admin") {
+    const [membership] = await db.select().from(groupMembersTable)
+      .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, user.id)))
+      .limit(1);
+    if (!membership) {
+      res.status(403).json({ message: "Not a member of this group" });
+      return;
+    }
+  }
+
   const parsed = AddToCartBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ message: "Invalid body" });

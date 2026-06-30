@@ -50,3 +50,9 @@ Thumbs.db
 
 #Safaricom API Json file
 Safaricom APIs.postman_collection.json
+
+# Environment variables
+.env
+.env.*
+!.env.example
+

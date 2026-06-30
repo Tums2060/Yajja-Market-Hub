@@ -200,6 +200,10 @@ router.get("/payments/status", requireAuth, async (req, res) => {
 
 // Developer endpoint to manually simulate M-Pesa callback confirmations on localhost
 router.post("/payments/simulate-callback", async (req, res) => {
+  if (process.env.NODE_ENV === "production") {
+    res.status(403).json({ message: "Forbidden" });
+    return;
+  }
   try {
     const { checkoutRequestId, success } = req.body;
     if (!checkoutRequestId) {

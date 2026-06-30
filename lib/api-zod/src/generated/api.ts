@@ -21,7 +21,7 @@ export const RegisterBody = zod.object({
   name: zod.string(),
   email: zod.string(),
   password: zod.string(),
-  role: zod.enum(["customer", "vendor", "rider", "admin"]),
+  role: zod.enum(["customer", "vendor", "rider", "admin", "super_admin"]),
   phone: zod.string().optional(),
   businessName: zod.string().optional(),
   category: zod.enum(["food", "liquor", "pharmacy", "household"]).optional(),
@@ -44,7 +44,9 @@ export const RegisterBody = zod.object({
 export const LoginBody = zod.object({
   email: zod.string(),
   password: zod.string(),
-  role: zod.string().optional(),
+  role: zod
+    .enum(["customer", "vendor", "rider", "admin", "super_admin"])
+    .optional(),
 });
 
 export const LoginResponse = zod.object({
@@ -52,7 +54,7 @@ export const LoginResponse = zod.object({
     id: zod.number(),
     name: zod.string(),
     email: zod.string(),
-    role: zod.enum(["customer", "vendor", "rider", "admin"]),
+    role: zod.enum(["customer", "vendor", "rider", "admin", "super_admin"]),
     phone: zod.string().optional(),
     avatarUrl: zod.string().optional(),
     address: zod.string().optional(),
@@ -75,7 +77,7 @@ export const GetMeResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
   email: zod.string(),
-  role: zod.enum(["customer", "vendor", "rider", "admin"]),
+  role: zod.enum(["customer", "vendor", "rider", "admin", "super_admin"]),
   phone: zod.string().optional(),
   avatarUrl: zod.string().optional(),
   address: zod.string().optional(),
@@ -93,7 +95,7 @@ export const ListUsersResponseItem = zod.object({
   id: zod.number(),
   name: zod.string(),
   email: zod.string(),
-  role: zod.enum(["customer", "vendor", "rider", "admin"]),
+  role: zod.enum(["customer", "vendor", "rider", "admin", "super_admin"]),
   phone: zod.string().optional(),
   avatarUrl: zod.string().optional(),
   address: zod.string().optional(),
@@ -109,7 +111,7 @@ export const GetUserResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
   email: zod.string(),
-  role: zod.enum(["customer", "vendor", "rider", "admin"]),
+  role: zod.enum(["customer", "vendor", "rider", "admin", "super_admin"]),
   phone: zod.string().optional(),
   avatarUrl: zod.string().optional(),
   address: zod.string().optional(),

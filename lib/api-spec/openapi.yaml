@@ -1176,7 +1176,7 @@ components:
 
     UserRole:
       type: string
-      enum: [customer, vendor, rider, admin]
+      enum: [customer, vendor, rider, admin, super_admin]
 
     # ── Auth ────────────────────────────────────────────────────────────────────
     RegisterBody:
@@ -1215,6 +1215,8 @@ components:
           type: string
         password:
           type: string
+        role:
+          $ref: "#/components/schemas/UserRole"
       required: [email, password]
 
     AuthResponse:

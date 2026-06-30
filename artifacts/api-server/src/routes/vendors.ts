@@ -241,8 +241,9 @@ router.get("/vendors/:vendorId", async (req, res) => {
   res.json(serializeVendor(vendor));
 });
 
-router.put("/vendors/:vendorId", async (req, res) => {
-  const vendorId = parseInt(req.params.vendorId);
+router.put("/vendors/:vendorId", requireAuth, async (req, res) => {
+  const user = getUser(req);
+  const vendorId = parseInt(String(req.params.vendorId), 10);
 
   const parsed = UpdateVendorBody.safeParse(req.body);
 
@@ -274,6 +275,12 @@ router.put("/vendors/:vendorId", async (req, res) => {
     return;
   }
 
+  // Authorization check: Only the vendor owner or admin can update details
+  if (existing.userId !== user.id && user.role !== "admin" && user.role !== "super_admin") {
+    res.status(403).json({ message: "Forbidden" });
+    return;
+  }
+
   await db
     .update(vendorsTable)
     .set(parsed.data)
@@ -288,8 +295,26 @@ router.put("/vendors/:vendorId", async (req, res) => {
   res.json(serializeVendor(vendor));
 });
 
-router.get("/vendors/:vendorId/stats", async (req, res) => {
-  const vendorId = parseInt(req.params.vendorId);
+router.get("/vendors/:vendorId/stats", requireAuth, async (req, res) => {
+  const user = getUser(req);
+  const vendorId = parseInt(String(req.params.vendorId), 10);
+
+  const [vendor] = await db
+    .select()
+    .from(vendorsTable)
+    .where(eq(vendorsTable.id, vendorId))
+    .limit(1);
+
+  if (!vendor) {
+    res.status(404).json({ message: "Vendor not found" });
+    return;
+  }
+
+  // Authorization check: Only the vendor owner or admin can view stats
+  if (vendor.userId !== user.id && user.role !== "admin" && user.role !== "super_admin") {
+    res.status(403).json({ message: "Forbidden" });
+    return;
+  }
 
   const allOrders = await db
     .select()

@@ -1,11 +1,19 @@
 import express, { type Express } from "express";
 import path from "path";
 import cors from "cors";
+import helmet from "helmet";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
+
+// Secure headers with helmet, allowing cross-origin resources for image access
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
 
 // Behind Replit's reverse proxy — required so express-rate-limit can read the
 // real client IP from X-Forwarded-For.
@@ -30,8 +38,28 @@ app.use(
     },
   }),
 );
-app.use(cors());
+
+// Strict CORS configuration in production
+const frontendUrl = process.env.FRONTEND_URL;
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || process.env.NODE_ENV !== "production") {
+        callback(null, true);
+        return;
+      }
+      const allowed = frontendUrl ? frontendUrl.split(",").map((u) => u.trim()) : [];
+      if (allowed.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
+
 app.use(express.urlencoded({ extended: true }));
 
 const uploadsDir = path.resolve(process.cwd(), "uploads");

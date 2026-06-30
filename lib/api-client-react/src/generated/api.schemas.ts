@@ -43,6 +43,7 @@ export const UserRole = {
   vendor: "vendor",
   rider: "rider",
   admin: "admin",
+  super_admin: "super_admin",
 } as const;
 
 export type PayoutMethodType =

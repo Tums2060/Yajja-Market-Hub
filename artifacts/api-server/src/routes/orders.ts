@@ -8,11 +8,15 @@ import { createNotification, statusMessage } from "../lib/notify";
 import { releaseEscrowForOrder } from "../lib/payments-core";
 import { disburseRiderPayout } from "../lib/disbursement-service";
 import { formatOrderCode } from "../lib/order-code";
-import { mpesaConfig } from "../lib/mpesa";
+import { mpesaConfig, isMpesaConfigured } from "../lib/mpesa";
 import { sendRiderAcceptedEmail, sendDeliveryConfirmedEmail } from "../lib/email";
 import { z } from "zod";
 
 const router = Router();
+
+function isAdminRole(role: string): boolean {
+  return role === "admin" || role === "super_admin";
+}
 
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   pending: ["accepted", "confirmed", "rejected", "cancelled"],
@@ -164,7 +168,7 @@ async function canSeeCoords(
   user: { id: number; role: string },
   order: typeof ordersTable.$inferSelect,
 ): Promise<boolean> {
-  if (user.role === "admin") return true;
+  if (isAdminRole(user.role)) return true;
   if (order.userId === user.id) return true; // customer owner
   if (order.riderId) {
     const [rider] = await db
@@ -300,7 +304,7 @@ router.get("/orders/:orderId", requireAuth, async (req, res) => {
   // it, the vendor who fulfils it, or an admin may view it. Anyone else is
   // refused — this prevents IDOR enumeration of other customers' orders.
   const isOwner = order.userId === user.id;
-  const isAdmin = user.role === "admin";
+  const isAdmin = isAdminRole(user.role);
 
   let isAssignedRider = false;
   if (order.riderId) {
@@ -337,6 +341,10 @@ router.get("/orders/:orderId", requireAuth, async (req, res) => {
 // and surfaces it to the vendor as a new incoming order. Status stays "pending"
 // so the vendor can accept/reject it through the normal lifecycle.
 router.post("/orders/:orderId/mock-payment-confirm", requireAuth, async (req, res) => {
+  if (process.env.NODE_ENV === "production" || isMpesaConfigured()) {
+    res.status(403).json({ message: "Mock payment confirmation is disabled" });
+    return;
+  }
   try {
     const orderId = parseInt(String(req.params.orderId), 10);
     const user = getUser(req);
@@ -399,7 +407,7 @@ router.put("/orders/:orderId/status", requireAuth, async (req, res) => {
   // Only the vendor that owns this order, its assigned rider, or an admin may
   // change order status.
   const user = getUser(req);
-  if (user.role !== "admin") {
+  if (!isAdminRole(user.role)) {
     const vendorOwnerId = await getVendorOwnerId(existing.vendorId);
     const riderOwnerId = existing.riderId ? await getRiderOwnerId(existing.riderId) : null;
     if (user.id !== vendorOwnerId && user.id !== riderOwnerId) {
@@ -409,7 +417,7 @@ router.put("/orders/:orderId/status", requireAuth, async (req, res) => {
   }
   // Enforce a coherent status lifecycle (admins may override).
   const next = parsed.data.status as string;
-  if (user.role !== "admin" && next !== existing.status) {
+  if (!isAdminRole(user.role) && next !== existing.status) {
     const allowed = ALLOWED_TRANSITIONS[existing.status as string] ?? [];
     if (!allowed.includes(next)) {
       res.status(400).json({
@@ -439,7 +447,7 @@ router.post("/orders/:orderId/cancel", requireAuth, async (req, res) => {
     res.status(404).json({ message: "Order not found" });
     return;
   }
-  if (existing.userId !== user.id && user.role !== "admin") {
+  if (existing.userId !== user.id && !isAdminRole(user.role)) {
     res.status(403).json({ message: "Forbidden" });
     return;
   }
@@ -465,7 +473,7 @@ router.post("/orders/:orderId/confirm-delivery", requireAuth, async (req, res) =
       res.status(404).json({ message: "Order not found" });
       return;
     }
-    if (existing.userId !== user.id && user.role !== "admin") {
+    if (existing.userId !== user.id && !isAdminRole(user.role)) {
       res.status(403).json({ message: "Forbidden" });
       return;
     }
@@ -516,7 +524,7 @@ router.post("/orders/:orderId/assign-rider", requireAuth, async (req, res) => {
   // Only the vendor that owns this order, the rider claiming it, or an admin
   // may assign a rider.
   const user = getUser(req);
-  if (user.role !== "admin") {
+  if (!isAdminRole(user.role)) {
     const vendorOwnerId = await getVendorOwnerId(existing.vendorId);
     const claimingRiderOwnerId = await getRiderOwnerId(parsed.data.riderId);
     if (user.id !== vendorOwnerId && user.id !== claimingRiderOwnerId) {
@@ -524,7 +532,7 @@ router.post("/orders/:orderId/assign-rider", requireAuth, async (req, res) => {
       return;
     }
   }
-  if (user.role === "admin") {
+  if (isAdminRole(user.role)) {
     // Admins can (re)assign regardless of state.
     await db.update(ordersTable).set({ riderId: parsed.data.riderId, updatedAt: new Date() })
       .where(eq(ordersTable.id, orderId));
@@ -581,7 +589,7 @@ router.get("/rider-orders", requireAuth, async (req, res) => {
   const { status } = req.query as { status?: string };
   const user = getUser(req);
   // Only riders (and admins) may browse the active/claimable order pool.
-  if (user.role !== "rider" && user.role !== "admin") {
+  if (user.role !== "rider" && !isAdminRole(user.role)) {
     res.status(403).json({ message: "Forbidden" });
     return;
   }
@@ -618,7 +626,7 @@ router.get("/groups/:groupId/orders", requireAuth, async (req, res) => {
   const user = getUser(req);
   // Only members of the group (or an admin) may view its orders — prevents
   // enumerating other groups' orders and the coordinates within them.
-  if (user.role !== "admin") {
+  if (!isAdminRole(user.role)) {
     const [member] = await db
       .select({ id: groupMembersTable.id })
       .from(groupMembersTable)
@@ -761,7 +769,7 @@ router.post("/riders/pickup/:orderId", requireAuth, async (req, res) => {
   }
   // Only the rider assigned to this order (or an admin) may mark it picked up.
   const user = getUser(req);
-  if (user.role !== "admin") {
+  if (!isAdminRole(user.role)) {
     const riderOwnerId = existing.riderId ? await getRiderOwnerId(existing.riderId) : null;
     if (user.id !== riderOwnerId) {
       res.status(403).json({ message: "Forbidden" });
@@ -788,7 +796,7 @@ router.post("/riders/deliver/:orderId", requireAuth, async (req, res) => {
   }
   // Only the rider assigned to this order (or an admin) may mark it delivered.
   const user = getUser(req);
-  if (user.role !== "admin") {
+  if (!isAdminRole(user.role)) {
     const riderOwnerId = existing.riderId ? await getRiderOwnerId(existing.riderId) : null;
     if (user.id !== riderOwnerId) {
       res.status(403).json({ message: "Forbidden" });

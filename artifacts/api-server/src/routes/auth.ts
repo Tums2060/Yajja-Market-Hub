@@ -99,6 +99,12 @@ router.post("/auth/register", signupLimiter, async (req, res) => {
   }
   const { name, email, password, role, phone, businessName, category, address, latitude, longitude, imageUrl, payoutMethod } = parsed.data;
 
+  // Hardening: Prevent registration with admin/super_admin roles
+  if (role === "admin" || role === "super_admin") {
+    res.status(403).json({ message: "Registration with administrative roles is prohibited." });
+    return;
+  }
+
   // Anti-fraud: phone is required for customer accounts
   if (role === "customer" && !phone) {
     res.status(400).json({ message: "Phone number is required" });
@@ -162,8 +168,10 @@ router.post("/auth/login", loginLimiter, async (req, res) => {
   }
 
   if (role && user.role !== role) {
-    res.status(401).json({ message: "Invalid credentials" });
-    return;
+    if (!(role === "admin" && user.role === "super_admin")) {
+      res.status(401).json({ message: "Invalid credentials" });
+      return;
+    }
   }
 
   await ensureVendorProfile(user);

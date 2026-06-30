@@ -1,9 +1,21 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { db, usersTable, passwordResetTokensTable } from "@workspace/db";
 import { eq, and, gt, isNull } from "drizzle-orm";
+import { sendPasswordResetEmail } from "../lib/email";
+
 const router = Router();
+
+// Protect password reset from brute force/email spamming
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: process.env.NODE_ENV === "development" ? 1000 : 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: "Too many password reset attempts. Please try again in an hour.", code: "RATE_LIMITED" },
+});
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -15,64 +27,17 @@ async function sendResetEmail(
   resetUrl: string,
   log: { info: (...args: any[]) => void; error: (...args: any[]) => void },
 ): Promise<void> {
-  const apiKey = process.env.BREVO_API_KEY;
-  if (!apiKey) {
-    throw new Error("BREVO_API_KEY is not configured");
+  try {
+    await sendPasswordResetEmail(toEmail, toName, resetUrl);
+    log.info({ to: toEmail }, "[RESET] Password reset email sent successfully via Nodemailer");
+  } catch (err) {
+    log.error({ err, to: toEmail }, "[RESET] Failed to send email via Nodemailer");
+    throw err;
   }
-
-  // Brevo requires the sender to be verified in the Brevo dashboard.
-  // Allow the operator to set BREVO_SENDER_EMAIL / BREVO_SENDER_NAME, otherwise fall back.
-  const senderEmail = process.env.BREVO_SENDER_EMAIL || "noreply@yajja.com";
-  const senderName = process.env.BREVO_SENDER_NAME || "Yajja";
-
-  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
-    method: "POST",
-    headers: {
-      "accept": "application/json",
-      "api-key": apiKey,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      sender: { name: senderName, email: senderEmail },
-      to: [{ email: toEmail, name: toName }],
-      subject: "Reset your Yajja password",
-      htmlContent: `
-        <div style="font-family: 'Helvetica Neue', sans-serif; max-width: 520px; margin: 0 auto; background: #ffffff;">
-          <div style="background: #1aabbb; padding: 40px 32px; text-align: center; border-radius: 12px 12px 0 0;">
-            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Yajja</h1>
-            <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0; font-size: 14px;">Everything in order</p>
-          </div>
-          <div style="padding: 40px 32px; background: #ffffff;">
-            <h2 style="color: #1a1a2e; font-size: 22px; font-weight: 700; margin: 0 0 12px;">Reset your password</h2>
-            <p style="color: #555; font-size: 15px; line-height: 1.6; margin: 0 0 28px;">
-              Hi ${toName}, we received a request to reset the password for your Yajja account.
-              Click the button below to set a new password. This link expires in <strong>15 minutes</strong>.
-            </p>
-            <a href="${resetUrl}" style="display: inline-block; background: #1aabbb; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 15px; padding: 14px 32px; border-radius: 10px;">
-              Reset Password
-            </a>
-            <p style="color: #999; font-size: 13px; margin: 28px 0 0; line-height: 1.6;">
-              If you didn't request this, you can safely ignore this email — your password won't change.
-            </p>
-          </div>
-          <div style="padding: 20px 32px; background: #f8f9fa; border-radius: 0 0 12px 12px; text-align: center;">
-            <p style="color: #aaa; font-size: 12px; margin: 0;">© 2026 Yajja · Nairobi, Kenya</p>
-          </div>
-        </div>
-      `,
-    }),
-  });
-
-  const bodyText = await response.text();
-  if (!response.ok) {
-    log.error({ status: response.status, body: bodyText, sender: senderEmail }, "Brevo API rejected reset email");
-    throw new Error(`Brevo API error (${response.status}): ${bodyText}`);
-  }
-  log.info({ to: toEmail, sender: senderEmail, brevoResponse: bodyText }, "Brevo accepted reset email");
 }
 
 // POST /auth/forgot-password
-router.post("/auth/forgot-password", async (req, res) => {
+router.post("/auth/forgot-password", forgotPasswordLimiter, async (req, res) => {
   const { email } = req.body ?? {};
   if (!email || typeof email !== "string" || !isValidEmail(email)) {
     res.status(400).json({ message: "Valid email address is required" });
